@@ -17,7 +17,10 @@ _QUESTION_END = re.compile(r"(\?|？|나요|세요|니까|까요|있어요|없�
 
 
 def normalize_type(action: Action) -> Action:
-    if action.type in (ActionType.EXAM, ActionType.TEST) and _QUESTION_END.search(action.content.strip()):
+    from doctor_agent.agent.text import looks_like_history_question
+
+    text = action.content.strip()
+    if action.type in (ActionType.EXAM, ActionType.TEST) and (_QUESTION_END.search(text) or looks_like_history_question(text)):
         return Action(ActionType.ASK, action.content, action.reason)
     return action
 

@@ -5,7 +5,7 @@ prompt can show a short, organised summary instead of the whole conversation.
 """
 from dataclasses import dataclass, field
 
-from doctor_agent.agent.text import similarity
+from doctor_agent.agent.text import same_dx, similarity
 
 FINDING_STATUS = {"양성": "양성", "positive": "양성", "있음": "양성", "이상": "양성",
                   "음성": "음성", "negative": "음성", "없음": "음성", "정상": "음성",
@@ -81,7 +81,7 @@ class DdxLedger:
     entries: list[DxEntry] = field(default_factory=list)
 
     def _find(self, dx: str) -> DxEntry | None:
-        return next((e for e in self.entries if similarity(e.dx, dx) >= 0.75), None)
+        return next((e for e in self.entries if same_dx(e.dx, dx)), None)  # keeps the first entry's display name
 
     def update(self, raw: object) -> None:
         if not isinstance(raw, list):
