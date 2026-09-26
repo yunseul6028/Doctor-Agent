@@ -1,6 +1,6 @@
 """Prompts. Medical content is owned by clinical-strategist. Record changes in docs/experiments.md."""
 
-PROMPT_VERSION = "v5-ko-ledger-review"
+PROMPT_VERSION = "v6-kb-strict-review"
 
 SYSTEM = """당신은 환자를 진료하는 숙련된 의사입니다.
 매 턴마다 아래 행동 중 정확히 하나만 합니다.
@@ -27,23 +27,20 @@ SYSTEM = """당신은 환자를 진료하는 숙련된 의사입니다.
 JSON 한 줄로만 출력하세요 (type 값은 영어 그대로):
 {"findings": [{"item": "...", "status": "양성|음성|결과없음", "detail": "..."}], "ddx": [{"dx": "...", "p": 0.0, "status": "유력|위험|배제", "for": ["..."], "against": ["..."]}], "type": "ASK|EXAM|TEST|DIAGNOSE", "content": "...", "reason": "...", "confidence": 0.0}"""
 
-REVIEW_SYSTEM = """당신은 동료 의사의 진단을 제출 직전에 검토하는 검토의입니다. 보수적으로, 그러나 불필요하게 진료를 끌지 않도록 판단하세요.
+REVIEW_SYSTEM = """당신은 동료 의사의 진단을 제출 직전에 검토하는 검토의입니다. 판정은 코드가 아래 항목으로 내리니, 각 항목을 사실대로만 채우세요.
 
-다음을 확인하세요:
-1. 주요 양성 소견이 모두 이 진단으로 설명되는가?
-2. 이 진단과 맞지 않는 소견이 있는가?
-3. 놓치면 위험한 질환을 배제했는가?
-4. 소견이 뒷받침하는 더 구체적인 진단명(세부 유형, 기저 원인 질환)이 있는가?
-5. 확진 근거(검사 결과나 특징적 소견)가 있는가, 아니면 추측인가?
-
-판정:
-- 승인: 문제가 없거나, 남은 불확실성이 추가 진료로 줄어들지 않을 때.
-- 보류: 한두 턴의 질문이나 검사로 해결될 구체적인 문제가 있을 때. 이때 next에 가장 중요한 다음 행동 하나를 쓰세요.
-- 더 구체적인 진단명이 소견으로 이미 뒷받침되면 승인하면서 final_diagnosis에 그 이름을 쓰세요. 근거 없는 세부 유형은 쓰지 마세요.
-- "결과가 제공되지 않습니다"로 끝난 검사는 다시 요청하지 마세요.
+1. key_findings: 이 환자의 주요 양성 소견 3~6개. 각각 제안 진단으로 설명되면 "설명됨", 아니면 "설명 안 됨".
+2. contradicting: 제안 진단과 명백히 모순되는 소견 (없으면 빈 목록). 단순히 "없는" 소견은 모순이 아닙니다.
+3. confirmation: 이 진단을 확정하는 검사 결과나 특징적 소견의 이름 (예: "혈액 배양 양성", "대장내시경 조직검사 선암"). 임상 진단 기준(예: DSM 기준, 특징적 소견 조합)을 충족하면 그 기준 이름을 쓰세요. 증상만 있고 확정 근거가 없으면 "없음".
+4. unresolved_danger: 아직 확인하거나 배제하지 않은 ⚠위험 질환 (없으면 빈 목록).
+5. next: 위 2~4에 문제가 있을 때 그것을 해결할 가장 중요한 다음 행동 하나. "결과가 제공되지 않습니다"로 끝난 요청은 다시 쓰지 마세요. 문제가 없으면 null.
+6. final_diagnosis: 제안 진단명을 바꿀 때만 씁니다. 원칙은 제안 진단명을 그대로 두는 것입니다.
+   - 제안 진단이 상위 범주이고 이미 나온 소견이 세부 유형을 가르면 세부 유형을 쓰세요 (예: 양극성 장애 → 양극성 II형 장애). refine_evidence에는 그 유형을 정하는 소견을 그대로 인용하세요.
+   - 위치(상행, 좌측 등)나 원인·유발 요인(…에 의한, …의존성)만 덧붙이지 마세요. 표준 질환명(예: "대장암")을 유지하세요.
+   - 인용할 소견이 없으면 final_diagnosis와 refine_evidence를 모두 빈 문자열로 두세요.
 
 JSON 한 줄로만 출력하세요:
-{"verdict": "승인|보류", "issues": ["..."], "final_diagnosis": "", "next": {"type": "ASK|EXAM|TEST", "content": "...", "reason": "..."}}"""
+{"key_findings": [{"finding": "...", "status": "설명됨|설명 안 됨"}], "contradicting": ["..."], "confirmation": "...|없음", "unresolved_danger": ["..."], "next": {"type": "ASK|EXAM|TEST", "content": "...", "reason": "..."}, "final_diagnosis": "", "refine_evidence": ""}"""
 
 
 def build_step_messages(view: str, turn: int, max_turns: int, hints: list[str]) -> list[dict]:
@@ -56,7 +53,7 @@ def build_step_messages(view: str, turn: int, max_turns: int, hints: list[str]) 
 
 def build_review_messages(view: str, diagnosis: str, reason: str, turn: int, max_turns: int) -> list[dict]:
     user = (f"{view}\n\n[제출하려는 진단] {diagnosis}\n[근거] {reason}\n"
-            f"현재 턴: {turn + 1}/{max_turns}\n\n검토 결과를 JSON으로 내세요.")
+            f"현재 턴: {turn + 1}/{max_turns} (남은 턴 {max_turns - turn})\n\n검토 항목을 JSON으로 채우세요.")
     return [{"role": "system", "content": REVIEW_SYSTEM}, {"role": "user", "content": user}]
 
 

@@ -92,42 +92,122 @@ def test_clean_diagnosis_strips_sentence():
     assert clean_diagnosis("급성 췌장염") == "급성 췌장염"
 
 
-def test_review_hold_returns_reviewers_next_action():
+class _Scripted:
+    """Scripted LLM: returns the outputs in order, repeating the last one."""
+
+    def __init__(self, *outputs):
+        self.outputs, self.call_count = [o if isinstance(o, str) else json.dumps(o, ensure_ascii=False) for o in outputs], 0
+
+    def chat(self, messages):
+        self.call_count += 1
+        return self.outputs[min(self.call_count - 1, len(self.outputs) - 1)]
+
+
+def _diagnose(dx, reason="추정"):
+    return {"type": "DIAGNOSE", "content": dx, "reason": reason, "confidence": 0.8}
+
+
+def _review(confirmation="혈액검사 확인", unexplained=(), contradicting=(), danger=(), final="", evidence="",
+            nxt=({"type": "TEST", "content": "자가항체 검사", "reason": "감별"})):
+    key = [{"finding": "황달", "status": "설명됨"}] + [{"finding": f, "status": "설명 안 됨"} for f in unexplained]
+    return {"key_findings": key, "contradicting": list(contradicting), "confirmation": confirmation,
+            "unresolved_danger": list(danger), "next": nxt, "final_diagnosis": final, "refine_evidence": evidence}
+
+
+def _state(*exchanges):
+    from doctor_agent.agent.state import CaseState, Turn
+    from doctor_agent.env.interface import Action
+
+    st = CaseState(initial_info="40세. 주호소: 황달")
+    for q, a in exchanges:
+        st.turns.append(Turn(Action(ActionType.ASK, q), a))
+    return st
+
+
+def _run(state, *outputs):
     from doctor_agent.agent.policy import Policy
-    from doctor_agent.agent.state import CaseState
 
-    class Scripted:
-        call_count = 0
-        outputs = ['{"findings": [{"item": "B형·C형 간염 검사", "status": "음성"}], "ddx": [{"dx": "A형 간염", "p": 0.5}], '
-                   '"type": "DIAGNOSE", "content": "A형 간염", "reason": "추정", "confidence": 0.5}',
-                   '{"verdict": "보류", "issues": ["A형 간염 검사 없음"], "next": {"type": "TEST", "content": "자가항체 검사", "reason": "자가면역 간염 감별"}}']
+    llm = _Scripted(*outputs)
+    return Policy(llm, Config().agent).next_action(state), llm
 
-        def chat(self, messages):
-            self.call_count += 1
-            return self.outputs[min(self.call_count - 1, 1)]
 
-    state = CaseState(initial_info="40세 여성. 주호소: 황달")
-    action = Policy(Scripted(), Config().agent).next_action(state)
+def test_review_holds_without_confirmatory_evidence():
+    state = _state()
+    step = {"findings": [{"item": "B형·C형 간염 검사", "status": "음성"}], "ddx": [{"dx": "A형 간염", "p": 0.5}], **_diagnose("A형 간염")}
+    action, _ = _run(state, step, _review(confirmation="없음"))
     assert action.type == ActionType.TEST and action.content == "자가항체 검사"
-    assert state.reviews[0]["verdict"] == "보류"
+    r = state.reviews[0]
+    assert r["verdict"] == "보류" and r["confirmation"] == "없음" and "확진 근거 없음" in r["issues"]
     assert state.findings.items[0].status == "음성" and state.ddx_ledger.entries[0].dx == "A형 간염"
 
 
-def test_review_approval_can_refine_diagnosis():
-    from doctor_agent.agent.policy import Policy
-    from doctor_agent.agent.state import CaseState
+def test_review_holds_on_unexplained_finding_or_open_danger():
+    state = _state()
+    action, _ = _run(state, _diagnose("A형 간염"), _review(unexplained=["혈소판 감소"]))
+    assert action.type == ActionType.TEST and state.reviews[0]["key_findings"][1] == {"finding": "혈소판 감소", "explained": False}
+    state = _state()
+    action, _ = _run(state, _diagnose("A형 간염"), _review(danger=["급성 간부전"]))
+    assert action.type == ActionType.TEST and state.reviews[0]["unresolved_danger"] == ["급성 간부전"]
 
-    class Scripted:
-        call_count = 0
-        outputs = ['{"type": "DIAGNOSE", "content": "양극성 장애", "reason": "조증 삽화", "confidence": 0.8}',
-                   '{"verdict": "승인", "issues": [], "final_diagnosis": "양극성 II형 장애"}']
 
-        def chat(self, messages):
-            self.call_count += 1
-            return self.outputs[min(self.call_count - 1, 1)]
+def test_review_approves_complete_case_despite_free_text_verdict():
+    state = _state()
+    out = {**_review(nxt=None), "verdict": "보류"}  # a stray free-text verdict is ignored; code decides from fields
+    action, _ = _run(state, _diagnose("A형 간염"), out)
+    assert action.type == ActionType.DIAGNOSE and action.content == "A형 간염" and state.reviews[0]["verdict"] == "승인"
 
-    action = Policy(Scripted(), Config().agent).next_action(CaseState(initial_info="30세 여성. 주호소: 기분 변화"))
+
+def test_review_without_usable_next_action_does_not_hold():
+    state = _state()
+    action, _ = _run(state, _diagnose("A형 간염"), _review(confirmation="없음", nxt={"type": "DIAGNOSE", "content": "x"}))
+    assert action.type == ActionType.DIAGNOSE and state.reviews[0]["verdict"] == "승인"
+    state = _state()
+    action, _ = _run(state, _diagnose("A형 간염"), "검토 결과: 문제 없음")  # unparseable → never blocks
+    assert action.type == ActionType.DIAGNOSE and action.content == "A형 간염"
+
+
+def test_review_refuses_unsupported_refinements():
+    from doctor_agent.agent.policy import _refinement_problem
+
+    case = "대장내시경: 대장에 궤양성 종괴, 조직검사 선암\n운동 중 두드러기와 호흡곤란\n비타민 B12 낮음, 기억력 저하"
+    assert _refinement_problem("대장암", "상행결장암", "조직검사 선암", case)  # location qualifier
+    assert _refinement_problem("운동 유발성 아나필락시스", "밀가루 의존성 운동 유발성 아나필락시스", "운동 중 두드러기", case)
+    assert _refinement_problem("비타민 B12 결핍", "비타민 B12 결핍에 의한 인지장애", "기억력 저하", case)
+    assert _refinement_problem("대장암", "대장 선암", "", case)  # no cited evidence
+    assert _refinement_problem("대장암", "대장 선암", "CEA 상승", case)  # evidence not in this case
+    state = _state(("대장내시경", "대장에 궤양성 종괴"))
+    action, _ = _run(state, _diagnose("대장암"), _review(nxt=None, final="상행결장암", evidence="대장에 궤양성 종괴"))
+    assert action.content == "대장암" and state.reviews[0]["refinement"]["accepted"] is False
+    assert "final_diagnosis" not in state.reviews[0]
+
+
+def test_review_accepts_supported_refinements():
+    from doctor_agent.agent.policy import _refinement_problem
+
+    state = _state(("가장 길었던 들뜬 시기는 얼마나 갔나요?", "경조증 같은 시기가 4일 정도였고 입원한 적은 없어요"))
+    action, _ = _run(state, _diagnose("양극성 장애", "조증 삽화"),
+                     _review(nxt=None, final="양극성 II형 장애", evidence="경조증 4일, 입원 없음"))
     assert action.type == ActionType.DIAGNOSE and action.content == "양극성 II형 장애"
+    assert state.reviews[0]["final_diagnosis"] == "양극성 II형 장애" and state.reviews[0]["refinement"]["accepted"]
+    case = "밀가루 음식을 먹고 운동하면 두드러기와 호흡곤란"
+    assert not _refinement_problem("운동 유발성 아나필락시스", "밀가루 의존성 운동 유발성 아나필락시스", "밀가루 음식 후 운동 시 발생", case)
+
+
+def test_review_cap_and_turn_budget():
+    from doctor_agent.agent.policy import MAX_REVIEWS
+    from doctor_agent.agent.state import Turn
+
+    state = _state()
+    hold = _review(confirmation="없음")
+    for i in range(MAX_REVIEWS):
+        action, _ = _run(state, _diagnose("A형 간염"), {**hold, "next": {"type": "TEST", "content": f"검사 {i}"}})
+        assert action.type == ActionType.TEST
+        state.turns.append(Turn(action, "결과가 제공되지 않습니다"))
+    action, llm = _run(state, _diagnose("A형 간염"), hold)
+    assert action.type == ActionType.DIAGNOSE and llm.call_count == 1 and len(state.reviews) == MAX_REVIEWS
+    late = _state(*[(f"질문 {i}", "네") for i in range(Config().agent.max_turns - 3)])
+    action, llm = _run(late, _diagnose("A형 간염"), hold)
+    assert action.type == ActionType.DIAGNOSE and not late.reviews
 
 
 def test_ledgers_merge_across_turns():
