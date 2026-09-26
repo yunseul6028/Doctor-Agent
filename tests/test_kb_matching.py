@@ -159,7 +159,8 @@ def test_normalize_deterministic_and_fast():
 
 def test_benchmark_regression_dev_subset():
     """Fixed dev subset (all 16 sample cases + first 34 clinicalqa cases by id) of scripts/eval_kb.py.
-    Values at the time of writing (2026-09-26): top-10 16/50, top-50 23/50; margin of 2 cases."""
+    Values at the time of writing: 2026-09-26 top-10 16/50, top-50 23/50; 2026-09-27 (curated test-result links,
+    kb_tests.py) top-1 25/50, top-10 35/50, top-50 39/50. Margin of 3 cases."""
     from scripts import eval_kb as E
     cases = E.load_cases(("sample", "clinicalqa"))
     sub = [c for c in cases if c["_set"] == "sample"]
@@ -167,7 +168,9 @@ def test_benchmark_regression_dev_subset():
     rows = [E.rank_case(c) for c in sub]
     top10 = sum(1 for r in rows if r["rank"] and r["rank"] <= 10)
     top50 = sum(1 for r in rows if r["rank"])
+    top1 = sum(1 for r in rows if r["rank"] == 1)
     assert len(sub) == 50
-    assert top10 >= 14, top10
-    assert top50 >= 21, top50
+    assert top1 >= 22, top1
+    assert top10 >= 32, top10
+    assert top50 >= 36, top50
     assert max(r["ms"] for r in rows) < 500

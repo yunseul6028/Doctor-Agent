@@ -116,7 +116,12 @@ def test_every_field_has_a_source():
         for f in ("def", "summary_ko", "severity", "medlineplus"):
             if f in d:
                 assert d[f][1] in KNOWN_SOURCES
-    for t in k.terms.values():
+        for x in d.get("findings_from_tests", []):  # curated test-result links: [term, ["curated"], w, ref, R]
+            assert x[0] in k.terms and x[1] == ["curated"] and x[2] in (1, 2, 3) and x[3]
+    for tid, t in k.terms.items():
+        if tid.startswith("TF:"):
+            assert t["src"] == {"en": "curated", "ko": "curated"}
+            continue
         assert t["src"].get("en") in KNOWN_SOURCES
         if t["ko"]:
             assert t["src"].get("ko") in KNOWN_SOURCES

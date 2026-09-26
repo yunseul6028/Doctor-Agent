@@ -38,6 +38,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
+from doctor_agent.knowledge import kb_tests  # noqa: E402  (curated test-finding table; stdlib only)
+
 RAW = ROOT / "data/external/kb_raw"
 OUT = ROOT / "data/kb"
 CACHE = ROOT / "data/labels/kb_llm_cache.json"
@@ -84,14 +86,15 @@ SOURCES = {
                        "summarised in Korean by an LLM (see data/labels/kb_build_meta.json).",
     },
     "curated": {
-        "title": "Our own Korean clinical wording tables: CURATED_SYN (build time) and "
-                 "src/doctor_agent/knowledge/kb_curated.py (runtime synonyms, phrase patterns, generic-term stop list, "
-                 "vital/lab thresholds, diagnosis-name spelling pairs)",
+        "title": "Our own tables: CURATED_SYN (build time), src/doctor_agent/knowledge/kb_curated.py (runtime "
+                 "synonyms, phrase patterns, generic-term stop list, vital/lab thresholds, diagnosis-name spelling "
+                 "pairs) and src/doctor_agent/knowledge/kb_tests.py (test/lab/imaging finding -> disease links)",
         "license": "Self-authored",
         "license_url": "",
         "url": "",
-        "attribution": "Written by the team; used only to match findings and diagnosis names to KB entries "
-                       "(adds no disease knowledge).",
+        "attribution": "Written by the team. kb_curated.py only maps wording to KB entries; kb_tests.py adds "
+                       "test-result -> disease links (field findings_from_tests), each citing a guideline/review "
+                       "(PMID, see meta.test_refs) or marked 'textbook' (unverified). No text copied from any source.",
     },
     "LLM": {
         "title": "Offline LLM processing (Korean labels, extraction from MedlinePlus)",
@@ -546,6 +549,33 @@ class UF:
         self.p[rb] = ra
 
 
+def add_test_links(profiles: list[dict], terms: dict) -> dict:
+    """Curated test/lab/imaging finding → disease links (src/doctor_agent/knowledge/kb_tests.py, source "curated").
+
+    Adds one term per finding ("TF:<id>") and, per linked profile, findings_from_tests = [[term id, ["curated"],
+    weight 1-3, reference key, "R" if a normal result argues against the disease else ""]]. Every linked profile id
+    must exist (fails loudly otherwise), so a KB rebuild cannot silently drop links."""
+    by_id = {p["id"]: p for p in profiles}
+    missing = sorted({pid for _f, pid, _w, _r, _ref in kb_tests.links() if pid not in by_id})
+    if missing:
+        raise RuntimeError(f"kb_tests.DX points at profiles missing from the KB: {missing}")
+    for f in kb_tests.FINDINGS:
+        terms["TF:" + f.id] = {"en": f.en, "ko": f.ko, "syn": [], "src": {"en": "curated", "ko": "curated"},
+                               "kind": "test_finding"}
+    n = 0
+    for fid, pid, w, rule_out, ref in kb_tests.links():
+        lst = by_id[pid].setdefault("findings_from_tests", [])
+        if all(x[0] != "TF:" + fid for x in lst):
+            lst.append(["TF:" + fid, ["curated"], w, ref, "R" if rule_out else ""])
+            n += 1
+    for p in profiles:
+        if "findings_from_tests" in p:
+            p["findings_from_tests"].sort(key=lambda x: (-x[2], x[0]))
+    return {"test_findings": len(kb_tests.FINDINGS), "test_links": n,
+            "profiles_with_test_findings": sum(1 for p in profiles if p.get("findings_from_tests")),
+            "test_link_refs_with_pmid": sum(1 for *_x, ref in kb_tests.links() if kb_tests.REFS[ref]["pmid"])}
+
+
 def assemble(cache: LLMCache, files: dict) -> dict:
     do, do_version = parse_do()
     wd = parse_wd()
@@ -767,9 +797,9 @@ def assemble(cache: LLMCache, files: dict) -> dict:
             for a in lab["en_alt"][:5]:
                 name("names_en", a, "WD")
             code("wikidata", q, "WD")
-            for x in wd["ids"][q]["icd"]:
+            for x in sorted(wd["ids"][q]["icd"]):  # sorted: set order depends on PYTHONHASHSEED
                 code("icd10", x, "WD")
-            for x in wd["ids"][q]["mesh"]:
+            for x in sorted(wd["ids"][q]["mesh"]):
                 code("mesh", x, "WD")
             for s in wd["sym"].get(q, []):
                 tid = en_ix.get(norm_en(wd["labels"][s]["en"])) if wd["labels"][s]["en"] else None
@@ -827,6 +857,10 @@ def assemble(cache: LLMCache, files: dict) -> dict:
             p[f] = [[tid, sorted(srcs)] for tid, srcs in sorted(merged.items())]
         profiles.append(p)
 
+    # stable profile order (the union-find groups come from a set of Wikidata ids, i.e. PYTHONHASHSEED-dependent);
+    # candidates() breaks score ties by profile index, so the order must be reproducible
+    profiles.sort(key=lambda p: p["id"])
+
     # LLM Korean names for profiles with clinical content but no Korean name
     need = sorted({p["names_en"][0][0] for p in profiles if not p["names_ko"] and p["names_en"]
                    and (p["symptoms"] or p["tests"])})
@@ -839,6 +873,7 @@ def assemble(cache: LLMCache, files: dict) -> dict:
     terms = {tid: t for tid, t in terms.items() if tid in used}
     for t in terms.values():
         t["syn"] = t["syn"][:14]
+    test_stats = add_test_links(profiles, terms)
 
     stats = {
         "profiles": len(profiles),
@@ -852,6 +887,7 @@ def assemble(cache: LLMCache, files: dict) -> dict:
         "ddxplus_mapped": sum(1 for v in ddx_map.values() if v), "ddxplus_total": len(ddx_map),
         "medlineplus_mapped": len(mplus_map),
         "kcd_codes": len(kcd),
+        **test_stats,
     }
     versions = {"DO": do_version, "MedlinePlus": mplus_date, "files": files,
                 "built": dt.date.today().isoformat()}
@@ -862,11 +898,14 @@ def assemble(cache: LLMCache, files: dict) -> dict:
 def write(kb: dict) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {"schema": 1, "sources": SOURCES, "versions": kb["versions"], "stats": kb["stats"],
+            "test_refs": kb_tests.REFS,
             "hpo": "Human Phenotype Ontology not included (license forbids altering file content)."}
     body = {"meta": meta, "terms": kb["terms"], "diseases": kb["profiles"]}
-    with gzip.open(OUT / "kb.json.gz", "wt", encoding="utf-8", compresslevel=9) as f:
+    def gz(path: Path):  # mtime=0: identical inputs give byte-identical files (reproducible rebuilds)
+        return io.TextIOWrapper(gzip.GzipFile(str(path), "wb", compresslevel=9, mtime=0), encoding="utf-8")
+    with gz(OUT / "kb.json.gz") as f:
         json.dump(body, f, ensure_ascii=False, separators=(",", ":"))
-    with gzip.open(OUT / "kcd.tsv.gz", "wt", encoding="utf-8", compresslevel=9) as f:
+    with gz(OUT / "kcd.tsv.gz") as f:
         f.write("code\tko_names\ten_name\tsex\n")
         for code in sorted(kb["kcd"]):
             r = kb["kcd"][code]
