@@ -42,7 +42,7 @@
     "혈액 배양|혈액배양|blood culture|혈액 균배양": "혈액 배양: 5일간 균 배양되지 않음",
     "당화혈색소|hba1c|a1c": "당화혈색소 12.8%",
     "c-peptide|c펩타이드|c 펩타이드|인슐린|c-peptide level": "혈청 C-peptide 0.2 ng/mL, 혈청 인슐린 1.5 μIU/mL",
-    "자가항체|gad 항체|gad antibody|anti-gad|ica": "anti-GAD 항체 양성(>30 U/mL)"
+    "자가항체|gad 항체|gad antibody|anti-gad|ica 검사|ica test": "anti-GAD 항체 양성(>30 U/mL)"
   },
   "diagnosis": "당뇨병성 케톤산증",
   "aliases": [
@@ -81,7 +81,7 @@
       "혈액 배양|혈액배양|blood culture|혈액 균배양",
       "당화혈색소|hba1c|a1c",
       "c-peptide|c펩타이드|c 펩타이드|인슐린|c-peptide level",
-      "자가항체|gad 항체|gad antibody|anti-gad|ica"
+      "자가항체|gad 항체|gad antibody|anti-gad|ica 검사|ica test"
     ]
   },
   "augmented_full": {
@@ -104,7 +104,7 @@
       "cva 압통|늑골척추각 압통|cva tenderness|cva knock",
       "당화혈색소|hba1c|a1c",
       "c-peptide|c펩타이드|c 펩타이드|인슐린|c-peptide level",
-      "자가항체|gad 항체|gad antibody|anti-gad|ica"
+      "자가항체|gad 항체|gad antibody|anti-gad|ica 검사|ica test"
     ],
     "script": "scripts/augment_cases.py --mode full",
     "date": "2026-09-26"
