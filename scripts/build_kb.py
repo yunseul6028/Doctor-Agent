@@ -84,11 +84,14 @@ SOURCES = {
                        "summarised in Korean by an LLM (see data/labels/kb_build_meta.json).",
     },
     "curated": {
-        "title": "Our own short list of common Korean clinical wordings for symptom terms (CURATED_SYN)",
+        "title": "Our own Korean clinical wording tables: CURATED_SYN (build time) and "
+                 "src/doctor_agent/knowledge/kb_curated.py (runtime synonyms, phrase patterns, generic-term stop list, "
+                 "vital/lab thresholds, diagnosis-name spelling pairs)",
         "license": "Self-authored",
         "license_url": "",
         "url": "",
-        "attribution": "Written by the team; used only as extra matching synonyms.",
+        "attribution": "Written by the team; used only to match findings and diagnosis names to KB entries "
+                       "(adds no disease knowledge).",
     },
     "LLM": {
         "title": "Offline LLM processing (Korean labels, extraction from MedlinePlus)",
