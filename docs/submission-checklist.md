@@ -1,11 +1,77 @@
-# Submission Checklist (one per day)
+# Submission Checklist (one submission per day)
 
-- [ ] `pytest` passes
-- [ ] `python eval/run_local.py --llm openai` local scores recorded in docs/experiments.md
-- [ ] `python scripts/package.py` → GO
-- [ ] run.py conforms to the official I/O spec (participant guide)
-- [ ] New dependencies and data added to docs/licenses.md
-- [ ] Recorded in the submission history below
+Owner: `compliance-release`. Every submission needs a **GO** on every line below. Any NO-GO blocks the submission;
+record the reason in the history table instead.
+
+## How to run
+
+```bash
+pytest                                   # includes tests/test_package.py (the checks below, on fixtures + this repo)
+python scripts/package.py                # dev build: ERROR -> NO-GO; prints "DEV BUILD: … REAL SUBMISSION: …"
+python scripts/package.py --strict       # submission day: BLOCKER findings fail too (exit code 1)
+```
+
+`package.py` writes `dist/submission_<ts>.zip` and `dist/submission_<ts>.report.json` (findings, ZIP size, sha256,
+commit, smoke-run stats). Severities: **ERROR** = rule violation or broken ZIP (no ZIP kept); **BLOCKER** = OK for a
+dev build, not for a real submission; **WARN** = review, never blocks.
+
+## A. Automated (scripts/package.py — check id in brackets)
+
+| # | Item | Check id | How it is verified |
+|---|---|---|---|
+| 1 | `run.py` + `requirements.txt` at ZIP root, ZIP ≤ 50MB, ZIP not corrupt | `1-layout`, `1-size` | file list + `zipfile.testzip()` |
+| 1 | No dev-only files shipped (`eval/*`, `scripts/`, `tests/`, `data/cases*`, `data/sample_cases`, `data/labels`, `data/external`) | `1-dev-only` | path prefixes. **Only exception:** `eval/__init__.py` + `eval/simulator.py` (keyword case-file env behind `run.py --env local`; reads a JSON file, no network, no LLM) |
+| 2 | No network libraries / provider SDKs (`requests`, `httpx`, `urllib.request`, `socket`, `subprocess`, `google.*`, `anthropic`, `dotenv`, …), no `os.system`/`eval`/`exec` | `2-network` | AST scan of every import (incl. function-level) and call |
+| 2 | No other-provider names anywhere in shipped files (`gemini`, `generativelanguage`, `googleapis`, `anthropic`, `openrouter`, `api.openai.com`) | `2-provider` | text scan incl. comments |
+| 2 | No `.env` reads / `load_dotenv`; no `.env`/key files shipped | `2-dotenv`, `2-secrets` | AST string constants + file names |
+| 2 | URL literals only for allowlisted hosts: `localhost` (dev default endpoint) and citation links `doi.org`, `pubmed.ncbi.nlm.nih.gov` (displayed, never fetched) | `2-hosts` | AST string/f-string scan |
+| 3 | No weights / adapters / pickles / vector indexes (`.safetensors .bin .pt .gguf .onnx .pkl .npz .faiss`, `adapter_config.json`, …) | `3-weights` | file names |
+| 4 | Every case calls the LLM ≥ 1: `run.py` → `run_case`; `run_case` keeps the ≥1-call guard; policy sends `state.view()` (the case) to the LLM; forced-diagnosis path still attempts an LLM call when the case had none | `4-llm-call` | static guards + **smoke run: `llm_calls ≥ 1` in every per-case row** |
+| 5 | No cross-case state: module-level mutable objects that are mutated, `@lru_cache`/`@cache`, file writes outside `run.py` | `5-cross-case`, `5-file-write` | AST scan + smoke run checks nothing was written into the code tree |
+| 6 | `requirements.txt` pinned (`==`), minimal (every package imported by shipped code), every third-party import declared | `6-requirements`, `6-minimal`, `6-undeclared` | parse + AST |
+| 6 | License ledger: every package (with pinned version), every DOI/PMID cited in shipped code, every KB source and KB test reference (`kb.json.gz` meta) has a row in `docs/licenses.md`; no shipped row / KB source under NC/ND/unclear license | `6-ledger` | cross-reference |
+| 7 | UTF-8: every shipped text file, gzipped KB files decompressed | `7-utf8` | decode |
+| 8 | Self-contained smoke run: ZIP extracted to a clean temp dir, `python -I run.py --env local --llm dummy --cases data/sample_cases` with a scrubbed environment (no `DOCTOR_*`/`LLM_*`/`AGENT_*`, no `PYTHONPATH`), 300 s timeout; import probe of every `doctor_agent` module + every requirement | `8-smoke` | subprocess |
+| 8 | Submission mode is the `run.py` default (`--dev` turns it off); `--llm` defaults to `openai`; time-budget knob `AGENT_CASE_TIME_BUDGET_S` exists | `8-submission-mode`, `8-time-budget` | static |
+| – | Reproducibility of LLM-derived artifacts (`data/labels/*meta*.json` has model + date + prompt; every converted/augmented case file has a record) | `repro` (WARN) | cross-reference (not shipped) |
+
+Reviewed cross-case allowlist (`CROSS_CASE_ALLOWLIST` in `package.py`; anything new must be reviewed and added there):
+
+| Object | Why it is allowed |
+|---|---|
+| `llm/client.py:_STRUCTURED_REJECTED` | set of `(base_url, model)` whose server rejected structured output — a server capability, never case content |
+| `knowledge/kb.py:_KB` | read-only `KnowledgeBase` singleton loaded from `data/kb`; its lazy indexes (`_bix`, `_kcd`) are built only from `data/kb` files |
+| `run.py` file writes | predictions + per-run `.jsonl` log; the log is read back only with `--resume`, to skip case ids already finished (no content from one case reaches another) |
+
+## B. Manual (tick on submission day; BLOCKER ids are what `--strict` enforces)
+
+- [ ] `8-official-env` — `src/doctor_agent/env/official.py` implemented per the participant guide, and the server run selects it (`--env official` / `DOCTOR_ENV=official`, or make it the default)
+- [ ] `8-time-budget` — `AGENT_CASE_TIME_BUDGET_S` set **below** the official per-case limit (default in `config.py` or the server env; keep `AGENT_FINAL_RESERVE_S` room for the final DIAGNOSE)
+- [ ] `8-output-format` — `run.py` output (`write_outputs()`) matches the official format; remove the TODO in the `run.py` docstring once confirmed
+- [ ] Doctor LLM settings point at the competition endpoint/model (`openai/gpt-oss-20b` @ `4d7ae4984b7db7de8f8457170b3f1a419ee76d52`) through the server's env, not `.env`; `DOCTOR_LLM_STRUCTURED_OUTPUT` / `REASONING_EFFORT` validated on that server
+- [ ] Dry run on the **official sample cases** through the official adapter with the real LLM: every case has a diagnosis, `llm_calls ≥ 1`, no `run_error`, wall time per case within budget
+- [ ] Prompts/thresholds re-validated on gpt-oss-20b (not only Gemini); scores recorded per metric (Accuracy / Efficiency / Safety) in `docs/experiments.md`
+- [ ] `python scripts/package.py --strict` → `DEV BUILD: GO   REAL SUBMISSION: GO`, on a **clean, committed** tree (no `+dirty`)
+- [ ] New dependencies / data / citations have rows in `docs/licenses.md` (the automated check enforces shipped ones)
+- [ ] Row added to the submission history below (ZIP name, sha256 from the report, commit)
+
+## Current audit (2026-09-27, commit `ca5e704` + this change)
+
+**Dev build: GO. Real submission: NO-GO** (4 blockers, all waiting on the participant guide).
+
+- ERROR: none. ZIP 2,247 KB (37 files: `run.py`, `requirements.txt`, `src/`, `eval/{__init__,simulator}.py`, `data/kb/`).
+- Smoke run from the extracted ZIP: 16/16 sample cases, `llm_calls = 6` each (dummy LLM), no errors, ~1 s.
+- Ledger: 150 citation lines in shipped code, all 7 KB sources, the 95 KB test references with a PMID (of 96; one is 'textbook') and `openai==1.109.1` are all
+  in `docs/licenses.md`; no NC/ND/unclear license among shipped rows. Added dev-only rows for pytest, Ollama and
+  Claude Code (used to write code, curated tables and sample cases).
+- BLOCKER: `env/official.py` stub; default env is `local`; per-case time budget is 0 (unlimited); output format
+  unconfirmed (TODO in `run.py`).
+- WARN (reproducibility, not shipped): the shipped KB (built 2026-09-27) has no matching run in `kb_build_meta.json`
+  because it was a cache-only rebuild (LLM outputs are all in `kb_llm_cache.json`; `build_kb.py` only logs runs that
+  call the LLM); `data/sample_cases` has no generation prompt/model record (written by Claude, documented in the ledger).
+- Non-blocking hygiene: `KnowledgeBase.tpost` is a `defaultdict` read with `self.tpost[tid]`, so a lookup of a missing
+  (curated, static) finding id inserts an empty list into the singleton. Keys come from the fixed `kb_tests` table, not
+  from case text, so nothing case-specific leaks; switching to `.get(tid, ())` would make it strictly read-only.
 
 ## Submission history
 | Date | ZIP | Commit | Local score | Official score |
