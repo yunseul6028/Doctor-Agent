@@ -129,9 +129,16 @@ G_AMI = Citation(
     verified=True, short_author="WSES 장간막 허혈 지침",
 )
 
+G_ENDOCARDITIS = Citation(
+    "Delgado V, Ajmone Marsan N, de Waha S, et al.",
+    "2023 ESC Guidelines for the management of endocarditis",
+    "Eur Heart J", 2023, "44(39):3948-4042", doi="10.1093/eurheartj/ehad193", pmid="37622656",
+    verified=True, short_author="ESC 심내막염 지침",
+)
+
 GUIDELINES: tuple[Citation, ...] = (
     G_CHEST_PAIN, G_AORTA, G_PE, G_HF, G_PLEURAL, G_ANAPHYLAXIS, G_HEADACHE, G_MENINGITIS, G_STROKE,
-    G_SEPSIS, G_NEUTROPENIA, G_EARLY_PREGNANCY, G_ECTOPIC, G_AAA, G_AMI,
+    G_SEPSIS, G_NEUTROPENIA, G_EARLY_PREGNANCY, G_ECTOPIC, G_AAA, G_AMI, G_ENDOCARDITIS,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -269,7 +276,26 @@ def _sepsis_suspected(cc: str, text: str) -> bool:
     return duration_level(cc) == 0 and (contains_affirmed(t, _TRIG_SEPSIS_ACUTE) or bool(_RE_HIGH_TEMP.search(t)))
 
 
-PREDICATES = {"sepsis": _sepsis_suspected}
+# Infective-endocarditis risk clues (negation-aware): fever + any of these → blood cultures, any duration
+_TRIG_IE = (
+    "심내막염", "심잡음", "심장 잡음", "심장잡음", "잡음이 들", "수축기 잡음", "확장기 잡음", "인공판막", "인공 판막",
+    "기계판막", "판막 치환", "판막 수술", "판막 시술", "판막 질환", "판막질환", "판막증", "승모판", "대동맥판",
+    "류마티스 심장", "류마티스열", "선천성 심장", "치과 치료", "치과 시술", "치과에서", "발치", "이를 뽑", "스케일링",
+    "마약 주사", "주사 마약", "정맥 주사 약물", "약물 주사", "필로폰", "헤로인", "선상 출혈", "손톱 밑 출혈",
+    "손톱 아래 출혈", "제인웨이", "오슬러", "결막 점상", "결막에 점", "균혈증", "혈액배양 양성", "혈액 배양 양성",
+    "endocarditis", "murmur", "prosthetic valve", "valve replacement", "valvular", "valve disease", "dental",
+    "tooth extraction", "injection drug", "ivdu", "pwid", "heroin", "splinter", "janeway", "osler",
+    "conjunctival petechiae", "bacteremia", "positive blood culture",
+)
+
+
+def _ie_suspected(cc: str, text: str) -> bool:
+    """Fever (category) + an IE risk clue, when the sepsis blood-culture check does not already apply
+    (one blood-culture check per case, so it is not double-weighted in scoring)."""
+    return contains_affirmed(text, _TRIG_IE) and not _sepsis_suspected(cc, text)
+
+
+PREDICATES = {"sepsis": _sepsis_suspected, "ie": _ie_suspected}
 
 
 def _vitals(citation: Citation, when: str = "도착 즉시", note: str = "") -> Check:
@@ -381,6 +407,13 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "treatment (read in PMC8486643, co-published version)."),
             Check("lactate", "혈중 젖산", "test", ("젖산", "락테이트", "lactate", "lactic"), G_SEPSIS, "primary",
                   when="패혈증 의심(급성 발열 + 오한·저혈압·빈맥·의식 변화 등)", predicate="sepsis", note="SSC 2021: suggest measuring blood lactate (weak recommendation)."),
+            Check("blood_culture_ie", "감염성 심내막염 의심 시 항생제 전 혈액배양(여러 세트)", "test", _KW_BLOOD_CULTURE,
+                  G_ENDOCARDITIS, "unverified", predicate="ie",
+                  when="발열 + 심잡음·판막질환/인공판막·최근 치과/판막 시술·주사 약물·색전 징후·균혈증",
+                  note="Citation bibliographically verified (PubMed 37622656). The recommendation (>=3 blood "
+                  "culture sets before antibiotics in suspected IE) is from reviewer knowledge, not re-read in "
+                  "the guideline text. The clue list is our operationalisation of IE risk / modified Duke minor "
+                  "criteria."),
             Check("cbc_neutropenia", "일반혈액검사(호중구 수)", "test",
                   ("일반혈액", "혈구", "cbc", "백혈구", "호중구", "complete blood count", "neutrophil count"), G_NEUTROPENIA,
                   "unverified", triggers=_TRIG_NEUTROPENIA, when="항암치료 중·면역저하 환자의 발열"),
@@ -451,14 +484,15 @@ PROTOCOLS_BY_CATEGORY: dict[str, Protocol] = {p.category: p for p in PROTOCOLS}
 # --------------------------------------------------------------------------------------------
 
 
-def protocols_for(text: str) -> list[Protocol]:
-    return [PROTOCOLS_BY_CATEGORY[c] for c in detect_categories(text) if c in PROTOCOLS_BY_CATEGORY]
+def protocols_for(text: str, context: str = "") -> list[Protocol]:
+    return [PROTOCOLS_BY_CATEGORY[c] for c in detect_categories(text, context)
+            if c in PROTOCOLS_BY_CATEGORY]
 
 
-def cant_miss_for(text: str) -> list[str]:
+def cant_miss_for(text: str, context: str = "") -> list[str]:
     """Can't-miss diagnoses for the text, deduplicated in order."""
     out: list[str] = []
-    for p in protocols_for(text):
+    for p in protocols_for(text, context):
         out += [dx for dx in p.cant_miss if dx not in out]
     return out
 
@@ -467,13 +501,14 @@ def must_checks_for(text: str, context: str = "") -> list[Check]:
     """Applicable minimum checks, deduplicated by check id.
 
     Categories come from `text` only (the chief complaint): matching whole conversations over-triggers, e.g. a
-    pertinent negative like "숨은 안 차요" would add the dyspnea protocol. Conditional checks are triggered by
+    pertinent negative like "숨은 안 차요" would add the dyspnea protocol. The one exception: acute dizziness in
+    `text` opens the stroke protocol when `context` reveals a vascular risk factor. Conditional checks are triggered by
     `text` + `context` (facts learned later, e.g. pregnancy or a thunderclap onset); a trigger inside a negated
     clause ("등이 찢어지는 느낌은 아니에요") does not count. Acute-only checks use the duration of `text` only.
     """
     trigger_text = f"{text}. {context}"  # sentence break so a negation in context can't reach back into text
     out: dict[str, Check] = {}
-    for p in protocols_for(text):
+    for p in protocols_for(text, context):
         for c in p.checks:
             if c.id not in out and c.applies(trigger_text, cc=text):
                 out[c.id] = c

@@ -29,8 +29,9 @@ def score_case(case: dict, result: dict, max_turns: int = 60, judge_score: float
 
 def _checks(case: dict) -> list:
     # category from the chief complaint only; conditional checks (pregnancy, thunderclap…) from facts the doctor
-    # could have learned by asking, even if not uncovered
-    facts = " ".join(map(str, case.get("history", {}).values()))
+    # could have learned, even if not uncovered
+    # history + exam: both are learnable by asking/examining (e.g. a murmur makes endocarditis blood cultures due)
+    facts = " ".join(map(str, [*case.get("history", {}).values(), *case.get("exam", {}).values()]))
     return [c for c in must_checks_for(case["initial"], facts) if c.kind != "treatment"]
 
 

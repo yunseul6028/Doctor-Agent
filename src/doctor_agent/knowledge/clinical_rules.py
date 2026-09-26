@@ -171,11 +171,37 @@ def age_years(text: str) -> float | None:
     return None
 
 
-def detect_categories(text: str) -> list[str]:
+# Posterior-circulation stroke screen for acute dizziness (our heuristic, not from a cited rule): age >= 60 or a
+# vascular risk factor, unless the story is clearly BPPV-like (positional AND recurrent/weeks-long).
+_VASCULAR_RF = ("고혈압", "혈압약", "당뇨", "심방세동", "뇌졸중", "뇌경색", "뇌출혈", "중풍", "hypertension",
+                "diabetes", "atrial fibrillation", "afib", "prior stroke", "history of stroke")
+_POSITIONAL = ("자세를 바꿀", "자세를 바꾸", "자세 변화", "고개를 돌", "고개를 젖", "고개를 숙", "머리를 돌",
+               "누울 때", "누우면", "누웠다", "돌아누", "돌아 누", "일어날 때", "일어나면", "체위", "positional",
+               "roll over", "rolling over", "turning the head", "turn my head", "lying down")
+_RECURRENT_EPISODES = ("때마다", "반복", "자주", "여러 번", "매번", "recurrent", "every time", "episodes")
+DIZZY_STROKE_MIN_AGE = 60
+
+
+def _dizzy_stroke_risk(t: str, context: str) -> bool:
+    """Acute dizziness/vertigo that warrants the stroke checks (posterior circulation can't be excluded)."""
+    if not any(k in t for k in _DIZZY) or duration_level(t) >= 1:
+        return False
+    both = f"{t}. {(context or '').lower()}"
+    age = age_years(t)
+    if not ((age is not None and age >= DIZZY_STROKE_MIN_AGE) or contains_affirmed(both, _VASCULAR_RF)):
+        return False
+    bppv_like = contains_affirmed(both, _POSITIONAL) and contains_affirmed(both, _RECURRENT_EPISODES)
+    return not bppv_like
+
+
+def detect_categories(text: str, context: str = "") -> list[str]:
     """Categories of a chief complaint, in CATEGORY_KEYWORDS order.
 
     - neuro (stroke protocol): focal deficit keywords or co-occurrences, altered mental status, seizure. In an
       allergic context (hives, anaphylaxis) only a focal deficit counts, so "두드러기 + 의식 저하" is not stroke.
+      Acute dizziness in the chief complaint also opens it when age >= 60 or a vascular risk factor is known
+      (`context` = facts learned later, used only for risk factors / BPPV-like pattern), unless positional AND
+      recurrent (BPPV-like).
     - acute-only categories (neuro, allergy) are dropped when the complaint has lasted >= 2 weeks.
     """
     t = _mask((text or "").lower())
@@ -185,6 +211,8 @@ def detect_categories(text: str) -> list[str]:
         found.add("neuro")
     elif "allergy" in found:
         found.discard("neuro")
+    elif _dizzy_stroke_risk(t, context):
+        found.add("neuro")
     if duration_level(t) >= 1:
         found -= ACUTE_ONLY_CATEGORIES
     return [c for c in CATEGORY_KEYWORDS if c in found]
