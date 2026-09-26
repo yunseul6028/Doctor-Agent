@@ -5,6 +5,15 @@ from typing import Protocol
 from doctor_agent.config import LLMConfig
 
 
+class BillingError(RuntimeError):
+    """Out of credits / billing disabled: retrying or continuing other cases is pointless."""
+
+
+def _is_billing_error(e: Exception) -> bool:
+    msg = str(e)
+    return "402" in msg or "credits are depleted" in msg or "billing" in msg.lower() and "RESOURCE_EXHAUSTED" in msg
+
+
 class LLMClient(Protocol):
     call_count: int
 
@@ -41,6 +50,8 @@ class OpenAICompatClient:
                 self.call_count += 1
                 return resp.choices[0].message.content or ""
             except Exception as e:  # noqa: BLE001 — never kill the case
+                if _is_billing_error(e):
+                    raise BillingError(f"LLM billing error: {e}") from e
                 last_err = e
                 rate_limited = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
                 time.sleep(30 if rate_limited else 1.5 * (attempt + 1))

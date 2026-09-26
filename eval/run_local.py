@@ -26,7 +26,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from doctor_agent.agent.loop import run_case  # noqa: E402
 from doctor_agent.config import Config, LLMConfig  # noqa: E402
-from doctor_agent.llm.client import DummyLLM, OpenAICompatClient  # noqa: E402
+from doctor_agent.llm.client import BillingError, DummyLLM, OpenAICompatClient  # noqa: E402
 from eval.compare import summarize, summarize_by_set  # noqa: E402
 from eval.judge import judge_diagnosis  # noqa: E402
 from eval.llm_patient import PERSONA_CHOICES, PERSONAS, LLMPatientEnvironment  # noqa: E402
@@ -152,6 +152,7 @@ def main(argv: list[str] | None = None) -> Path | None:
     done: dict[int, dict] = {}
     failed: list[dict] = []
     lock = threading.Lock()
+    abort = threading.Event()  # set on billing errors: stop the whole batch
     t_start = time.time()
 
     def report(i: int, set_: str, path: Path, row: dict | None, err: Exception | None) -> None:
@@ -169,6 +170,13 @@ def main(argv: list[str] | None = None) -> Path | None:
     def finish(i: int, set_: str, path: Path, fut_result) -> None:
         try:
             row = fut_result()
+        except BillingError as e:
+            # out of credits: every remaining case would fail too
+            abort.set()
+            with lock:
+                failed.append({"case": path.stem, "set": set_, "error": str(e)})
+            report(i, set_, path, None, e)
+            return
         except Exception as e:  # noqa: BLE001 — one case failing must not stop the batch
             with lock:
                 failed.append({"case": path.stem, "set": set_, "error": str(e)})
@@ -180,12 +188,21 @@ def main(argv: list[str] | None = None) -> Path | None:
 
     if args.workers <= 1:
         for i, (s, p) in enumerate(cases):
+            if abort.is_set():
+                break
             finish(i, s, p, lambda s=s, p=p: run_one(s, p))
     else:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             futs = {pool.submit(run_one, s, p): (i, s, p) for i, (s, p) in enumerate(cases)}
             for fut in as_completed(futs):
                 finish(*futs[fut], fut.result)
+                if abort.is_set():
+                    for f in futs:
+                        f.cancel()
+                    break
+    if abort.is_set():
+        print("\nABORTED: LLM billing error (credits depleted?). No result file written.", flush=True)
+        return None
 
     rows = [done[i] for i in sorted(done)]
     if not rows:

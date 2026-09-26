@@ -94,3 +94,25 @@ def test_compare_cli(tmp_path, capsys):
         (tmp_path / f"{n}.json").write_text(json.dumps({"cases": [_row("c1", "s", acc)]}), encoding="utf-8")
     cmp.main(["--latest", "2", "--results", str(tmp_path), "--md"])
     assert "right→wrong 1" in capsys.readouterr().out
+
+
+def test_billing_error_is_not_retried():
+    from doctor_agent.config import LLMConfig
+    from doctor_agent.llm.client import BillingError, OpenAICompatClient
+
+    client = OpenAICompatClient(LLMConfig(max_retries=3))
+
+    class Boom:
+        calls = 0
+
+        def create(self, **kw):
+            Boom.calls += 1
+            raise RuntimeError("Error code: 402 - Your prepayment credits are depleted.")
+
+    client.client.chat.completions = Boom()
+    try:
+        client.chat([{"role": "user", "content": "x"}])
+        raised = False
+    except BillingError:
+        raised = True
+    assert raised and Boom.calls == 1
