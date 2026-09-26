@@ -11,9 +11,20 @@ Verification fields
   "primary" = against the original abstract or full text; "secondary" = core checked in the original,
   some detail only in secondary sources; "unverified" = from reviewer knowledge, original not accessible.
   Details are in Rule.note.
+
+Applicability (2026-09-26)
+- rules_for() only returns a rule when the chief complaint is inside the rule's validated population
+  (Rule.applies_to): category/keyword match + requires_any + excludes_any + chronic_cutoff + min_age.
+  Rule.applicability states where each condition comes from: the population sentence of the original abstract
+  (PubMed, re-read 2026-09-26) or, when marked, our own proxy / reviewer knowledge.
+- Duration (duration_level) and age (age_years) are parsed from the chief complaint only.
+- detect_categories(): "neuro" means the acute stroke protocol (focal deficit, altered mental status, seizure),
+  not syncope or isolated dizziness; "allergy" is the anaphylaxis protocol; neuro/allergy are dropped for
+  complaints lasting >= 2 weeks.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 # --------------------------------------------------------------------------------------------
@@ -27,9 +38,31 @@ CATEGORY_NAMES: dict[str, str] = {
     "neuro": "신경 증상",
     "fever": "발열",
     "abdominal_pain": "복통",
+    "allergy": "알레르기 반응",
 }
 
-# Lowercase substrings matched against the case text (Korean + English variants)
+# Lowercase substrings matched against the case text (Korean + English variants).
+# "neuro" = the acute stroke protocol, so it lists focal deficits, altered mental status and seizure only.
+# Syncope alone, isolated dizziness, bilateral/generalized weakness or numbness do NOT open it
+# (see _neuro_cooccurrence for "one side + weakness" and "dizziness + gait disturbance").
+_NEURO_FOCAL: tuple[str, ...] = (
+    "마비", "편마비", "반신", "구음장애", "구음 장애", "말이 어눌", "발음이 어눌", "말이 꼬", "실어", "언어장애",
+    "언어 장애", "말을 못", "얼굴이 비뚤", "입이 돌아", "입꼬리가 처", "안면 마비", "안면마비", "시야 결손",
+    "시야결손", "시야 장애", "시야가 좁", "시야가 가려", "반맹", "한쪽 눈이 안 보", "복시", "둘로 보", "실조",
+    "보행 장애", "보행장애", "뇌졸중", "중풍", "일과성 허혈", "slurred", "aphasia", "dysarthria", "facial droop",
+    "facial palsy", "hemipar", "hemipleg", "visual field", "diplopia", "ataxi", "stroke", "transient ischemic",
+)
+_NEURO_AMS_SEIZURE: tuple[str, ...] = (
+    "의식 저하", "의식저하", "의식 변화", "의식변화", "의식이 흐", "의식 혼탁", "혼돈", "착란", "헛소리", "경련", "발작",
+    "뇌전증", "seizure", "convuls", "confusion", "altered mental",
+)
+# Anaphylaxis/allergic reaction (acute). Deliberately not bare "알레르기" (e.g. allergic rhinitis history).
+_ALLERGY: tuple[str, ...] = (
+    "두드러기", "아나필락시스", "알레르기 반응", "알레르기반응", "알레르기성 반응", "혈관부종", "혈관 부종",
+    "입술이 붓", "입술이 부", "혀가 붓", "혀가 부", "얼굴이 붓", "벌에 쏘", "anaphyla", "urticaria", "hives",
+    "angioedema", "allergic reaction",
+)
+
 CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "chest_pain": (
         "흉통", "가슴 통증", "가슴통증", "가슴이 아", "가슴 아", "가슴이 답답", "가슴 답답", "가슴이 조이",
@@ -40,13 +73,7 @@ CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
         "dyspnea", "dyspnoea", "shortness of breath", "short of breath", "breathless",
     ),
     "headache": ("두통", "머리가 아", "머리 아", "머리가 깨질", "머리가 터질", "headache"),
-    "neuro": (
-        "마비", "힘이 빠", "힘이 없", "저림", "저리", "감각 저하", "감각이 없", "말이 어눌", "발음이 어눌",
-        "구음장애", "실어", "어지럼", "어지러", "현훈", "의식 저하", "의식저하", "의식 변화", "의식이 흐",
-        "혼돈", "헛소리", "경련", "발작", "실신", "기절", "얼굴이 비뚤", "입이 돌아", "시야", "복시",
-        "weakness", "numbness", "slurred", "aphasia", "dizz", "vertigo", "seizure", "syncope",
-        "confusion", "altered mental", "facial droop", "stroke", "transient ischemic",
-    ),
+    "neuro": _NEURO_FOCAL + _NEURO_AMS_SEIZURE,
     "fever": (
         "발열", "열이", "열나", "열감", "오한", "고열", "미열", "fever", "febrile", "chills",
     ),
@@ -54,13 +81,146 @@ CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
         "복통", "배가 아", "배 아", "배 통증", "배가 쥐어", "명치", "윗배", "아랫배", "옆구리", "상복부",
         "하복부", "abdominal pain", "belly pain", "stomach ache", "stomachache", "epigastric",
     ),
+    "allergy": _ALLERGY,
 }
+
+# Phrases blanked out before keyword matching (false friends of a keyword).
+_MASKS: tuple[str, ...] = ("발작적", "발작성", "paroxysmal")
+
+# Categories whose protocol is acute-only: dropped for a chief complaint lasting >= 2 weeks (duration_level >= 1)
+# unless acute markers are present. Chronic focal deficits need imaging too, but not the stroke/reperfusion
+# protocol (onset time, emergent CT) that this category scores.
+ACUTE_ONLY_CATEGORIES: frozenset[str] = frozenset({"neuro", "allergy"})
+
+_SIDE = r"(한쪽|한 쪽|편측|반쪽|왼쪽|오른쪽|좌측|우측|왼|오른|one side|left|right|unilateral)"
+_MOTOR = r"(힘이 빠|힘이 없|힘이 안|마비|위약|근력 저하|근력저하|weak)"
+_SENSORY = r"(저림|저리|저려|감각|numb)"
+_RE_SIDE_MOTOR = re.compile(_SIDE + r".{0,15}?" + _MOTOR)
+_RE_SIDE_SENSORY = re.compile(_SIDE + r".{0,15}?" + _SENSORY)
+_DIZZY = ("어지럼", "어지러", "어지럽", "현훈", "빙빙", "vertigo", "dizz")
+_GAIT = ("보행", "걷기", "걸을 때 비틀", "비틀거", "균형", "실조", "ataxi", "gait", "unsteady")
+
+
+def _mask(t: str) -> str:
+    for m in _MASKS:
+        t = t.replace(m, " ")
+    return t
+
+
+def _neuro_cooccurrence(t: str, chest: bool) -> bool:
+    """Focal deficit expressed as a combination: one side + weakness (or numbness, except with chest pain where
+    arm numbness is usually radiation), or dizziness + gait disturbance."""
+    if _RE_SIDE_MOTOR.search(t):
+        return True
+    if not chest and _RE_SIDE_SENSORY.search(t):
+        return True
+    return any(k in t for k in _DIZZY) and any(k in t for k in _GAIT)
+
+
+# --------------------------------------------------------------------------------------------
+# Duration / age parsing (chief complaint text)
+# --------------------------------------------------------------------------------------------
+
+_ACUTE_MARKERS: tuple[str, ...] = (
+    "갑자기", "갑작스", "급작스", "급격", "벼락", "순간", "방금", "분 전", "시간 전", "시간째", "오늘", "어젯밤",
+    "sudden", "abrupt", "thunderclap", "minutes ago", "hours ago", "this morning", "today",
+)
+_CHRONIC_WORDS: tuple[str, ...] = ("만성", "오래전부터", "오래 전부터", "chronic", "long-standing", "longstanding")
+_RE_PREG_WEEKS = re.compile(r"(임신|재태)\s*\d+\s*주|\d+\s*주\s*(차\s*)?임신|gestation")
+_RE_MONTHS_YEARS = re.compile(
+    r"(\d+|몇|수|여러|반)\s*(개월|달|년)(?!생)|(?<![0-9])(한|두|세)\s달(?!리)"
+    r"|\b(\d+|several|few|many)\s*(months?|years?)\b")
+_RE_WEEKS = re.compile(r"(\d+|몇|수|여러|두|세)\s*주(?!\s*(임신|수))|\b(\d+|several|few)\s*weeks?\b")
+
+
+def has_acute_marker(text: str) -> bool:
+    t = (text or "").lower()
+    return any(k in t for k in _ACUTE_MARKERS)
+
+
+def duration_level(text: str) -> int:
+    """Chief-complaint duration: 0 = acute/unknown, 1 = >= 2 weeks, 2 = months/years/"만성".
+
+    Acute markers ("갑자기", "시간 전", "오늘", ...) override to 0 (acute-on-chronic is treated as acute).
+    Pregnancy weeks ("임신 38주") are ignored. Our own heuristic, not from a paper.
+    """
+    t = (text or "").lower()
+    if has_acute_marker(t):
+        return 0
+    t = _RE_PREG_WEEKS.sub(" ", t)
+    if any(k in t for k in _CHRONIC_WORDS) or _RE_MONTHS_YEARS.search(t):
+        return 2
+    for m in _RE_WEEKS.finditer(t):
+        n = m.group(1) or m.group(3) or ""
+        if not n.isdigit() or int(n) >= 2:
+            return 1
+    return 0
+
+
+_RE_AGE = re.compile(r"(\d+)\s*세|(\d+)\s*대|(\d+)[- ]year[- ]old")
+
+
+def age_years(text: str) -> float | None:
+    """Age from the chief complaint ("45세", "40대 후반", "신생아"); None when not stated."""
+    t = (text or "").lower()
+    if any(k in t for k in ("신생아", "생후", "영아", "newborn", "neonat", "infant")):
+        return 0.0
+    m = _RE_AGE.search(t)
+    if m:
+        return float(next(g for g in m.groups() if g))
+    return None
 
 
 def detect_categories(text: str) -> list[str]:
-    """Categories whose keywords appear in the text, in CATEGORY_KEYWORDS order."""
+    """Categories of a chief complaint, in CATEGORY_KEYWORDS order.
+
+    - neuro (stroke protocol): focal deficit keywords or co-occurrences, altered mental status, seizure. In an
+      allergic context (hives, anaphylaxis) only a focal deficit counts, so "두드러기 + 의식 저하" is not stroke.
+    - acute-only categories (neuro, allergy) are dropped when the complaint has lasted >= 2 weeks.
+    """
+    t = _mask((text or "").lower())
+    found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws)}
+    focal = any(k in t for k in _NEURO_FOCAL) or _neuro_cooccurrence(t, "chest_pain" in found)
+    if focal:
+        found.add("neuro")
+    elif "allergy" in found:
+        found.discard("neuro")
+    if duration_level(t) >= 1:
+        found -= ACUTE_ONLY_CATEGORIES
+    return [c for c in CATEGORY_KEYWORDS if c in found]
+
+
+def negated(text: str, keyword: str) -> bool:
+    """True when every occurrence of keyword sits in a clause that is negated after it
+    ("다리 붓거나 비행기 탄 적은 없어요", "등이 찢어지는 느낌은 아니에요"). Heuristic for pertinent negatives."""
     t = (text or "").lower()
-    return [c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws)]
+    idx = t.find(keyword)
+    if idx < 0:
+        return False
+    while idx >= 0:
+        start = idx + len(keyword)
+        end = min(len(t), start + 25)
+        for sep in _CLAUSE_BREAKS:
+            j = t.find(sep, start)
+            if 0 <= j < end:
+                end = j
+        tail = t[start:end]
+        if not any(n in tail for n in _NEGATIONS):
+            return False
+        idx = t.find(keyword, idx + 1)
+    return True
+
+
+_NEGATIONS: tuple[str, ...] = ("없", "않", "아니", "기보다", "안 해", "안 했", "no ", "not ", "denies", "denied", "without", "never")
+# Clause ends: punctuation and connectives that start a new clause ("머리가 아프고 입맛도 없어요" → 2 clauses).
+# "거나" is deliberately not a break: "저리거나 힘이 빠진 적 없고" negates both.
+_CLAUSE_BREAKS: tuple[str, ...] = (".", "?", "!", "\n", ",", ";", "고 ", "며 ", "면서", "는데", "지만", " but ", " and ")
+
+
+def contains_affirmed(text: str, keywords: tuple[str, ...]) -> bool:
+    """Any keyword present and not negated in its clause."""
+    t = (text or "").lower()
+    return any(k in t and not negated(t, k) for k in keywords)
 
 
 # --------------------------------------------------------------------------------------------
@@ -147,6 +307,31 @@ class Rule:
     method: str = "sum"  # "sum" | "groups" (count of groups with any positive) | "tiers" (highest positive tier)
     groups: tuple[tuple[str, str], ...] = ()  # ordered (key, Korean label); for "tiers" low → high
     secondary_thresholds: tuple[Threshold, ...] = ()
+    # Applicability (validated population of the original paper). See `applies_to`.
+    requires_any: tuple[str, ...] = ()  # the chief complaint must also contain one of these
+    excludes_any: tuple[str, ...] = ()  # outside the population (a rule keyword overrides these)
+    chronic_cutoff: int = 0  # exclude when duration_level(text) >= this (1 = >=2 weeks, 2 = months+); 0 = never
+    min_age: float | None = None  # exclude when a stated age is below this
+    applicability: str = ""  # source of the conditions above
+
+    def applies_to(self, text: str) -> bool:
+        """Chief complaint is inside the rule's validated population.
+
+        Match = (category or rule keyword) AND requires_any AND NOT excludes_any (unless a rule keyword is present,
+        e.g. "명치에서 시작해 오른쪽 아랫배로" keeps Alvarado) AND duration below chronic_cutoff AND age >= min_age.
+        """
+        t = (text or "").lower()
+        kw = any(k in t for k in self.keywords)
+        if not (kw or set(detect_categories(t)).intersection(self.categories)):
+            return False
+        if self.requires_any and not any(k in t for k in self.requires_any):
+            return False
+        if not kw and any(k in t for k in self.excludes_any):
+            return False
+        if self.chronic_cutoff and duration_level(t) >= self.chronic_cutoff:
+            return False
+        age = age_years(t)
+        return not (self.min_age is not None and age is not None and age < self.min_age)
 
     @property
     def max_score(self) -> float:
@@ -262,6 +447,13 @@ C_BISAP = Citation(
 # Rules
 # --------------------------------------------------------------------------------------------
 
+# Shared applicability vocabularies (lowercase substrings)
+_TRAUMA = ("외상", "다친", "다쳤", "부딪", "넘어지", "넘어져", "교통사고", "맞았", "trauma", "injur", "hit his",
+           "hit her", "hit my")
+_RECURRENT = ("반복", "재발", "평소", "자주", "recurrent", "usual headache")
+_NON_RLQ = ("명치", "윗배", "상복부", "심와부", "옆구리", "왼쪽", "좌측", "좌하복부", "epigastr", "flank", "left",
+            "upper")
+
 _INF = float("inf")
 
 RULES: tuple[Rule, ...] = (
@@ -291,6 +483,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(4.5, _INF, ">4", "PE 가능성 높음", "D-dimer만으로 배제하지 말고 영상검사로 확인"),
         ),
         citation=C_WELLS_PE, verification="primary",
+        chronic_cutoff=2, min_age=18,
+        applicability="Wells 2000 abstract: patients with suspected PE (prospective cohort). Excluding "
+        "months-long complaints and children is our proxy for 'acute suspicion' in the adult derivation cohort.",
         note="7 items, points, 3-tier (<2, 2-6, >6) and 2-tier (<=4 / >4) cut points all stated in the "
         "PubMed abstract. Malignancy/immobilization wording beyond the abstract is ours.",
     ),
@@ -316,6 +511,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(1, _INF, "1개 이상", "PERC 양성", "배제 불가 → D-dimer 또는 Wells 평가"),
         ),
         citation=C_PERC, verification="primary",
+        chronic_cutoff=2, min_age=18,
+        applicability="Kline 2004 abstract: ED patients evaluated for suspected PE, applied to low-risk "
+        "(gestalt) patients only. Months-long complaints and children excluded (our proxy; adult ED cohort).",
         note="8 criteria from the PubMed abstract (age <50, pulse <100, SaO2 >94%, no unilateral leg swelling, "
         "no hemoptysis, no recent trauma/surgery, no prior PE/DVT, no hormone use). Items are phrased as "
         "risk-present, so score = number of failed criteria.",
@@ -344,6 +542,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(7, 10, "7–10", "고위험", "주요 심장 사건 72.7% → 조기 침습적 치료 고려"),
         ),
         citation=C_HEART, verification="primary",
+        excludes_any=_TRAUMA, chronic_cutoff=2, min_age=18,
+        applicability="Six 2008 abstract: patients referred to the ER for chest pain (NSTE-ACS question). "
+        "Traumatic, months-long and pediatric chest pain excluded (our proxy; adult ED cohort).",
         note="Score bands from the abstract; item grades from Table 1 of the PMC full text (PMC2442661). "
         "This is the 2008 original: troponin 1-2x / >2x normal limit (later versions use 1-3x / >3x). "
         "Table 1 prints the age-2 band as '≤65' (apparent typo); we use >=65.",
@@ -377,6 +578,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(2, 3, "2–3", "고위험", "즉시 대동맥 영상검사(CT 혈관조영 등)"),
         ),
         citation=C_ADD_RS, verification="secondary",
+        chronic_cutoff=2,
+        applicability="Rogers 2011 abstract: acute aortic dissection at initial presentation. Months-long "
+        "complaints excluded (not an acute presentation).",
         note="Score definition (0-3 = number of categories met) and 0 / 1 / 2-3 bands are in the PubMed "
         "abstract (4.3% of confirmed dissections scored 0). The 12 marker names were cross-checked in a "
         "secondary source (LITFL) because the full text returned HTTP 403.",
@@ -397,6 +601,10 @@ RULES: tuple[Rule, ...] = (
             Threshold(2, 3, "2–3", "qSOFA 양성", "사망 위험 3–14배 → 패혈증 평가(젖산, 혈액배양, 장기 기능)"),
         ),
         citation=C_QSOFA, verification="primary",
+        chronic_cutoff=1, min_age=18,
+        applicability="Seymour 2016 abstract: adult encounters with suspected infection outside the ICU. "
+        "Complaints lasting >=2 weeks without acute markers are not the acute suspected-infection encounter "
+        "(our proxy).",
         note="Items and >=2 cut point from the PubMed abstract. Surviving Sepsis Campaign 2021 recommends "
         "AGAINST qSOFA as a single screening tool (see safety/protocols.py), so a low score never rules out sepsis.",
     ),
@@ -405,7 +613,7 @@ RULES: tuple[Rule, ...] = (
         purpose="지역사회획득 폐렴의 30일 사망 위험 분류",
         population="지역사회획득 폐렴으로 진단되었거나 의심되는 성인",
         categories=("fever", "dyspnea"),
-        keywords=("폐렴", "기침", "가래", "pneumonia", "cough", "sputum"),
+        keywords=("폐렴", "pneumonia"),
         items=(
             Item("confusion", "새로 생긴 의식 혼란"),
             Item("urea_gt_7", "혈중 요소 7 mmol/L 초과(BUN 약 19 mg/dL 초과)"),
@@ -419,6 +627,11 @@ RULES: tuple[Rule, ...] = (
             Threshold(3, 5, "3–5", "고위험", "30일 사망률 17–57% → 중증 폐렴으로 관리"),
         ),
         citation=C_CURB65, verification="primary",
+        requires_any=("폐렴", "pneumonia", "기침", "가래", "객담", "cough", "sputum", "phlegm"),
+        chronic_cutoff=1, min_age=18,
+        applicability="Lim 2003 abstract: adults hospitalised with community-acquired pneumonia. Requires a "
+        "respiratory infection signal (cough/sputum/pneumonia) on top of fever or dyspnea; >=2-week courses "
+        "(TB, bronchiectasis, ILD) and children excluded (our proxy).",
         note="Items and per-score 30-day mortality (0:0.7, 1:3.2, 2:3, 3:17, 4:41.5, 5:57%) from the abstract. "
         "The low/intermediate/high labels are our grouping of those numbers. BUN conversion is ours (urea x 2.8).",
     ),
@@ -442,6 +655,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(4, 4, "4", "매우 높음", "배양 양성 확률 56%"),
         ),
         citation=C_CENTOR, verification="primary",
+        chronic_cutoff=1, min_age=15,
+        applicability="Centor 1981 abstract: adult ER patients complaining of sore throat. Age cut 15 and the "
+        ">=2-week exclusion are ours.",
         note="4 variables and per-count culture-positive probabilities from the PubMed abstract. The McIsaac "
         "age modification was not implemented because its criteria could not be read in the primary source.",
     ),
@@ -464,6 +680,11 @@ RULES: tuple[Rule, ...] = (
             Threshold(1, _INF, "1개 이상", "규칙 양성", "배제 불가 → 비조영 뇌 CT 등 추가 검사"),
         ),
         citation=C_OTTAWA_SAH, verification="primary",
+        excludes_any=_TRAUMA + _RECURRENT, chronic_cutoff=1, min_age=16,
+        applicability="Perry 2013 abstract: adults with acute non-traumatic headache peaking within 1 h and a "
+        "normal neurologic exam; findings 'apply only to patients with these specific characteristics'. "
+        "Excluded here: trauma, recurrent/usual headaches (not a new headache), complaints lasting >=2 weeks, "
+        "age <16 ('older than 15' per the full text; reviewer knowledge, not in the abstract).",
         note="6 criteria, population, and 100% sensitivity / 15.3% specificity from the PubMed abstract.",
     ),
     Rule(
@@ -492,6 +713,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(2, 2, "고위험 인자", "고위험", "신경외과적 중재 필요 가능 → 뇌 CT"),
         ),
         citation=C_CCHR, verification="secondary",
+        chronic_cutoff=1, min_age=16,
+        applicability="Stiell 2001 abstract: adults with GCS 13-15 after (minor) head injury presenting to the "
+        "ED. Injuries >=2 weeks old excluded; age 16 cut-off is reviewer knowledge (abstract: 'adults').",
         note="5 high-risk + 2 medium-risk factors from the PubMed abstract. The abstract text renders "
         "vomiting as '>2 episodes' and age '>65'; the rule is widely published as >=2 and >=65, which we use. "
         "Basal-fracture signs and the dangerous-mechanism definition are not in the abstract.",
@@ -516,6 +740,11 @@ RULES: tuple[Rule, ...] = (
             Threshold(6, 7, "6–7", "고위험", "2일 내 뇌졸중 위험 8.1% → 즉시 평가"),
         ),
         citation=C_ABCD2, verification="primary",
+        requires_any=("일과성", "tia", "돌아왔", "돌아옴", "회복", "사라졌", "없어졌", "풀렸", "좋아졌", "호전",
+                      "transient", "resolved"),
+        chronic_cutoff=1,
+        applicability="Johnston 2007 abstract: patients diagnosed with TIA (symptoms resolved). Requires a "
+        "focal-deficit complaint (neuro category) that resolved or is called TIA; >=2 weeks excluded.",
         note="All items, points and bands (2-day risk 1.0 / 4.1 / 8.1%) from the PubMed abstract.",
     ),
     Rule(
@@ -523,7 +752,8 @@ RULES: tuple[Rule, ...] = (
         purpose="급성 충수염 가능성 추정",
         population="충수염이 의심되는 복통 환자",
         categories=("abdominal_pain",),
-        keywords=("충수", "맹장", "appendic"),
+        keywords=("충수", "맹장", "appendic", "오른쪽 아랫배", "오른쪽 하복부", "우하복부", "우측 하복부",
+                  "right lower", "rlq"),
         items=(
             Item("migration", "통증이 우하복부로 이동"),
             Item("anorexia", "식욕부진(또는 소변 케톤)"),
@@ -541,6 +771,10 @@ RULES: tuple[Rule, ...] = (
             Threshold(9, 10, "9–10", "가능성 매우 높음", "충수염 가능성 매우 높음 → 외과 협진"),
         ),
         citation=C_ALVARADO, verification="unverified",
+        excludes_any=_NON_RLQ, chronic_cutoff=1,
+        applicability="Alvarado 1986 abstract: abdominal pain suggestive of acute appendicitis. Generic or "
+        "right-lower-quadrant pain only: upper/left/flank locations are excluded unless RLQ/appendix words are "
+        "also present; >=2-week pain excluded (not acute).",
         note="The abstract confirms the 8 factors and their weight order (RLQ tenderness and leukocytosis "
         "highest) but not the points, the temperature/WBC cut-offs, or the 5-6 / 7-8 / 9-10 bands. Full text "
         "is paywalled; these come from reviewer knowledge. Re-check before relying on the bands.",
@@ -565,6 +799,9 @@ RULES: tuple[Rule, ...] = (
             Threshold(5, 5, "5", "최고 위험", "병원 내 사망률 20% 초과"),
         ),
         citation=C_BISAP, verification="primary",
+        chronic_cutoff=2,
+        applicability="Wu 2008 abstract: acute pancreatitis, first 24 h. Chronic pancreatitis / months-long "
+        "complaints excluded.",
         note="5 variables and the <1% / >20% range from the abstract. The commonly used '>=3 = severe' cut "
         "point is from later validation papers and is deliberately not encoded here.",
     ),
@@ -579,10 +816,8 @@ RULES_BY_ID: dict[str, Rule] = {r.id: r for r in RULES}
 
 
 def rules_for(text: str) -> list[Rule]:
-    """Rules relevant to a chief complaint (matched by category keywords or rule-specific keywords)."""
-    t = (text or "").lower()
-    cats = set(detect_categories(t))
-    return [r for r in RULES if cats.intersection(r.categories) or any(k in t for k in r.keywords)]
+    """Rules whose validated population matches the chief complaint (see Rule.applies_to)."""
+    return [r for r in RULES if r.applies_to(text)]
 
 
 def _item_text(item: Item) -> str:

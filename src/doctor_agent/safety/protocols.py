@@ -3,7 +3,9 @@
 Per category: can't-miss diagnoses and the minimum safe checks, each with the guideline it comes from.
 Check.keywords are lowercase substrings for matching the doctor's action text (usable as a scorer
 `must_check`: "|".join(keywords)). Check.triggers, when non-empty, make a check conditional: it applies
-only if the case text/transcript contains one of them.
+only if the case text/transcript contains one of them outside a negated clause ("…은 없어요", "…아니에요").
+Check.acute_only drops a check for long-standing chief complaints (duration of the chief complaint only), and
+Check.predicate replaces triggers with a function (e.g. "sepsis": fever with acute systemic-illness signals).
 
 Verification (2026-09-25)
 - Citation.verified: bibliographic data checked against PubMed E-utilities.
@@ -14,11 +16,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import re
+
 from doctor_agent.knowledge.clinical_rules import (
     C_ALVARADO,
     CATEGORY_NAMES,
     Citation,
+    contains_affirmed,
     detect_categories,
+    duration_level,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -141,15 +147,25 @@ class Check:
     keywords: tuple[str, ...]  # lowercase substrings that mark the check as done in action text
     citation: Citation
     verification: str  # "primary" | "secondary" | "unverified"
-    triggers: tuple[str, ...] = ()  # conditional check: applies only if the case text contains one
+    triggers: tuple[str, ...] = ()  # conditional check: applies only if the case text contains one (not negated)
     when: str = ""  # Korean condition text for prompts
     note: str = ""
+    # acute-only check: not applicable when the chief complaint has lasted >= this duration_level
+    # (1 = >=2 weeks, 2 = months/years/"만성"); 0 = always. Judged on the chief complaint only, because
+    # history facts mention unrelated past durations ("6개월 전 건강검진").
+    acute_only: int = 0
+    predicate: str = ""  # name in PREDICATES; replaces `triggers` with a function of (chief complaint, all text)
 
-    def applies(self, text: str) -> bool:
+    def applies(self, text: str, cc: str | None = None) -> bool:
+        """text = chief complaint + learned facts (triggers); cc = chief complaint (duration). cc defaults to text."""
+        cc = text if cc is None else cc
+        if self.acute_only and duration_level(cc) >= self.acute_only:
+            return False
+        if self.predicate:
+            return PREDICATES[self.predicate](cc, text)
         if not self.triggers:
             return True
-        t = (text or "").lower()
-        return any(k in t for k in self.triggers)
+        return contains_affirmed(text, self.triggers)
 
     def done_in(self, action_text: str) -> bool:
         t = (action_text or "").lower()
@@ -195,10 +211,15 @@ _KW_PREGNANCY = ("임신 검사", "임신검사", "임신 반응", "임신반응
 
 _TRIG_THUNDERCLAP = ("벼락", "갑자기", "갑작스", "순간", "최악의", "인생 최악", "태어나서", "처음 겪", "힘을 주다",
                      "운동 중", "성관계", "thunderclap", "sudden", "worst headache", "worst of")
-_TRIG_MENINGITIS = ("열", "발열", "오한", "목이 뻣뻣", "목 뻣뻣", "경부 강직", "의식", "혼돈", "헛소리", "fever",
-                    "stiff neck", "neck stiffness", "confus")
-_TRIG_HEADACHE_MENINGISM = ("두통", "머리가 아", "목이 뻣뻣", "목 뻣뻣", "경부 강직", "의식", "혼돈", "헛소리",
-                            "headache", "stiff neck", "neck stiffness", "confus", "altered mental")
+_TRIG_AMS = ("의식 저하", "의식저하", "의식 변화", "의식변화", "의식이 흐", "의식이 없", "의식을 잃", "혼돈", "착란",
+             "헛소리", "횡설수설", "앞뒤가 맞지 않", "환각", "섬망", "기면", "축 처", "축 늘어", "confus", "delir",
+             "altered mental", "obtund", "letharg")
+_TRIG_FEVER = ("발열", "열이", "열과", "열도", "열나", "열감", "고열", "미열", "오한",
+               "fever", "febrile", "chills")
+_TRIG_MENINGITIS = _TRIG_FEVER + ("뻣뻣", "경부 강직", "stiff neck", "neck stiffness") \
+    + _TRIG_AMS
+_TRIG_HEADACHE_MENINGISM = ("두통", "머리가 아", "목이 뻣뻣", "목 뻣뻣", "경부 강직", "headache", "stiff neck",
+                            "neck stiffness") + _TRIG_AMS
 _TRIG_AORTA = ("찢어지", "찢기는", "뜯기는", "등으로", "등까지", "등 통증", "양팔", "마르판", "tearing", "ripping",
                "radiat", "back pain", "marfan")
 _TRIG_PE = ("객혈", "다리가 붓", "다리 부종", "종아리", "수술", "부동", "장거리", "비행", "피임약", "호르몬", "혈전",
@@ -213,6 +234,42 @@ _TRIG_AAA = ("등 통증", "허리 통증", "옆구리", "박동", "실신", "�
              "pulsatile", "syncope", "shock", "hypotens")
 _TRIG_AMI = ("심방세동", "부정맥", "통증에 비해", "진찰 소견에 비해", "혈전", "atrial fibrillation", "afib",
              "out of proportion")
+
+
+# Sepsis (SSC 2021 applies to *suspected sepsis*): systemic-instability signals, from any text
+_TRIG_SEPSIS_INSTABILITY = _TRIG_AMS + (
+    "저혈압", "혈압이 떨어", "혈압이 낮", "쇼크", "빈맥", "맥박이 빠르", "맥이 빠르", "심장이 빨리", "숨을 빨리",
+    "호흡이 빠르", "소변량 감소", "소변량이 줄", "소변이 안 나", "소변이 나오지", "떨림", "덜덜", "사시나무",
+    "패혈", "균혈", "sepsis", "septic", "bacteremia", "hypotens", "tachycard", "shock", "rigor", "oliguria",
+    "hiv", "에이즈", "면역억제", "aids",
+) + _TRIG_NEUTROPENIA
+# Acute febrile-illness signals, counted only when the chief complaint is not >= 2 weeks old
+_TRIG_SEPSIS_ACUTE = ("갑자기", "갑작스", "고열", "오한", "high fever", "sudden")
+_RE_HIGH_TEMP = re.compile(r"(39|40|41)(\.\d)?\s*(°|도|℃)")
+_RE_SBP = re.compile(r"혈압\s*:?\s*(\d{2,3})\s*/|blood pressure\s*:?\s*(\d{2,3})\s*/|bp\s*:?\s*(\d{2,3})\s*/")
+_RE_HR = re.compile(r"(?:맥박|심박수?|heart rate|pulse|hr)\s*:?\s*(\d{2,3})")
+_RE_RR = re.compile(r"(?:호흡수|respiratory rate|rr)\s*:?\s*(\d{1,2})")
+
+
+def _numeric_instability(t: str) -> bool:
+    """SBP <= 100 or RR >= 22 (qSOFA, Seymour 2016) or HR > 100, when numbers appear in the learned text."""
+    sbp = [int(g) for m in _RE_SBP.finditer(t) for g in m.groups() if g]
+    hr = [int(m.group(1)) for m in _RE_HR.finditer(t)]
+    rr = [int(m.group(1)) for m in _RE_RR.finditer(t)]
+    return any(x <= 100 for x in sbp) or any(x > 100 for x in hr) or any(x >= 22 for x in rr)
+
+
+def _sepsis_suspected(cc: str, text: str) -> bool:
+    """Blood cultures / lactate apply to fever with acute systemic illness, not to weeks-long febrile illness
+    without instability (e.g. hypersensitivity pneumonitis, TB). Our operationalisation of SSC 2021's
+    'suspected sepsis'."""
+    t = (text or "").lower()
+    if contains_affirmed(t, _TRIG_SEPSIS_INSTABILITY) or _numeric_instability(t):
+        return True
+    return duration_level(cc) == 0 and (contains_affirmed(t, _TRIG_SEPSIS_ACUTE) or bool(_RE_HIGH_TEMP.search(t)))
+
+
+PREDICATES = {"sepsis": _sepsis_suspected}
 
 
 def _vitals(citation: Citation, when: str = "도착 즉시", note: str = "") -> Check:
@@ -236,17 +293,19 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   note="Class 1: acquire and review ECG for STEMI within 10 min of arrival. Full text paywalled "
                   "(HTTP 403); confirmed via ACC summaries."),
             Check("troponin", "심장 트로포닌(가능하면 고감도)", "test", _KW_TROPONIN, G_CHEST_PAIN, "secondary",
-                  when="급성 관상동맥 증후군 의심",
-                  note="hs-cTn is the preferred biomarker. Confirmed via ACC summaries."),
+                  when="급성 관상동맥 증후군 의심", acute_only=2,
+                  note="hs-cTn is the preferred biomarker for *acute* chest pain. Confirmed via ACC summaries. "
+                  "Not applied to months-long chest pain (acute_only=2; ECG still applies to stable chest pain)."),
             Check("cxr", "흉부 X선", "test", _KW_CXR, G_CHEST_PAIN, "unverified",
                   when="폐·흉막·대동맥 등 다른 원인 평가",
                   note="Guideline suggests CXR to evaluate alternative cardiac/pulmonary/thoracic causes."),
             Check("aorta_imaging", "양팔 혈압 비교 + 대동맥 영상검사(CT 혈관조영 등)", "test", _KW_AORTA, G_AORTA,
                   "unverified", triggers=_TRIG_AORTA, when="찢어지는 통증, 등으로 뻗는 통증, 양팔 혈압 차이 등",
+                  acute_only=2,
                   note="Use with ADD-RS (knowledge/clinical_rules.py)."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
                   "unverified", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
-                  note="ESC 2019: clinical probability (Wells/Geneva), D-dimer if not high probability, CTPA."),
+                  acute_only=2, note="ESC 2019: clinical probability (Wells/Geneva), D-dimer if not high probability, CTPA."),
         ),
     ),
     Protocol(
@@ -263,7 +322,8 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "unverified", when="심부전 의심",
                   note="Class 1: natriuretic peptides to support/exclude HF in patients presenting with dyspnea."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
-                  "unverified", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자"),
+                  "unverified", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
+                  acute_only=2),
             Check("epinephrine", "아나필락시스 의심 시 즉시 에피네프린 근육주사", "treatment",
                   ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_ANAPHYLAXIS, "unverified",
                   triggers=_TRIG_ANAPHYLAXIS, when="두드러기·입술/혀 부종·알레르겐 노출 후 호흡곤란"),
@@ -278,7 +338,7 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "unverified", when="모든 급성 두통",
                   note="The ACEP recommendations are conditioned on a normal neurologic exam, so it must be done."),
             Check("brain_ct", "비조영 뇌 CT(발병 6시간 이내 음성이면 지주막하 출혈 배제에 유용)", "test",
-                  _KW_BRAIN_CT, G_HEADACHE, "secondary", triggers=_TRIG_THUNDERCLAP,
+                  _KW_BRAIN_CT, G_HEADACHE, "secondary", triggers=_TRIG_THUNDERCLAP, acute_only=1,
                   when="벼락두통·갑자기 시작해 1시간 이내 최고조·인생 최악의 두통",
                   note="Abstract confirms critical question 3 (normal NCCT within 6 h). The Level B answer "
                   "(negative NCCT within 6 h in neurologically normal patients rules out SAH) is from "
@@ -316,11 +376,11 @@ PROTOCOLS: tuple[Protocol, ...] = (
             _vitals(G_SEPSIS, note="SSC 2021 recommends against qSOFA alone vs SIRS/NEWS/MEWS for screening; "
                     "vital signs feed those scores."),
             Check("blood_culture", "항생제 투여 전 혈액배양", "test", _KW_BLOOD_CULTURE, G_SEPSIS, "primary",
-                  when="패혈증 의심",
+                  when="패혈증 의심(급성 발열 + 오한·저혈압·빈맥·의식 변화 등)", predicate="sepsis",
                   note="SSC 2021: obtain cultures including blood before antimicrobials if it does not delay "
                   "treatment (read in PMC8486643, co-published version)."),
             Check("lactate", "혈중 젖산", "test", ("젖산", "락테이트", "lactate", "lactic"), G_SEPSIS, "primary",
-                  when="패혈증 의심", note="SSC 2021: suggest measuring blood lactate (weak recommendation)."),
+                  when="패혈증 의심(급성 발열 + 오한·저혈압·빈맥·의식 변화 등)", predicate="sepsis", note="SSC 2021: suggest measuring blood lactate (weak recommendation)."),
             Check("cbc_neutropenia", "일반혈액검사(호중구 수)", "test",
                   ("일반혈액", "혈구", "cbc", "백혈구", "호중구", "complete blood count", "neutrophil count"), G_NEUTROPENIA,
                   "unverified", triggers=_TRIG_NEUTROPENIA, when="항암치료 중·면역저하 환자의 발열"),
@@ -346,7 +406,9 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "Recommendation text not re-read."),
             Check("pelvic_us", "임신 양성이면 골반(질식) 초음파", "test",
                   ("질식 초음파", "골반 초음파", "경질 초음파", "transvaginal", "pelvic ultrasound", "pelvic us"),
-                  G_EARLY_PREGNANCY, "unverified", triggers=("임신", "pregnan", "hcg 양성"),
+                  G_EARLY_PREGNANCY, "unverified",
+                  triggers=("임신", "pregnan", "hcg 양성", "생리가 늦", "생리가 안", "생리를 안", "생리가 없", "월경이 없",
+                            "무월경", "missed period", "amenorrh"),
                   when="임신 확인된 복통·질출혈"),
             Check("aaa_imaging", "복부 대동맥 초음파 또는 CT", "test",
                   ("복부 초음파", "복부 ct", "대동맥 초음파", "abdominal ultrasound", "abdominal ct", "ct abdomen",
@@ -357,6 +419,26 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "primary", triggers=_TRIG_AMI, when="심방세동, 진찰 소견에 비해 심한 통증",
                   note="WSES 2022 recommendation 5 (1A): CTA without delay in any patient with suspected AMI; "
                   "lactate/D-dimer may assist but cannot exclude (rec. 4). Read in PMC9580452."),
+        ),
+    ),
+)
+
+PROTOCOLS = PROTOCOLS + (
+    Protocol(
+        category="allergy", name_ko=CATEGORY_NAMES["allergy"],
+        cant_miss=("아나필락시스", "상기도 부종(혈관부종)"),
+        checks=(
+            _vitals(G_ANAPHYLAXIS, note="Hypotension/hypoxia define severity in anaphylaxis; basic assessment, "
+                    "not a numbered recommendation checked in the practice parameter text."),
+            Check("airway_breathing", "기도·호흡 평가(입술·혀·목 부종, 쉰 목소리, 천명음·쌕쌕거림, 청진)", "exam",
+                  ("기도", "천명", "쌕쌕", "호흡음", "청진", "쉰 목소리", "목소리", "삼키기", "stridor", "wheez",
+                   "airway", "auscult", "hoarse", "혀 부종", "입술 부종", "인두 부종", "후두 부종"),
+                  G_ANAPHYLAXIS, "unverified", when="모든 급성 알레르기 반응",
+                  note="Airway/breathing involvement is a defining feature of anaphylaxis; from reviewer knowledge, "
+                  "not a numbered recommendation read in the practice parameter."),
+            Check("epinephrine", "아나필락시스 의심 시 즉시 에피네프린 근육주사", "treatment",
+                  ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_ANAPHYLAXIS, "unverified",
+                  when="호흡기·순환기 증상 동반 알레르기 반응"),
         ),
     ),
 )
@@ -386,13 +468,14 @@ def must_checks_for(text: str, context: str = "") -> list[Check]:
 
     Categories come from `text` only (the chief complaint): matching whole conversations over-triggers, e.g. a
     pertinent negative like "숨은 안 차요" would add the dyspnea protocol. Conditional checks are triggered by
-    `text` + `context` (facts learned later, e.g. pregnancy or a thunderclap onset).
+    `text` + `context` (facts learned later, e.g. pregnancy or a thunderclap onset); a trigger inside a negated
+    clause ("등이 찢어지는 느낌은 아니에요") does not count. Acute-only checks use the duration of `text` only.
     """
-    trigger_text = f"{text} {context}"
+    trigger_text = f"{text}. {context}"  # sentence break so a negation in context can't reach back into text
     out: dict[str, Check] = {}
     for p in protocols_for(text):
         for c in p.checks:
-            if c.id not in out and c.applies(trigger_text):
+            if c.id not in out and c.applies(trigger_text, cc=text):
                 out[c.id] = c
     return list(out.values())
 
