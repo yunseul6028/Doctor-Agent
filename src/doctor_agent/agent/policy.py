@@ -12,6 +12,7 @@ from doctor_agent.safety import protocols
 MAX_RULES_IN_PROMPT = 2  # keep prompts short for the small fixed LLM
 MAX_ATTEMPTS = 4
 MAX_REVIEWS = 2  # pre-diagnosis reviews per case (each hold costs a turn)
+MAX_HINTS_DEGRADED = 2  # hints kept when the time budget runs low (can't-miss + pending safety checks come first)
 # a question sent as EXAM/TEST ("목이 뻣뻣한가요?") is really an ASK
 _QUESTION_END = re.compile(r"(\?|？|나요|세요|니까|까요|있어요|없어요|하셨어요|드세요)\s*$")
 
@@ -32,6 +33,7 @@ class Policy:
         self.llm = llm
         self.cfg = cfg
         self._kb_seen: set = set()  # KB hints already shown in this case (Policy is created per case)
+        self.degraded = False  # set by the loop when the case time budget runs low (runtime.CaseBudget)
 
     def next_action(self, state: CaseState) -> Action:
         remaining = self.cfg.max_turns - state.turn_count
@@ -39,6 +41,8 @@ class Policy:
             return self._final_diagnosis(state)
 
         hints = self._hints(state)
+        if self.degraded:  # time budget running low: short prompt, no extra review/pushback calls
+            hints = hints[:MAX_HINTS_DEGRADED] + [prompts.LOW_TIME_HINT]
         for _ in range(MAX_ATTEMPTS):  # retries: parse failure, repeated action, safety pushback, review hold
             raw = self.llm.chat(prompts.build_step_messages(state.view(), state.turn_count, self.cfg.max_turns, hints))
             parsed = parse_action(raw)
@@ -54,7 +58,7 @@ class Policy:
             if action.type != ActionType.DIAGNOSE and state.asked(action):
                 hints = hints + [f"'{action.content}'은(는) 이미 했습니다. 다른 행동을 고르세요."]
                 continue
-            if action.type == ActionType.DIAGNOSE and not state.safety_pushback and remaining > 5:
+            if action.type == ActionType.DIAGNOSE and not state.safety_pushback and remaining > 5 and not self.degraded:
                 pending = self._pending(state)
                 if pending:
                     # one pushback per case: diagnose anyway only with a stated reason
@@ -62,7 +66,7 @@ class Policy:
                     hints = hints + ["진단 전에 아직 안 한 필수 안전 확인이 있습니다: " + ", ".join(c.name for c in pending)
                                      + ". 이 중 하나를 먼저 하세요. 정말 불필요하면 reason에 그 이유를 쓰고 진단하세요."]
                     continue
-            if action.type == ActionType.DIAGNOSE and len(state.reviews) < MAX_REVIEWS and remaining > 3:
+            if action.type == ActionType.DIAGNOSE and len(state.reviews) < MAX_REVIEWS and remaining > 3 and not self.degraded:
                 reviewed = self._review(state, action)
                 if reviewed.type != ActionType.DIAGNOSE and state.asked(reviewed):
                     hints = hints + ["검토의 지적: " + "; ".join(state.reviews[-1]["issues"]) + ". 이를 해결할 다른 행동을 고르세요."]
