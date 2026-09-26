@@ -1,5 +1,6 @@
 import re
 
+from doctor_agent.agent import kb_hints
 from doctor_agent.agent.policy import Policy
 from doctor_agent.agent.state import CaseState, Turn
 from doctor_agent.config import Config
@@ -50,4 +51,6 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config) -> dict:
         "findings": state.findings.as_list(),
         "reviews": state.reviews,
         "llm_calls": llm.call_count - calls_before,
+        # record only: the submitted diagnosis above is not changed
+        "diagnosis_normalized": kb_hints.normalize_hint(diagnosis, state.initial_info) if cfg.agent.use_kb else {},
     }
