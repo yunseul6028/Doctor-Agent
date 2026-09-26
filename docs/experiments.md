@@ -17,6 +17,35 @@
 | 2026-09-26 | Findings ledger + DDx ledger + pre-diagnosis review | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (original) | standard | 0.90 | 0.89 | 0.85 | – | reviewer: 0 holds, 6 diagnosis names revised |
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
 
+Prompt `v6-kb-strict-review` (current: KB hints, code-decided review, evidence-gated renaming) has **no LLM run yet**.
+The first rows for it should come from `eval/experiment.py` on the competition model (see below).
+
+## 2026-09-26 → 09-27: changes since the last LLM run (no LLM calls)
+
+Everything below was measured offline (rules, KB, case files). None of it has an Accuracy/Efficiency/Safety score yet.
+
+| Area | Change | Measured |
+|---|---|---|
+| Agent | v6: KB hints (candidates, discriminators, dx normalisation); structured pre-diagnosis review with code-decided verdict and evidence-gated renaming; EXAM/TEST history questions → ASK; DDx name-variant dedupe | unit tests only |
+| Runtime | gpt-oss harmony handling, length retry, optional structured output, per-case time budget with degrade/forced final answer, never-crash submission mode, prompt cap, incremental `run.py` output | `tests/test_runtime.py` (28 tests) |
+| Safety protocols | 7 → 20 → **26** categories; false triggers fixed from a per-case audit (periarticular pain ≠ hot joint, urticaria ≠ chronic pruritus, pregnancy test populations, adult-only dyspnea checks, negation window, …); rules got population conditions from the source abstracts | cases in `data/cases_aug` (267) with ≥ 1 applicable check: **87 → 159 → 173** (7 / 20 / 26 categories, re-measured on the current case files) |
+| Cases | Full augmentation of all sets → `data/cases_aug` (267); rule-based quality gate `scripts/check_cases.py` | hard issues **48 → 0** (45 placeholder search terms, 2 sex/age-inconsistent tests, 1 vital conflict); 15 cases / 57 edits; 2,278 soft issues left as a review list (`data/labels/case_quality_2026-09-27.json`) |
+| KB | Matching/ranking/normalisation rework (09-26), then curated test-result → disease links `kb_tests.py` (262 concepts, 452 links, 95 PMID-verified refs) | see below |
+| Eval | One-command experiment runner (profiles smoke/dev/full, cost guard, token metering, compare, log, share page) | `tests/test_experiment.py` |
+
+KB offline benchmark (`scripts/eval_kb.py`, gold diagnosis rank in `candidates(k=50)` from the case text; dev = sample +
+clinicalqa 111, held-out = agentclinic + diagnosisarena 156; `data/labels/kb_eval_2026-09-27.json`):
+
+| Split | top-1 | top-3 | top-10 | top-50 | MRR | note |
+|---|---|---|---|---|---|---|
+| held-out, before test links | 0.045 | 0.109 | 0.211 | 0.295 | 0.091 | after the 09-26 rework |
+| **held-out, now** | **0.090** | **0.179** | **0.269** | **0.359** | **0.147** | the realistic estimate |
+| dev, now | 0.460 | 0.604 | 0.685 | 0.775 | 0.542 | tuned here, inflated |
+| held-out, history + exam only | 0.058 | 0.109 | 0.186 | 0.263 | 0.096 | what the hints can use before tests |
+
+Latency 8.8 ms mean / 10.1 ms p95 per `candidates()` call, KB load 0.32 s. Diagnosis normalisation (held-out): KCD
+code for 56.4% of primary names. Details: `docs/data-sources.md` (knowledge base section).
+
 ## How to run on competition API day
 
 One command runs a standard profile, estimates cost first, compares conditions, and rebuilds the viewer + share page
@@ -47,11 +76,18 @@ the same model, else any model, else 3,000 in / 1,000 out), all × margin 1.3. D
 `--log` appends one table row per condition above and a comparison section (overall, per set, flips, n/a rate) under
 "Auto-logged experiment runs" at the end. The share page path is printed (`eval/results/share_<time>.html` or `--share`).
 
-## Open issues
-- The reviewer **never holds** (0/80) → the conservative check isn't working. It only revises names, with mixed effects (better subtypes vs. over-specific names like "상행결장암"/"밀가루 의존성")
-- Safety checks falsely triggered by protocol category detection (anaphylaxis→stroke checks, hypersensitivity pneumonitis→sepsis cultures) → category detection needs refinement
-- Single runs of n=40 have large run-to-run variance → repeat runs or more cases needed before drawing conclusions
-- Weak at subtype discrimination (bipolar I/II, vascular stenosis vs. underlying disease)
-- Gemma is slow at 5–10 min per case → competition time limit is a risk (reasoning-length tuning needed)
-- Converted cases lack test results, so "result not provided" responses are frequent → re-check once the official guide shows how results are provided
-- About half the safety checklist has not been checked against the original guideline text (see `verification` field per item)
+## Open issues (refreshed 2026-09-27)
+- **Nothing since v5 is measured with an LLM.** v6 (KB hints, code-decided review), the 26-category protocols and
+  `data/cases_aug` need a first run; prompts were written against Gemini and must be re-validated on gpt-oss-20b.
+- Reviewer: under v5 it **never held** (0/80) and renamed with mixed effects. v6 moves the verdict into code and refuses
+  ungrounded / location / cause-qualifier renamings — whether it now holds at a useful rate is untested.
+- Safety false triggers (anaphylaxis → stroke checks, etc.) were fixed by rules after a per-case audit; the Safety score
+  has not been re-measured. 37 of 88 checks are still `unverified` against the guideline text (34 primary, 17 secondary).
+- Time: Gemma took 5–10 min per case. A per-case time budget now exists (`AGENT_CASE_TIME_BUDGET_S`), but the official
+  limit and gpt-oss speed on the competition server are unknown → set the budget on API day.
+- Single runs of n = 40–50 have large run-to-run variance → repeat runs or the `full` profile before drawing conclusions.
+- Weak at subtype discrimination (bipolar I/II, vascular stenosis vs. underlying disease).
+- Augmented case entries (`data/cases_aug`) are LLM-written and not clinician-reviewed; 2,278 soft quality issues
+  (mostly keyword-key collisions for the keyword simulator) remain as a review list.
+- KB ranking is a hint, not evidence: held-out top-10 is 0.269. `kb_hints` does not pass sex/age to `candidates()` yet.
+- The official environment (`env/official.py`), action/diagnosis format and how test results are provided are unknown.
