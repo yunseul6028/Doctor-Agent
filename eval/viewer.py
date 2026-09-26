@@ -71,6 +71,10 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: 13px; font-varian
 .cmp tr:last-child td { border-bottom: 0; }
 .cmp tr.sel td { background: var(--doctor-bg); }
 .cmp tr[data-i] { cursor: pointer; }
+details.sets { margin: -12px 0 20px; }
+details.sets > summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 14px; font-size: 13px; }
+.filters select { padding: 4px 8px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -87,6 +91,13 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: 13px; font-varian
     <span class="sub" id="models"></span>
   </div>
   <div class="stats" id="stats"></div>
+  <details class="sets" id="sets-box"><summary>세트별 점수</summary><div class="cmp-wrap"><table class="cmp" id="sets"></table></div></details>
+  <div class="filters">
+    <label for="f-set">세트</label><select id="f-set"></select>
+    <label for="f-ok">정답 여부</label>
+    <select id="f-ok"><option value="">전체</option><option value="ok">정답</option><option value="bad">오답(부분점수 포함)</option></select>
+    <span class="sub" id="f-count"></span>
+  </div>
   <div id="cases"></div>
 </div>
 <script>
@@ -102,13 +113,46 @@ function stamp(name) {
   return m ? `${m[1]}.${m[2]}.${m[3]} ${m[4]}:${m[5]}:${m[6]}` : name;
 }
 
+const avgOf = (cs, k) => { const v = cs.map(c => (c.scores || {})[k]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const isOk = c => ((c.scores || {}).accuracy ?? 0) >= 1;
+const fSet = document.getElementById("f-set"), fOk = document.getElementById("f-ok");
+let current = 0;
+
+function renderSets(cases) {
+  const groups = {};
+  cases.forEach(c => { (groups[c.set || "–"] = groups[c.set || "–"] || []).push(c); });
+  const names = Object.keys(groups).sort();
+  const box = document.getElementById("sets-box");
+  box.style.display = names.length > 1 || (names.length === 1 && names[0] !== "–") ? "" : "none";
+  const cell = v => `<td style="color:var(--${tone(v) || "text"})">${fmt(v)}</td>`;
+  document.getElementById("sets").innerHTML =
+    `<tr><th>세트</th><th>증례</th><th>정확도</th><th>효율성</th><th>안전성</th><th>평균 턴</th><th>정답 수</th></tr>` +
+    names.map(n => { const g = groups[n];
+      return `<tr><td>${esc(n)}</td><td>${g.length}</td>${cell(avgOf(g, "accuracy"))}${cell(avgOf(g, "efficiency"))}${cell(avgOf(g, "safety"))}` +
+        `<td>${(g.reduce((a, c) => a + c.n_turns, 0) / g.length).toFixed(1)}</td><td>${g.filter(isOk).length}</td></tr>`; }).join("");
+  const keep = fSet.value;
+  fSet.innerHTML = `<option value="">전체</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)} (${groups[n].length})</option>`).join("");
+  fSet.value = names.includes(keep) ? keep : "";
+}
+
 function render(i) {
+  current = i;
   const run = RUNS[i].data;
-  const cases = run.cases || [];
-  document.getElementById("models").textContent = run.doctor_model ? `의사 모델: ${run.doctor_model}` : "";
+  const all = run.cases || [];
+  const meta = [run.doctor_model && `의사 모델: ${run.doctor_model}`, run.label && `라벨: ${run.label}`,
+    run.prompt_version && `프롬프트: ${run.prompt_version}`, run.commit && `커밋: ${run.commit}`].filter(Boolean);
+  document.getElementById("models").textContent = meta.join(" · ");
+  renderSets(all);
+  renderCases(all, run);
+}
+
+function renderCases(all, run) {
+  const cases = all.filter(c => (!fSet.value || (c.set || "–") === fSet.value) &&
+    (!fOk.value || (fOk.value === "ok") === isOk(c)));
+  document.getElementById("f-count").textContent = `${cases.length} / ${all.length}개`;
   const avgTurns = cases.length ? (cases.reduce((a, c) => a + c.n_turns, 0) / cases.length).toFixed(1) : "–";
   document.getElementById("stats").innerHTML =
-    Object.entries(run.avg || {}).map(([k, v]) =>
+    Object.entries(run.avg || {}).map(([k, v]) => [k, cases.length === all.length ? v : avgOf(cases, k)]).map(([k, v]) =>
       `<div class="stat"><div class="k">평균 ${SCORE[k] || k}</div><div class="v" style="color:var(--${tone(v) || "text"})">${fmt(v)}</div></div>`).join("") +
     `<div class="stat"><div class="k">증례 수</div><div class="v">${cases.length}</div></div>` +
     `<div class="stat"><div class="k">평균 턴 수</div><div class="v">${avgTurns}</div></div>`;
@@ -129,7 +173,7 @@ function render(i) {
       </div>`).join("");
     return `
       <details class="card" ${idx === 0 ? "open" : ""}>
-        <summary><span class="case-id">${esc(c.case)}</span>${c.persona ? `<span class="pill">${esc(c.persona)}</span>` : ""}<span class="pill">${c.n_turns}턴</span>${pills}<span class="sub">${c.sec ?? "–"}초</span></summary>
+        <summary><span class="case-id">${esc(c.case)}</span>${c.set ? `<span class="pill">${esc(c.set)}</span>` : ""}${c.persona ? `<span class="pill">${esc(c.persona)}</span>` : ""}<span class="pill">${c.n_turns}턴</span>${pills}<span class="sub">${c.sec ?? "–"}초</span></summary>
         <div class="body">
           ${c.initial ? `<div class="initial">처음 정보 · ${esc(c.initial)}</div>` : ""}
           ${turns}
@@ -153,16 +197,17 @@ const PERSONA = { standard: "보통 환자", mixed: "까다로운 환자(섞음)
   minimizer: "증상을 축소하는 환자", poor_historian: "기억이 흐린 환자" };
 function label(r) {
   const d = r.data, n = (d.cases || []).length;
-  const who = (d.doctor_model || "–") + (d.persona ? ` · ${PERSONA[d.persona] || d.persona}` : "");
+  const who = (d.label ? d.label + " · " : "") + (d.doctor_model || "–") + (d.persona ? ` · ${PERSONA[d.persona] || d.persona}` : "");
   return `${stamp(r.name)} · ${who} · ${n}개`;
 }
 function renderCmp(active) {
-  const head = `<tr><th>시각</th><th>의사 모델</th><th>환자 유형</th><th>증례</th><th>정확도</th><th>효율성</th><th>안전성</th><th>평균 턴</th></tr>`;
+  const head = `<tr><th>시각</th><th>라벨</th><th>프롬프트</th><th>커밋</th><th>의사 모델</th><th>환자 유형</th><th>증례</th><th>정확도</th><th>효율성</th><th>안전성</th><th>평균 턴</th></tr>`;
   const rows = RUNS.map((r, i) => {
     const d = r.data, cs = d.cases || [], a = d.avg || {};
     const turns = cs.length ? (cs.reduce((x, c) => x + c.n_turns, 0) / cs.length).toFixed(1) : "–";
     const cell = v => `<td style="color:var(--${tone(v) || "text"})">${fmt(v)}</td>`;
-    return `<tr data-i="${i}" class="${i == active ? "sel" : ""}"><td>${stamp(r.name)}</td><td>${esc(d.doctor_model || "–")}</td>` +
+    return `<tr data-i="${i}" class="${i == active ? "sel" : ""}"><td>${stamp(r.name)}</td><td>${esc(d.label || "–")}</td>` +
+      `<td>${esc(d.prompt_version || "–")}</td><td>${esc(d.commit || "–")}</td><td>${esc(d.doctor_model || "–")}</td>` +
       `<td>${esc(d.persona ? (PERSONA[d.persona] || d.persona) : (cs[0] && cs[0].persona) || "–")}</td><td>${cs.length}</td>` +
       cell(a.accuracy) + cell(a.efficiency) + cell(a.safety) + `<td>${turns}</td></tr>`;
   }).join("");
@@ -177,6 +222,7 @@ if (!RUNS.length) {
 } else {
   sel.innerHTML = RUNS.map((r, i) => `<option value="${i}">${esc(label(r))}</option>`).join("");
   sel.onchange = () => show(sel.value);
+  fSet.onchange = fOk.onchange = () => renderCases(RUNS[current].data.cases || [], RUNS[current].data);
   show(0);
 }
 </script>

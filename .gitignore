@@ -6,3 +6,4 @@ eval/results/
 .env
 .DS_Store
 data/external/
+.claude/worktrees/
