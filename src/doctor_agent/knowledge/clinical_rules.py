@@ -55,6 +55,13 @@ CATEGORY_NAMES: dict[str, str] = {
     "fatigue": "피로",
     "cognitive": "기억력·인지 저하",
     "psychiatric": "정신과적 증상(기분·행동·지각)",
+    # 2026-09-27 additions
+    "urticaria_chronic": "만성 두드러기(6주 이상)",
+    "hearing_loss": "난청",
+    "neck_mass": "경부 종괴(성인)",
+    "bleeding": "출혈 경향(멍·코피·지혈 안 됨)",
+    "chronic_weakness": "만성 사지 근력 저하(2주 이상)",
+    "bilious_vomiting": "영아 담즙성 구토",
 }
 
 # Lowercase substrings matched against the case text (Korean + English variants).
@@ -88,6 +95,37 @@ _GENERALIZED: tuple[str, ...] = ("전신", "온몸", "몸 전체", "몸전체", 
 # Bilateral/generalized or unilateral-limb swelling (not local swelling of a joint, the neck or the vulva)
 _RE_EDEMA = re.compile(
     r"(다리|발목|발등|종아리|하지|전신|몸|눈꺼풀|눈 주위|눈두덩)\S{0,3}\s?(부종|붓|부었|부어|부기)")
+# 2026-09-27: keyword sets for the new categories (combinations are checked in detect_categories)
+_URTICARIA: tuple[str, ...] = ("두드러기", "팽진", "urticaria", "hives", "wheal")
+_HEARING: tuple[str, ...] = (
+    "난청", "청력 저하", "청력저하", "청력 감소", "청력이 떨어", "청력이 나빠", "청력 소실", "잘 안 들", "잘 들리지",
+    "안 들려", "안 들리", "귀가 먹", "귀가 멍", "hearing loss", "deafness", "hard of hearing",
+)
+# neck lump (not "손목"/"발목"; not a thyroid nodule, which the neck-mass guideline excludes)
+_RE_NECK_MASS = re.compile(
+    r"((?<![손발])목|경부|턱밑|턱 밑|쇄골 위|쇄골위)[^.,;]{0,12}?(종괴|혹|멍울|덩이|덩어리|림프절 비대|림프절 종대)"
+    r"|neck (mass|lump|swelling)|cervical lymphadenopathy")
+_BLEEDING: tuple[str, ...] = (
+    "쉽게 멍", "멍이 쉽게", "멍이 잘", "멍이 자주", "멍이 많이", "코피", "잇몸 출혈", "잇몸에서 피", "지혈되지", "지혈이 안",
+    "지혈이 잘 안", "지혈이 되지", "피가 멈추지", "피가 안 멈", "출혈이 멈추지", "출혈이 멎지", "출혈 경향", "출혈경향",
+    "점상출혈", "점상 출혈", "자반", "easy bruising", "bruises easily", "bruising", "epistaxis", "nosebleed",
+    "petechia", "purpura", "prolonged bleeding", "bleeding tendency",
+)
+# limb/muscle weakness (not "시력 약화", not generalized "무력감", which is fatigue)
+_RE_LIMB_WEAKNESS = re.compile(
+    r"(근력|근육|팔|다리|손|하지|상지|사지|어깨|허벅지|하체)\S{0,4}\s?(의\s)?(약화|저하|위약|힘이 빠|힘이 없|힘 빠)"
+    r"|근위약|근력\s?(약화|저하)|(muscle|limb|leg|arm|proximal) weakness|weakness of the (arm|leg|limb)")
+_BILIOUS: tuple[str, ...] = ("담즙성 구토", "담즙 구토", "담즙이 섞인 구토", "초록색 구토", "녹색 구토", "초록색 토",
+                             "bilious vomit", "bilious emesis", "green vomit")
+# transient/recurrent altered consciousness without focal signs: the syncope protocol (ECG), not stroke
+_TRANSIENT: tuple[str, ...] = ("간헐", "일시적", "반복", "잠깐", "잠시", "episod", "intermittent", "transient")
+_SEIZURE: tuple[str, ...] = ("경련", "발작", "뇌전증", "seizure", "convuls")
+# leg edema as one of several acute symptoms (e.g. pneumonia, heart failure) is not the primary-edema work-up
+_EDEMA_PRIMARY: tuple[str, ...] = ("거품", "단백뇨", "foamy", "proteinuria", "얼굴", "눈꺼풀", "눈 주위", "눈두덩", "전신",
+                                   "몸의 부종", "몸 부종", "generalized")
+_ABD_PAIN_WORDS: tuple[str, ...] = ("통증", "아프", "아파", "아픔", "아픈", "쓰림", "쓰려", "불편", "쥐어", "pain", "ache",
+                                    "tender", "cramp")
+_ABD_LOCATION_ONLY: tuple[str, ...] = ("명치", "윗배", "아랫배", "옆구리", "상복부", "하복부", "epigastric")
 _JOINT_TRAUMA: tuple[str, ...] = ("사고", "외상", "넘어", "부딪", "골절", "탈구", "다친", "다쳤", "삐", "찰과상", "열상",
                              "타박", "상처", "trauma", "injur", "fall", "fracture", "sprain")
 
@@ -104,7 +142,7 @@ CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "headache": ("두통", "머리가 아", "머리 아", "머리가 깨질", "머리가 터질", "headache"),
     "neuro": _NEURO_FOCAL + _NEURO_AMS_SEIZURE,
     "fever": (
-        "발열", "열이", "열나", "열감", "열과 몸살", "오한", "고열", "미열", "fever", "febrile", "chills",
+        "발열", "열이", "열나", "열감", "열과", "오한", "고열", "미열", "fever", "febrile", "chills",
     ),
     "abdominal_pain": (
         "복통", "배가 아", "배 아", "배아픔", "배 통증", "배가 쥐어", "명치", "윗배", "아랫배", "옆구리", "상복부",
@@ -142,6 +180,13 @@ CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
         "자살", "자해", "불안감", "불안해", "공황", "depress", "suicid", "psychos", "hallucinat", "delusion",
         "mania", "anxiety", "agitation",
     ),
+    # 2026-09-27 additions: all need more than a keyword, see detect_categories()
+    "urticaria_chronic": (),
+    "hearing_loss": _HEARING,
+    "neck_mass": (),
+    "bleeding": _BLEEDING,
+    "chronic_weakness": (),
+    "bilious_vomiting": (),
 }
 
 # Phrases blanked out before keyword matching (false friends of a keyword).
@@ -153,7 +198,7 @@ _MASKS: tuple[str, ...] = ("발작적", "발작성", "paroxysmal")
 ACUTE_ONLY_CATEGORIES: frozenset[str] = frozenset({"neuro", "allergy", "rash"})
 
 _SIDE = r"(한쪽|한 쪽|편측|반쪽|왼쪽|오른쪽|좌측|우측|왼|오른|one side|left|right|unilateral)"
-_MOTOR = r"(힘이 빠|힘 빠|힘이 없|힘이 안|마비|위약|근력 저하|근력저하|weak)"
+_MOTOR = r"(힘이 빠|힘 빠|힘이 없|힘이 안|마비|위약|약화|근력 저하|근력저하|weak)"
 _SENSORY = r"(저림|저리|저려|감각|numb)"
 _RE_SIDE_MOTOR = re.compile(_SIDE + r".{0,15}?" + _MOTOR)
 _RE_SIDE_SENSORY = re.compile(_SIDE + r".{0,15}?" + _SENSORY)
@@ -217,6 +262,27 @@ def duration_level(text: str) -> int:
         if not n.isdigit() or int(n) >= 2:
             return 1
     return 0
+
+
+_RE_DUR_UNITS = re.compile(r"(\d+|몇|수|여러|반|한|두|세)\s*(개월|달|년|주)(?!생|\s*(임신|수))"
+                           r"|\b(\d+|several|few|many)\s*(months?|years?|weeks?)\b")
+_KO_NUM = {"몇": 3, "수": 3, "여러": 3, "반": 0.5, "한": 1, "두": 2, "세": 3, "several": 3, "few": 3, "many": 3}
+_UNIT_WEEKS = {"개월": 4.3, "달": 4.3, "년": 52, "주": 1, "month": 4.3, "year": 52, "week": 1}
+
+
+def duration_weeks(text: str) -> float:
+    """Longest stated chief-complaint duration in weeks (0 = acute/unknown; "만성" = 52). Acute markers and
+    pregnancy weeks / infant ages are ignored the same way as in duration_level(). Our heuristic."""
+    t = (text or "").lower()
+    if has_acute_marker(t):
+        return 0.0
+    t = _RE_INFANT_AGE_DUR.sub(" ", _RE_PREG_WEEKS.sub(" ", t))
+    best = 52.0 if any(k in t for k in _CHRONIC_WORDS) else 0.0
+    for m in _RE_DUR_UNITS.finditer(t):
+        n, unit = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(5))
+        num = float(n) if n.isdigit() else _KO_NUM.get(n, 1)
+        best = max(best, num * _UNIT_WEEKS[unit.rstrip("s")])
+    return best
 
 
 _RE_AGE = re.compile(r"(\d+)\s*세|(\d+)\s*대|(\d+)[- ]year[- ]old")
@@ -283,6 +349,11 @@ def detect_categories(text: str, context: str = "") -> list[str]:
     - hemoptysis_cough: hemoptysis at any duration, or cough lasting >= 2 weeks. pruritus: generalized itch
       lasting >= 2 weeks. edema: limb/generalized/facial swelling or foamy urine (not a swollen joint or neck).
       rash/edema are dropped in an allergic context; joint is dropped after trauma.
+    - 2026-09-27: edema is dropped when it is one symptom of an acute dyspnea/fever/chest-pain complaint (unless
+      foamy urine, facial or generalized edema); abdominal location words need a pain word; urticaria removes
+      pruritus and opens urticaria_chronic at >= 6 weeks; hearing_loss, neck_mass (adult checks), bleeding
+      (not after trauma), chronic_weakness (limb weakness >= 2 weeks), bilious_vomiting (infants <= 3 months);
+      transient/recurrent altered consciousness without focal signs or seizure is syncope, not stroke.
     """
     t = _mask((text or "").lower())
     found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws)}
@@ -302,6 +373,35 @@ def detect_categories(text: str, context: str = "") -> list[str]:
         found.discard("pruritus")
     if _RE_EDEMA.search(t):
         found.add("edema")
+    # 2026-09-27: leg edema listed among acute dyspnea/fever/chest-pain symptoms (pneumonia, heart failure) is covered
+    # by those protocols; the glomerular (urinalysis) work-up is for primary edema, foamy urine or facial edema
+    if "edema" in found and found & {"dyspnea", "fever", "chest_pain"} and not any(k in t for k in _EDEMA_PRIMARY):
+        found.discard("edema")
+    # abdominal location words alone ("좌하복부의 피하 덩이") need a pain word
+    if "abdominal_pain" in found and not any(k in t for k in CATEGORY_KEYWORDS["abdominal_pain"]
+                                             if k not in _ABD_LOCATION_ONLY) \
+            and not any(k in t for k in _ABD_PAIN_WORDS):
+        found.discard("abdominal_pain")
+    # urticaria: itch from wheals is not chronic pruritus of unknown origin; >= 6 weeks = chronic urticaria (EAACI)
+    if any(k in t for k in _URTICARIA):
+        found.discard("pruritus")
+        if duration_weeks(t) >= 6:
+            found.add("urticaria_chronic")
+    if _RE_NECK_MASS.search(t):
+        found.add("neck_mass")
+    if "bleeding" in found and any(k in t for k in _JOINT_TRAUMA):  # post-traumatic nosebleed etc.
+        found.discard("bleeding")
+    if dur >= 1 and _RE_LIMB_WEAKNESS.search(t):
+        found.add("chronic_weakness")
+    if any(k in t for k in _BILIOUS):
+        d = age_days(t)
+        if (d is not None and d <= 90) or any(k in t for k in ("영아", "infant")):
+            found.add("bilious_vomiting")
+    # transient/recurrent loss or lowering of consciousness without focal signs or seizure: syncope, not stroke
+    if "neuro" in found and not focal and any(k in t for k in _TRANSIENT) and not any(k in t for k in _SEIZURE) \
+            and any(k in t for k in _NEURO_AMS_SEIZURE):
+        found.discard("neuro")
+        found.add("syncope")
     if "allergy" in found:  # hives/angioedema: the anaphylaxis protocol, not rash or edema work-up
         found -= {"rash", "edema"}
     if "neuro" in found:  # acute altered mental status / focal deficit: organic work-up first
@@ -322,7 +422,7 @@ def negated(text: str, keyword: str) -> bool:
         return False
     while idx >= 0:
         start = idx + len(keyword)
-        end = min(len(t), start + 25)
+        end = min(len(t), start + _NEG_WINDOW)
         for sep in _CLAUSE_BREAKS:
             j = t.find(sep, start)
             if 0 <= j < end:
@@ -334,7 +434,11 @@ def negated(text: str, keyword: str) -> bool:
     return True
 
 
-_NEGATIONS: tuple[str, ...] = ("없", "않", "아니", "기보다", "안 해", "안 했", "no ", "not ", "denies", "denied", "without", "never")
+# chars after a keyword searched for a negation within the same clause (40: "심잡음이나 굴러가는 소리(friction
+# rub) 청진되지 않음" negates the murmur)
+_NEG_WINDOW = 40
+_NEGATIONS: tuple[str, ...] = ("없", "않", "아니", "기보다", "안 해", "안 했", "음성", "(-)", "no ", "not ", "denies",
+                               "denied", "without", "never", "negative", "absent")
 # Clause ends: punctuation and connectives that start a new clause ("머리가 아프고 입맛도 없어요" → 2 clauses).
 # "거나" is deliberately not a break: "저리거나 힘이 빠진 적 없고" negates both.
 _CLAUSE_BREAKS: tuple[str, ...] = (".", "?", "!", "\n", ",", ";", "고 ", "며 ", "면서", "는데", "지만", " but ", " and ")

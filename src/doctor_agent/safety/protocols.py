@@ -14,6 +14,9 @@ Verification (2026-09-25)
 - 2026-09-26: 13 categories added (syncope ... psychiatric) with 19 more guidelines; same verification scale,
   what was read is stated in each Check.note. Check.min_duration / Check.min_age limit a check to the cited
   guideline's population (chronic presentations, adults).
+- 2026-09-27: false-trigger fixes from a per-case audit of data/cases_aug (see tests) and 6 categories added
+  (chronic urticaria, hearing loss, adult neck mass, bleeding tendency, chronic limb weakness, infant bilious
+  vomiting) with 8 more citations checked against PubMed E-utilities on 2026-09-27.
 """
 from __future__ import annotations
 
@@ -263,12 +266,65 @@ G_PSYCH_EVAL = Citation(
     verified=True, short_author="APA 정신과 평가 지침",
 )
 
+# --- 2026-09-27 additions (bibliographic data checked against PubMed E-utilities on 2026-09-27) ---
+G_URTICARIA = Citation(
+    "Zuberbier T, Abdul Latiff AH, Abuzakouk M, et al.",
+    "The international EAACI/GA²LEN/EuroGuiDerm/APAAACI guideline for the definition, classification, diagnosis, "
+    "and management of urticaria",
+    "Allergy", 2022, "77(3):734-766", doi="10.1111/all.15090", pmid="34536239",
+    verified=True, short_author="EAACI 두드러기 지침",
+)
+G_SSNHL = Citation(
+    "Chandrasekhar SS, Tsai Do BS, Schwartz SR, et al.",
+    "Clinical Practice Guideline: Sudden Hearing Loss (Update)",
+    "Otolaryngol Head Neck Surg", 2019, "161(1_suppl):S1-S45", doi="10.1177/0194599819859885", pmid="31369359",
+    verified=True, short_author="AAO-HNS 돌발성 난청 지침",
+)
+G_ARHL = Citation(
+    "Tsai Do BS, Bush ML, Weinreich HM, et al.",
+    "Clinical Practice Guideline: Age-Related Hearing Loss",
+    "Otolaryngol Head Neck Surg", 2024, "170 Suppl 2:S1-S54", doi="10.1002/ohn.750", pmid="38687845",
+    verified=True, short_author="AAO-HNS 노인성 난청 지침",
+)
+G_HEARING_IMAGING = Citation(
+    "Expert Panel on Neurologic Imaging; Sharma A, Kirsch CFE, et al.",
+    "ACR Appropriateness Criteria Hearing Loss and/or Vertigo",
+    "J Am Coll Radiol", 2018, "15(11S):S321-S331", doi="10.1016/j.jacr.2018.09.020", pmid="30392601",
+    verified=True, short_author="ACR 난청/어지럼 적정성 기준",
+)
+G_NECK_MASS = Citation(
+    "Pynnonen MA, Gillespie MB, Roman B, et al.",
+    "Clinical Practice Guideline: Evaluation of the Neck Mass in Adults",
+    "Otolaryngol Head Neck Surg", 2017, "157(2_suppl):S1-S30", doi="10.1177/0194599817722550", pmid="28891406",
+    verified=True, short_author="AAO-HNS 성인 경부 종괴 지침",
+)
+G_HEMOPHILIA = Citation(
+    "Srivastava A, Santagostino E, Dougall A, et al.",
+    "WFH Guidelines for the Management of Hemophilia, 3rd edition",
+    "Haemophilia", 2020, "26 Suppl 6:1-158", doi="10.1111/hae.14046", pmid="32744769",
+    verified=True, short_author="WFH 혈우병 지침",
+)
+G_IIM_CRITERIA = Citation(
+    "Lundberg IE, Tjärnlund A, Bottai M, et al.",
+    "2017 European League Against Rheumatism/American College of Rheumatology classification criteria for adult and "
+    "juvenile idiopathic inflammatory myopathies and their major subgroups",
+    "Ann Rheum Dis", 2017, "76(12):1955-1964", doi="10.1136/annrheumdis-2017-211468", pmid="29079590",
+    verified=True, short_author="EULAR/ACR 염증성 근병증 분류기준",
+)
+G_INFANT_VOMITING = Citation(
+    "Expert Panel on Pediatric Imaging; Alazraki AL, Rigsby CK, et al.",
+    "ACR Appropriateness Criteria Vomiting in Infants",
+    "J Am Coll Radiol", 2020, "17(11S):S505-S515", doi="10.1016/j.jacr.2020.09.002", pmid="33153561",
+    verified=True, short_author="ACR 영아 구토 적정성 기준",
+)
+
 GUIDELINES: tuple[Citation, ...] = (
     G_CHEST_PAIN, G_AORTA, G_PE, G_HF, G_PLEURAL, G_ANAPHYLAXIS, G_HEADACHE, G_MENINGITIS, G_STROKE,
     G_SEPSIS, G_NEUTROPENIA, G_EARLY_PREGNANCY, G_ECTOPIC, G_AAA, G_AMI, G_ENDOCARDITIS,
     G_SYNCOPE, G_PALPITATIONS, G_HEMOPTYSIS, G_COUGH, G_LIVER, G_JAUNDICE_IMAGING, G_NEONATAL_JAUNDICE, G_HOT_JOINT,
     G_GOUT_DX, G_LOW_BACK_PAIN, G_SJS_TEN, G_PRURITUS, G_VTE_DX, G_GLOMERULAR, G_AMENORRHEA, G_PMB, G_MECFS,
     G_DEMENTIA, G_PSYCH_EVAL,
+    G_URTICARIA, G_SSNHL, G_ARHL, G_HEARING_IMAGING, G_NECK_MASS, G_HEMOPHILIA, G_IIM_CRITERIA, G_INFANT_VOMITING,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -371,8 +427,10 @@ _TRIG_AORTA = ("찢어지", "찢기는", "뜯기는", "등으로", "등까지", 
                "radiat", "back pain", "marfan")
 _TRIG_PE = ("객혈", "다리가 붓", "다리 부종", "종아리", "수술", "부동", "장거리", "비행", "피임약", "호르몬", "혈전",
             "hemoptysis", "leg swelling", "calf", "surgery", "immobil", "long flight", "contracepti", "thrombo")
-_TRIG_ANAPHYLAXIS = ("두드러기", "입술이 붓", "혀가 붓", "얼굴이 붓", "알레르기", "벌에", "땅콩", "새우", "먹고 나서",
-                     "주사 맞고", "hives", "urticaria", "allerg", "angioedema", "bee sting")
+# not bare "알레르기": a drug-allergy history ("페니실린 알레르기가 있습니다") is not an allergic reaction (da_858)
+_TRIG_ANAPHYLAXIS = ("두드러기", "입술이 붓", "혀가 붓", "얼굴이 붓", "알레르기 반응", "알레르기성 반응", "아나필락시스",
+                     "벌에", "땅콩", "새우", "먹고 나서", "주사 맞고", "hives", "urticaria", "allergic reaction",
+                     "anaphyla", "angioedema", "bee sting")
 _TRIG_NEUTROPENIA = ("항암", "암 치료", "화학요법", "면역저하", "면역 저하", "골수", "chemotherapy", "neutropen",
                      "immunocompromis", "transplant", "이식")
 _TRIG_FEMALE = ("여성", "여자", "female", "woman", "임신", "생리", "월경", "질출혈", "질 출혈", "pregnan", "menstru",
@@ -386,7 +444,7 @@ _TRIG_AMI = ("심방세동", "부정맥", "통증에 비해", "진찰 소견에 
 # Sepsis (SSC 2021 applies to *suspected sepsis*): systemic-instability signals, from any text
 _TRIG_SEPSIS_INSTABILITY = _TRIG_AMS + (
     "저혈압", "혈압이 떨어", "혈압이 낮", "쇼크", "빈맥", "맥박이 빠르", "맥이 빠르", "심장이 빨리", "숨을 빨리",
-    "호흡이 빠르", "소변량 감소", "소변량이 줄", "소변이 안 나", "소변이 나오지", "떨림", "덜덜", "사시나무",
+    "호흡이 빠르", "소변량 감소", "소변량이 줄", "소변이 안 나", "소변이 나오지", "덜덜", "사시나무", "오한 떨림",
     "패혈", "균혈", "sepsis", "septic", "bacteremia", "hypotens", "tachycard", "shock", "rigor", "oliguria",
     "hiv", "에이즈", "면역억제", "aids",
 ) + _TRIG_NEUTROPENIA
@@ -398,12 +456,13 @@ _RE_HR = re.compile(r"(?:맥박|심박수?|heart rate|pulse|hr)\s*:?\s*(\d{2,3})
 _RE_RR = re.compile(r"(?:호흡수|respiratory rate|rr)\s*:?\s*(\d{1,2})")
 
 
-def _numeric_instability(t: str) -> bool:
-    """SBP <= 100 or RR >= 22 (qSOFA, Seymour 2016) or HR > 100, when numbers appear in the learned text."""
+def _numeric_instability(t: str, need: int = 1) -> bool:
+    """At least `need` of: SBP <= 100, RR >= 22 (qSOFA, Seymour 2016), HR > 100, when numbers appear in the text."""
     sbp = [int(g) for m in _RE_SBP.finditer(t) for g in m.groups() if g]
     hr = [int(m.group(1)) for m in _RE_HR.finditer(t)]
     rr = [int(m.group(1)) for m in _RE_RR.finditer(t)]
-    return any(x <= 100 for x in sbp) or any(x > 100 for x in hr) or any(x >= 22 for x in rr)
+    n = any(x <= 100 for x in sbp) + any(x > 100 for x in hr) + any(x >= 22 for x in rr)
+    return n >= need
 
 
 def _sepsis_suspected(cc: str, text: str) -> bool:
@@ -411,7 +470,9 @@ def _sepsis_suspected(cc: str, text: str) -> bool:
     without instability (e.g. hypersensitivity pneumonitis, TB). Our operationalisation of SSC 2021's
     'suspected sepsis'."""
     t = (text or "").lower()
-    if contains_affirmed(t, _TRIG_SEPSIS_INSTABILITY) or _numeric_instability(t):
+    # weeks-long febrile illness: one borderline vital sign (e.g. RR 22 in hypersensitivity pneumonitis) is not enough
+    need = 2 if duration_level(cc) >= 1 else 1
+    if contains_affirmed(t, _TRIG_SEPSIS_INSTABILITY) or _numeric_instability(t, need):
         return True
     return duration_level(cc) == 0 and (contains_affirmed(t, _TRIG_SEPSIS_ACUTE) or bool(_RE_HIGH_TEMP.search(t)))
 
@@ -445,7 +506,8 @@ _RE_UNILATERAL_LEG = re.compile(
 _TRIG_KNOWN_PREGNANCY = ("임신 중", "임신중", "임산부", "산모", "pregnant")
 _TRIG_POSTMENOPAUSAL = ("폐경", "postmenopaus", "menopaus")
 _TRIG_AMENORRHEA = ("무월경", "월경이 없", "생리가 없", "생리를 안", "생리가 안 ", "생리를 하지", "월경을 하지",
-                    "생리가 늦", "초경", "amenorrh", "missed period")
+                    "생리가 늦", "초경", "초경이 없", "초경 없", "초경을 안", "초경을 하지", "초경이 아직",
+                    "amenorrh", "missed period")
 _RE_PREG_WEEKS_PR = re.compile(r"(임신|재태)\s*\d+\s*주|\d+\s*주\s*(차\s*)?임신")
 
 
@@ -503,11 +565,95 @@ def _pregnancy_possible(cc: str, text: str) -> bool:
     return age is None or 10 <= age <= 55
 
 
+# --- 2026-09-27 predicates (false-trigger fixes and new categories; our operationalisations) --------------
+# current pregnancy (not obstetric history "임신은 2번 했고", not an infant's birth history "임신 39주에 태어났")
+_TRIG_CURRENT_PREGNANCY = ("임신 중", "임신중", "임신했", "임신 반응 양성", "임신반응 양성", "임신 검사 양성",
+                           "임신검사 양성", "hcg 양성", "hcg가 양성", "임산부", "pregnant", "positive pregnancy",
+                           "positive hcg", "생리가 늦", "생리가 안", "생리를 안", "생리가 없", "월경이 없", "무월경",
+                           "missed period", "amenorrh")
+_RE_CURRENT_PREG_WEEKS = re.compile(r"(임신|재태)\s*\d+\s*주(?![^.]{0,15}(태어|출생|분만|조산|낳))"
+                                    r"|\d+\s*주\s*(차\s*)?임신")
+
+
+def _current_pregnancy(cc: str, text: str) -> bool:
+    age = age_years(cc)
+    if age is not None and age < 10:
+        return False
+    t = (text or "").lower()
+    return contains_affirmed(t, _TRIG_CURRENT_PREGNANCY) or bool(_RE_CURRENT_PREG_WEEKS.search(t))
+
+
+def _pregnancy_test_abdominal(cc: str, text: str) -> bool:
+    """Woman of reproductive age (10-55 or unstated) whose pregnancy is not already known and who is not stated to be
+    postmenopausal (ACOG PB 193 / ACEP 2017 populations)."""
+    if not contains_affirmed(text, _TRIG_FEMALE):
+        return False
+    age = age_years(cc)
+    if age is not None and not 10 <= age <= 55:
+        return False
+    if _RE_CURRENT_PREG_WEEKS.search((text or "").lower()) or contains_affirmed(text, _TRIG_KNOWN_PREGNANCY):
+        return False
+    return not any(k in (cc or "").lower() for k in _TRIG_POSTMENOPAUSAL)
+
+
+_TRIG_HOT_JOINT = ("붓", "부었", "부어", "부종", "부기", "발적", "빨갛", "붉", "열감", "뜨겁", "뜨끈", "발열", "열이", "swell",
+                   "effusion", "erythem", "fever")
+# periarticular source: tenosynovitis (Finkelstein), bursitis, or passive joint motion preserved
+_TRIG_PERIARTICULAR = ("finkelstein", "핑켈스타인", "건초염", "건막염", "힘줄염", "건염", "tenosynovitis", "tendinitis",
+                       "tendonitis", "점액낭염", "bursitis", "수동적 움직임에는 제한이 없", "수동적 움직임은 정상",
+                       "수동 운동 범위는 정상", "수동 관절 운동은 정상", "passive range of motion is normal",
+                       "full passive range")
+
+
+def _hot_joint(cc: str, text: str) -> bool:
+    """BSR 2006 population: acute hot swollen joint. A periarticular source (positive Finkelstein test, bursitis,
+    preserved passive joint motion) is not a joint effusion (cqa_236 de Quervain)."""
+    return contains_affirmed(text, _TRIG_HOT_JOINT) and not contains_affirmed(text, _TRIG_PERIARTICULAR)
+
+
+_RE_UNILATERAL_EAR = re.compile(r"(한쪽|한 쪽|편측|왼쪽|오른쪽|좌측|우측|one|left|right|unilateral)\s?\S{0,2}\s?"
+                                r"(귀|난청|청력|ear|hearing)|asymmetric|비대칭")
+_TRIG_SUDDEN = ("갑자기", "갑작스", "돌발", "자고 일어나", "아침에 일어나", "sudden", "abrupt")
+
+
+def _sudden_hearing(cc: str, text: str) -> bool:
+    return any(k in (cc or "").lower() for k in _TRIG_SUDDEN)
+
+
+def _retrocochlear(cc: str, text: str) -> bool:
+    """Sudden hearing loss (AAO-HNS 2019 KAS 6) or unilateral/asymmetric hearing loss (AAO-HNS 2024 KAS 5)."""
+    return _sudden_hearing(cc, text) or bool(_RE_UNILATERAL_EAR.search((cc or "").lower()))
+
+
+_NECK_INFECTION = ("인후통", "목이 아프", "목감기", "감기", "편도", "치통", "sore throat", "tonsil", "dental abscess")
+
+
+def _neck_mass_risk(cc: str, text: str) -> bool:
+    """AAO-HNS 2017 increased malignancy risk: no infectious history and present >= 2 weeks or of uncertain duration.
+    Only a stated duration < 2 weeks together with an infectious story drops it (our reading)."""
+    days_stated = bool(re.search(r"\d+\s*일|어제|오늘|며칠", (cc or "").lower()))
+    short = duration_level(cc) == 0 and days_stated
+    return not (short and contains_affirmed(text, _NECK_INFECTION))
+
+
+_TRIG_SENSORY = ("저림", "저리", "저려", "감각", "타는 듯", "화끈", "numb", "tingl", "paresthes", "burning")
+
+
+def _myopathy_pattern(cc: str, text: str) -> bool:
+    """CK for symmetric weakness without sensory symptoms (a myopathy pattern), not a one-sided or sensory picture."""
+    t = (cc or "").lower()
+    one_side = bool(re.search(r"(한쪽|한 쪽|편측|왼|오른|좌측|우측|left|right|unilateral)", t))
+    return not one_side and not any(k in t for k in _TRIG_SENSORY)
+
+
 PREDICATES = {
     "sepsis": _sepsis_suspected, "ie": _ie_suspected, "neonate": _neonate, "not_neonate": _not_neonate,
     "neonate_prolonged": _neonate_prolonged, "hemoptysis": _hemoptysis, "chronic_cough": _chronic_cough_only,
     "unilateral_leg": _unilateral_leg, "not_unilateral_leg": _not_unilateral_leg, "amenorrhea": _amenorrhea,
     "postmenopausal_bleeding": _postmenopausal_bleeding, "pregnancy_possible": _pregnancy_possible,
+    "current_pregnancy": _current_pregnancy, "pregnancy_test_abdominal": _pregnancy_test_abdominal,
+    "hot_joint": _hot_joint, "sudden_hearing": _sudden_hearing, "retrocochlear": _retrocochlear,
+    "neck_mass_risk": _neck_mass_risk, "myopathy_pattern": _myopathy_pattern,
 }
 
 
@@ -553,16 +699,18 @@ PROTOCOLS: tuple[Protocol, ...] = (
         checks=(
             _vitals(G_PE, note="Hemodynamic status (shock/hypotension) defines high-risk PE in ESC 2019; "
                     "SpO2 is basic assessment. Not checked in the guideline text."),
-            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_HF, "unverified", when="모든 급성 호흡곤란",
-                  note="HF guideline recommends ECG in initial evaluation of suspected HF."),
+            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_HF, "unverified", when="모든 급성 호흡곤란(성인)",
+                  min_age=18,
+                  note="HF guideline recommends ECG in initial evaluation of suspected HF. Adult guideline: not "
+                  "applied to newborns/children (2026-09-27)."),
             Check("cxr", "흉부 X선", "test", _KW_CXR, G_PLEURAL, "unverified", when="기흉·폐렴·폐부종 평가",
                   note="Tension pneumothorax is a clinical diagnosis; do not delay decompression for imaging."),
             Check("natriuretic_peptide", "BNP 또는 NT-proBNP", "test", ("bnp", "nt-probnp", "나트륨이뇨"), G_HF,
-                  "unverified", when="심부전 의심",
+                  "unverified", when="심부전 의심(성인)", min_age=18,
                   note="Class 1: natriuretic peptides to support/exclude HF in patients presenting with dyspnea."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
                   "unverified", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
-                  acute_only=2),
+                  acute_only=2, min_age=18),
             Check("epinephrine", "아나필락시스 의심 시 즉시 에피네프린 근육주사", "treatment",
                   ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_ANAPHYLAXIS, "unverified",
                   triggers=_TRIG_ANAPHYLAXIS, when="두드러기·입술/혀 부종·알레르겐 노출 후 호흡곤란"),
@@ -647,19 +795,23 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   note="Tenderness and rebound are Alvarado components; cited as the source for exam findings, "
                   "not as a guideline."),
             Check("pregnancy_test", "임신 검사(β-hCG)", "test", _KW_PREGNANCY, G_ECTOPIC, "unverified",
-                  triggers=_TRIG_FEMALE, when="가임기 여성의 복통",
+                  predicate="pregnancy_test_abdominal", when="가임기 여성의 복통(임신 사실이 이미 알려진 경우 제외)",
                   note="ACOG PB 193 / ACEP 2017 cover ectopic pregnancy evaluation (hCG + transvaginal US). "
-                  "Recommendation text not re-read."),
+                  "Recommendation text not re-read. 2026-09-27: not for known pregnancy (임신 38주), age > 55 or "
+                  "stated menopause."),
             Check("pelvic_us", "임신 양성이면 골반(질식) 초음파", "test",
                   ("질식 초음파", "골반 초음파", "경질 초음파", "transvaginal", "pelvic ultrasound", "pelvic us"),
-                  G_EARLY_PREGNANCY, "unverified",
-                  triggers=("임신", "pregnan", "hcg 양성", "생리가 늦", "생리가 안", "생리를 안", "생리가 없", "월경이 없",
-                            "무월경", "missed period", "amenorrh"),
-                  when="임신 확인된 복통·질출혈"),
+                  G_EARLY_PREGNANCY, "unverified", predicate="current_pregnancy",
+                  when="임신 확인된(또는 월경 지연) 복통·질출혈",
+                  note="2026-09-27: current pregnancy only, not an obstetric history ('임신은 2번 했고') or an "
+                  "infant's birth history."),
             Check("aaa_imaging", "복부 대동맥 초음파 또는 CT", "test",
                   ("복부 초음파", "복부 ct", "대동맥 초음파", "abdominal ultrasound", "abdominal ct", "ct abdomen",
                    "aortic ultrasound"),
-                  G_AAA, "unverified", triggers=_TRIG_AAA, when="고령·등/옆구리 통증·박동성 종괴·실신·저혈압"),
+                  G_AAA, "unverified", triggers=_TRIG_AAA, min_age=50,
+                  when="50세 이상(또는 나이 미상)·등/옆구리 통증·박동성 종괴·실신·저혈압",
+                  note="min_age=50 is our operationalisation (AAA is rare below 50; SVS screening starts at 65, or "
+                  "55 with risk); it stops flank pain in young adults (pyelonephritis, DKA) from requiring it."),
             Check("mesenteric_cta", "장간막 허혈 의심 시 지체 없이 CT 혈관조영", "test",
                   ("ct 혈관조영", "ct 혈관 조영", "cta", "ct angiogra", "복부 혈관조영", "mesenteric"), G_AMI,
                   "primary", triggers=_TRIG_AMI, when="심방세동, 진찰 소견에 비해 심한 통증",
@@ -811,13 +963,13 @@ PROTOCOLS = PROTOCOLS + (
             Check("arthrocentesis", "관절 천자(활액 그람 염색·배양·결정 검사) — 항생제 전", "test",
                   ("관절 천자", "관절천자", "관절액", "관절 액", "활액", "관절 흡인", "천자", "arthrocentesis",
                    "synovial fluid", "joint aspiration", "joint fluid", "aspirat"),
-                  G_HOT_JOINT, "secondary", acute_only=1, min_age=16,
-                  triggers=("붓", "부었", "부어", "부종", "부기", "발적", "빨갛", "붉", "열감", "뜨겁", "뜨끈", "발열",
-                            "열이", "swell", "effusion", "erythem", "fever"),
-                  when="급성(2주 미만) 관절 부기·발적·열감(성인)",
+                  G_HOT_JOINT, "secondary", acute_only=1, min_age=16, predicate="hot_joint",
+                  when="급성(2주 미만) 관절 부기·발적·열감(성인), 건초염·점액낭염 등 관절 주위 원인 제외",
                   note="BSR 2006: aspirate, Gram-stain and culture synovial fluid before antibiotics in a hot "
                   "swollen joint (confirmed via secondary summaries; abstract has no text). EULAR 2018 gout "
-                  "(abstract, read): search for crystals in synovial fluid in every person with suspected gout."),
+                  "(abstract, read): search for crystals in synovial fluid in every person with suspected gout. "
+                  "2026-09-27: not when a periarticular source is found (positive Finkelstein, bursitis, preserved "
+                  "passive joint motion) - our operationalisation of 'hot swollen joint'."),
         ),
     ),
     Protocol(
@@ -959,6 +1111,148 @@ PROTOCOLS = PROTOCOLS + (
     ),
 )
 
+
+# --------------------------------------------------------------------------------------------
+# 2026-09-27 additions: uncovered chief complaints in data/cases_aug with a guideline we could check.
+# --------------------------------------------------------------------------------------------
+
+_KW_CRP_ESR = ("crp", "c-반응", "c 반응", "c반응", "esr", "적혈구 침강", "적혈구침강", "염증 수치", "염증수치", "sedimentation")
+_KW_EAR_EXAM = ("이경", "고막", "외이도", "귀 진찰", "귀 안", "귀 속", "귀 내시경", "소리굽쇠", "음차", "웨버", "린네",
+                "weber", "rinne", "tuning fork", "otoscop", "tympanic", "ear exam")
+_KW_AUDIOMETRY = ("청력 검사", "청력검사", "순음", "청각 검사", "청력 측정", "어음", "audiometr", "audiogram", "pure tone",
+                  "pure-tone", "hearing test")
+_KW_RETROCOCHLEAR = ("mri", "자기공명", "내이도", "청신경", "소뇌교각", "abr", "청성 뇌간", "청성뇌간", "뇌간 유발",
+                     "auditory brainstem", "internal auditory")
+_KW_COAG = ("pt/inr", "pt 검사", "pt,", "pt와", "prothrombin", "프로트롬빈", "aptt", "ptt", "부분 트롬보플라스틴",
+            "응고 검사", "응고검사", "혈액응고", "혈액 응고", "coagulation", "inr")
+_KW_CK = ("ck 검사", "ck(", "(ck", "ck)", "ck 수치", "혈청 ck", "ck/", "/ck", "ck와", "ck,", "cpk", "creatine kinase",
+          "크레아틴 키나", "크레아틴키나", "근육 효소", "근효소", "근육효소")
+_KW_INFANT_ABD_IMAGING = ("복부 x", "복부x", "복부 엑스", "복부 단순", "복부 방사선", "복부 촬영", "abdominal x",
+                          "abdominal radiograph", "abdominal film", "kub", "상부 위장관 조영", "상부위장관 조영",
+                          "위장관 조영", "upper gi", "ugi", "위장관 투시", "fluoroscop")
+
+PROTOCOLS = PROTOCOLS + (
+    Protocol(
+        category="urticaria_chronic", name_ko=CATEGORY_NAMES["urticaria_chronic"],
+        cant_miss=("두드러기 혈관염", "자가염증 증후군(슈니츨러 증후군 등)", "혈관부종(ACE 억제제·유전성)",
+                   "갑상선 자가면역 질환"),
+        checks=(
+            Check("cbc_diff", "일반혈액검사(백혈구 감별계산 포함)", "test", _KW_CBC, G_URTICARIA, "primary",
+                  when="6주 이상 지속되는 두드러기",
+                  note="EAACI/GA2LEN 2021 (Allergy 2022), section 4.2 and Table 8, read in the EDF-hosted PDF: 'We "
+                  "recommend limited investigations. Basic tests include differential blood count, CRP and/or "
+                  "ESR' (consensus, strong); total IgE and IgG anti-TPO only in specialist care; no routine tests "
+                  "in acute urticaria. Chronic = > 6 weeks; the chronic-pruritus panel does not apply."),
+            Check("crp_esr", "CRP 및/또는 적혈구침강속도(ESR)", "test", _KW_CRP_ESR, G_URTICARIA, "primary",
+                  when="6주 이상 지속되는 두드러기"),
+        ),
+    ),
+    Protocol(
+        category="hearing_loss", name_ko=CATEGORY_NAMES["hearing_loss"],
+        cant_miss=("돌발성 감각신경성 난청", "청신경초종(후미로 병변)", "뇌졸중(전정·청각 동반 증상)", "진주종"),
+        checks=(
+            Check("ear_exam", "이경 검사 + 소리굽쇠 검사(전음성 vs 감각신경성 구분)", "exam", _KW_EAR_EXAM, G_SSNHL,
+                  "primary", min_age=18, predicate="sudden_hearing", when="갑자기 생긴 난청(성인)",
+                  note="AAO-HNS 2019 KAS 1 (strong, abstract): distinguish sensorineural from conductive hearing "
+                  "loss at first presentation. Otoscopy + tuning fork as the means is the guideline body per "
+                  "reviewer knowledge (full text not read)."),
+            Check("ear_exam", "이경 검사(귀지·감염·고막 이상) + 소리굽쇠 검사", "exam", _KW_EAR_EXAM, G_ARHL, "primary",
+                  min_age=18, when="서서히 진행한 난청(성인)",
+                  note="AAO-HNS 2024 ARHL KAS 2 (abstract): if hearing loss is suggested, examine the ear canal and "
+                  "tympanic membrane with otoscopy. Guideline population is >= 50 years; applied to adults >= 18."),
+            Check("audiometry", "청력 검사(순음 청력검사, 가능한 빨리)", "test", _KW_AUDIOMETRY, G_SSNHL, "primary",
+                  min_age=18, predicate="sudden_hearing", when="갑자기 생긴 난청(성인, 발병 14일 이내 권고)",
+                  note="AAO-HNS 2019 KAS 4 (abstract): obtain audiometry as soon as possible (within 14 days of "
+                  "onset) to confirm SSNHL. KAS 3/5 (strong, against): no routine head CT, no routine labs."),
+            Check("audiometry", "청력 검사(순음 청력검사)", "test", _KW_AUDIOMETRY, G_ARHL, "primary", min_age=18,
+                  when="서서히 진행한 난청(성인)",
+                  note="AAO-HNS 2024 ARHL KAS 4 (strong, abstract): if screening suggests hearing loss, obtain an "
+                  "audiogram. Population >= 50 years; applied to adults >= 18 (our extension)."),
+            Check("retrocochlear_imaging", "후미로 병변 평가(내이도 MRI 또는 청성뇌간반응)", "test", _KW_RETROCOCHLEAR,
+                  G_SSNHL, "primary", min_age=18, predicate="sudden_hearing", when="갑자기 생긴 감각신경성 난청(성인)",
+                  note="AAO-HNS 2019 KAS 6 (abstract): evaluate SSNHL for retrocochlear pathology with MRI or "
+                  "auditory brainstem response."),
+            Check("retrocochlear_imaging", "비대칭(한쪽) 난청의 후미로 병변 평가(내이도 조영증강 MRI)", "test",
+                  _KW_RETROCOCHLEAR, G_HEARING_IMAGING, "unverified", min_age=18, predicate="retrocochlear",
+                  when="한쪽 또는 비대칭 감각신경성 난청(성인)",
+                  note="Citation verified (PubMed 30392601); the abstract has no variant ratings. MRI head/IAC for "
+                  "asymmetric SNHL as 'usually appropriate' is reviewer knowledge. AAO-HNS 2024 ARHL KAS 5 (read): "
+                  "evaluate or refer significant asymmetric hearing loss."),
+        ),
+    ),
+    Protocol(
+        category="neck_mass", name_ko=CATEGORY_NAMES["neck_mass"],
+        cant_miss=("두경부 편평세포암 전이", "림프종", "갑상선암", "침샘 종양", "결핵성 림프절염"),
+        checks=(
+            Check("malignancy_history", "악성 위험 문진(지속 기간·크기 변화, 감염 증상, 흡연·음주, 체중 감소, 삼킴 곤란·"
+                  "쉰 목소리·귀 통증)", "ask",
+                  ("흡연", "담배", "음주", "술을", "술은", "체중 감소", "체중이 줄", "살이 빠", "삼킴", "삼키기", "쉰 목소리",
+                   "목소리 변화", "목소리가", "귀 통증", "귀가 아", "크기 변화", "커졌", "smok", "tobacco", "alcohol",
+                   "weight loss", "dysphagia", "hoarse", "otalgia"),
+                  G_NECK_MASS, "primary", min_age=18, when="성인 경부 종괴",
+                  note="AAO-HNS 2017 statements 1-3 (abstract): identify increased malignancy risk from history "
+                  "(no infectious cause, >= 2 weeks without fluctuation or uncertain duration), exam "
+                  "(fixed, firm, > 1.5 cm, ulcerated) and other suspicious findings. The listed history items are "
+                  "the usual head-and-neck cancer clues, wording ours. Guideline excludes children."),
+            Check("neck_imaging", "조영증강 경부 CT(또는 MRI)", "test",
+                  ("경부 ct", "목 ct", "neck ct", "ct neck", "ct of the neck", "경부 mri", "목 mri", "neck mri",
+                   "mri neck", "경부 전산화", "경부 조영"),
+                  G_NECK_MASS, "primary", min_age=18, predicate="neck_mass_risk",
+                  when="악성 위험 증가(2주 이상 지속 또는 기간 불명, 감염 원인 없음)",
+                  note="AAO-HNS 2017 (strong, abstract): order neck CT (or MRI) with contrast for a neck mass at "
+                  "increased risk for malignancy; FNA (not open biopsy) when the diagnosis remains uncertain; no "
+                  "routine antibiotics without signs of bacterial infection."),
+        ),
+    ),
+    Protocol(
+        category="bleeding", name_ko=CATEGORY_NAMES["bleeding"],
+        cant_miss=("혈우병·폰빌레브란트병", "백혈병·재생불량성 빈혈", "면역 혈소판 감소증", "혈전성 미세혈관병증(TTP/HUS)",
+                   "파종성 혈관내 응고(DIC)", "항응고제 과다"),
+        checks=(
+            Check("platelet_count", "일반혈액검사(혈소판 수)", "test", _KW_CBC, G_HEMOPHILIA, "primary",
+                  when="쉽게 드는 멍·잦은 코피·시술 후 지혈 안 됨 등 출혈 경향",
+                  note="WFH 2020 chapter 3 'Screening tests' (read in the WFH PDF, p. 41): platelet count, PT and "
+                  "APTT may be used to screen a patient suspected of having a bleeding disorder; Table 3-1 "
+                  "interprets the pattern. Normal results do not exclude mild disorders (e.g. VWD)."),
+            Check("pt_aptt", "PT·aPTT(응고 선별검사)", "test", _KW_COAG, G_HEMOPHILIA, "primary",
+                  when="쉽게 드는 멍·잦은 코피·시술 후 지혈 안 됨 등 출혈 경향"),
+        ),
+    ),
+    Protocol(
+        category="chronic_weakness", name_ko=CATEGORY_NAMES["chronic_weakness"],
+        cant_miss=("척수 압박·척수병증", "근위축성 측삭 경화증", "염증성 근병증(다발성 근염·피부근염)", "중증 근무력증",
+                   "길랭-바레 증후군/CIDP", "전해질 이상(저칼륨혈증)·갑상선 질환"),
+        checks=(
+            Check("neuro_exam", "신경학적 진찰(근력 분포, 반사, 감각, 상위/하위 운동신경원 징후)", "exam",
+                  _KW_NEURO_EXAM + ("근력 검사", "근력 평가", "도수 근력", "반사", "reflex", "muscle strength",
+                                    "motor exam"),
+                  G_IIM_CRITERIA, "unverified", when="2주 이상 지속되는 사지 근력 저하",
+                  note="Basic assessment. The EULAR/ACR 2017 criteria (read in PMC5736307) need *objective* "
+                  "symmetric proximal weakness, i.e. an examination; they are classification, not diagnostic, "
+                  "criteria. No diagnostic guideline for chronic weakness was found; the check is reviewer "
+                  "knowledge."),
+            Check("ck", "혈청 크레아틴 키나아제(CK)", "test", _KW_CK, G_IIM_CRITERIA, "unverified",
+                  predicate="myopathy_pattern", when="감각 증상 없는 대칭성(양측) 근력 저하",
+                  note="EULAR/ACR 2017 criteria item (read): elevated serum CK, LDH, AST or ALT. Classification "
+                  "criteria, not a diagnostic guideline; ordering CK for chronic symmetric weakness without "
+                  "sensory symptoms is reviewer knowledge."),
+        ),
+    ),
+    Protocol(
+        category="bilious_vomiting", name_ko=CATEGORY_NAMES["bilious_vomiting"],
+        cant_miss=("장회전 이상과 중장 염전", "십이지장 폐쇄·협착", "공장·회장 폐쇄", "히르슈슈프룽병", "괴사성 장염"),
+        checks=(
+            Check("urgent_abd_imaging", "즉시 복부 X선 + 상부위장관 조영술(장회전 이상 배제)", "test",
+                  _KW_INFANT_ABD_IMAGING, G_INFANT_VOMITING, "secondary",
+                  when="생후 3개월 이하 영아의 담즙성(초록색) 구토",
+                  note="ACR AC Vomiting in Infants 2020 (narrative page read through an automated summary, "
+                  "variant titles quoted): bilious vomiting in an infant > 2 days old (suspected malrotation) -> "
+                  "fluoroscopy upper GI series usually appropriate; vomiting in the first 2 days -> abdominal "
+                  "radiograph first, then UGI (double bubble) or contrast enema (distal obstruction). Population "
+                  "< 3 months. Urgency of malrotation/volvulus is reviewer knowledge."),
+        ),
+    ),
+)
 
 PROTOCOLS_BY_CATEGORY: dict[str, Protocol] = {p.category: p for p in PROTOCOLS}
 
