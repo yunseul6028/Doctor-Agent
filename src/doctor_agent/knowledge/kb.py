@@ -8,13 +8,16 @@ Nothing here depends on other cases (read-only static data).
 API
     lookup(name)                     -> profile dict | None      (Korean/English names, synonyms, codes; fuzzy)
     candidates(findings, k=10)       -> ranked diseases matching positive findings, with the matched terms
-    discriminators(dx_a, dx_b)       -> features that differ between two diseases
+    discriminators(dx_a, dx_b)       -> features that differ between two diseases (incl. test_findings_*_only; decisive
+                                        results also lead tests_*_only)
     normalize_diagnosis(text)        -> {"name", "code", ...} standard Korean name + KCD code | None
     render_for_prompt(findings, dx)  -> short Korean text with source tags (<= ~800 chars) for the small LLM
     patient_profile(text)            -> (sex "남성"/"여성"/"", age or None) parsed from "35세 여성" style text
 
 Finding → term matching uses the KB labels plus the curated tables in kb_curated.py (Korean synonyms, generic-term
-stop list, vitals/lab value parsing). Offline benchmark: scripts/eval_kb.py.
+stop list, vitals/lab value parsing). Test/lab/imaging results ("리파아제 1,250 U/L", "AMA 양성", "CT: 충수 비후") are
+detected by kb_tests.detect() and scored through the curated profile field findings_from_tests (weight 3 = decisive);
+a normal result of a rule-out test ("트로포닌 음성") penalises the linked disease. Offline benchmark: scripts/eval_kb.py.
 """
 from __future__ import annotations
 
@@ -26,7 +29,7 @@ import threading
 from collections import defaultdict
 from pathlib import Path
 
-from doctor_agent.knowledge import kb_curated
+from doctor_agent.knowledge import kb_curated, kb_tests
 
 KB_DIR = Path(__file__).resolve().parents[3] / "data" / "kb"
 SRC_SHORT = {"DDXPlus": "DDXPlus", "DO": "DO", "WD": "Wikidata", "KCD": "KCD", "MedlinePlus": "MedlinePlus",
@@ -108,6 +111,10 @@ class KnowledgeBase:
     QX = 0.75        # weight of a general term implied by a specific finding
     COVER_A = 0.5    # score × (COVER_A + (1 - COVER_A) × share of matched findings the disease explains)
     NEG_W = 0.5      # penalty per negated feature (× idf)
+    TEST_W = 20.0    # decisive (weight 3) positive result, before coverage/prior (dev sweep 6→50: flat after 20)
+    TEST_TW = {3: 1.0, 2: 0.5, 1: 0.15}  # share of TEST_W per link weight
+    TEST_SPREAD = 0.2  # a finding linked to n diseases counts 1 / (1 + TEST_SPREAD × (n - 1)) per disease
+    TEST_NEG = 5.0   # penalty of a normal result of a rule-out ("R") link, × TEST_TW
     AGE_PEN = 0.3    # pediatric-named profile for an adult (or the reverse)
     FUZZY_MIN = 0.6  # minimum char-bigram Dice for a fuzzy name match (Korean) ...
     FUZZY_SURE = 0.7  # ... below which the first two characters must agree
@@ -146,7 +153,7 @@ class KnowledgeBase:
         bad = {(en_ix[en], _n(lab)) for en, labs in kb_curated.BAD_LABELS.items() if en in en_ix for lab in labs}
         raw: list[tuple[str, str]] = []
         for tid, t in self.terms.items():
-            if tid not in self.stop:
+            if tid not in self.stop and not tid.startswith("TF:"):  # test findings are detected by kb_tests
                 raw += [(lab, tid) for lab in dict.fromkeys([t["en"], t["ko"], *t["syn"]])]
         for en, syns in kb_curated.SYNONYMS.items():
             tid = en_ix.get(en)
@@ -195,6 +202,7 @@ class KnowledgeBase:
                 if g != tid and g in used and g not in generic:
                     self.implies[tid].add(g)
         self._build_postings()
+        self._build_test_postings()
         self._compute_prior()
         # age group from names ("childhood ...", "소아 ...", "senile ...")
         self._age: list[str] = []
@@ -380,6 +388,7 @@ class KnowledgeBase:
             "name_en": d["names_en"][0][0] if d["names_en"] else "",
             "names_ko": d["names_ko"], "names_en": d["names_en"], "codes": d["codes"],
             "symptoms": feats("symptoms"), "risk_factors": feats("risk"), "tests": feats("tests"),
+            "findings_from_tests": self._test_feats(d),
             "questions": [{"ko": self.terms[t]["q"]["ko"], "en": self.terms[t]["q"]["en"], "src": ["DDXPlus"]}
                           for t, s in d["symptoms"] + d.get("risk", []) if "DDXPlus" in s and "q" in self.terms[t]],
         }
@@ -388,8 +397,19 @@ class KnowledgeBase:
                 out["definition" if k == "def" else k] = d[k]
         srcs = {s for lst in ("names_ko", "names_en") for _, s in d[lst]}
         srcs |= {s for f in ("symptoms", "risk", "tests") for _, ss in d.get(f, []) for s in ss}
+        srcs |= {s for x in d.get("findings_from_tests", []) for s in x[1]}
         out["sources"] = sorted(srcs)
         return out
+
+    def _test_feats(self, d: dict) -> list[dict]:
+        """Curated test/lab/imaging findings of a profile, strongest first: {id, ko, en, src, weight, ref, rule_out}."""
+        return [{**self.term(x[0]), "src": x[1], "weight": int(x[2]), "ref": x[3] if len(x) > 3 else "",
+                 "rule_out": len(x) > 4 and x[4] == "R"}
+                for x in sorted(d.get("findings_from_tests", []), key=lambda x: (-int(x[2]), x[0]))]
+
+    def test_ref(self, key: str) -> dict:
+        """Reference of a test link ({"cite", "pmid"}); "textbook" = standard knowledge, no specific guideline."""
+        return kb_tests.REFS.get(key, {"cite": "", "pmid": ""})
 
     # ------------------------------------------------------------------ public API
     def lookup(self, name: str) -> dict | None:
@@ -435,6 +455,31 @@ class KnowledgeBase:
         self.avg_len = sum(lens) / len(lens) if lens else 1.0
         n = len(lens) or 1
         self.idf = {t: math.log(1 + (n - len(p) + 0.5) / (len(p) + 0.5)) for t, p in self.post.items()}
+
+    def _build_test_postings(self) -> None:
+        """Test-finding postings: term id → [(disease idx, weight, rule-out)] from findings_from_tests (curated)."""
+        self.tpost: dict[str, list[tuple[int, int, bool]]] = defaultdict(list)
+        for i, d in enumerate(self.diseases):
+            for x in d.get("findings_from_tests", []):
+                self.tpost[x[0]].append((i, int(x[2]), len(x) > 4 and x[4] == "R"))
+
+    def test_findings(self, findings: list[str] | None, negatives: list[str] | None = None
+                      ) -> tuple[dict[str, list[str]], set[str]]:
+        """({test term id: findings reporting it abnormal}, {test term ids reported normal}) — kb_tests.detect()
+        over findings reported present (context +1) and absent (context -1); an abnormal report wins."""
+        pos: dict[str, list[str]] = {}
+        neg: set[str] = set()
+        for lst, ctx in ((findings, 1), (negatives, -1)):
+            for f in lst or []:
+                for fid, (pol, _by_value) in kb_tests.detect(f, ctx).items():
+                    tid = "TF:" + fid
+                    if tid not in self.tpost:
+                        continue
+                    if pol > 0:
+                        pos.setdefault(tid, []).append(f)
+                    elif pol < 0:
+                        neg.add(tid)
+        return pos, neg - set(pos)
 
     def _sex_table(self) -> list[str]:
         """Per profile: "남성"/"여성" when every KCD code of the profile is restricted to that sex (KCD 성별구분)."""
@@ -530,7 +575,9 @@ class KnowledgeBase:
         """Term ids mentioned in one finding text (negated findings match nothing unless allow_negated)."""
         if not finding or (not allow_negated and _NEG.search(finding.lower())):
             return []
-        return list(self._match(finding))
+        out = list(self._match(finding))
+        out += ["TF:" + fid for fid in kb_tests.detect(finding) if "TF:" + fid in self.tpost]
+        return out
 
     def candidates(self, findings: list[str], k: int = 10, negatives: list[str] | None = None,
                    sex: str | None = None, age: float | None = None) -> list[dict]:
@@ -541,12 +588,13 @@ class KnowledgeBase:
         matched: dict[str, list[str]] = defaultdict(list)  # tid → findings
         qw: dict[str, float] = {}
         concepts: list[list[str]] = []  # one entry per concept: its terms (+ implied general terms)
-        n_q = 0
+        q_found: set[str] = set()  # findings that matched something (coverage denominator)
         for f in findings or []:
             if not f or _NEG.search(f.lower()):
                 continue
             groups = self._groups(f)
-            n_q += bool(groups)
+            if groups:
+                q_found.add(f)
             for grp in groups:
                 fresh = [t for t in grp if t not in qw]
                 if not fresh:  # the same concept was already reported by an earlier finding
@@ -566,6 +614,9 @@ class KnowledgeBase:
                 concepts.append(concept)
         neg = {t for f in negatives or [] for t, lab in self._match(_strip_neg(f)).items()
                if not lab.startswith("#")} - set(qw)  # values ("#fever" from 36.5℃) never negate
+        # test/lab/imaging results (all findings, whatever their wording: detect() handles "음성"/"정상"/values)
+        tpos, tneg = self.test_findings(findings, negatives)
+        n_q = len(q_found | {f for fs in tpos.values() for f in fs})
         scores: dict[int, float] = defaultdict(float)
         hits: dict[int, set[str]] = defaultdict(set)
         k1, b = self.K1, self.B
@@ -580,6 +631,18 @@ class KnowledgeBase:
                     hits[i].add(t)
             for i, c in best.items():
                 scores[i] += c
+        for tid, fs in tpos.items():
+            post = self.tpost[tid]
+            spread = 1.0 + self.TEST_SPREAD * (len(post) - 1)
+            matched[tid] += fs
+            for i, w, _r in post:
+                scores[i] += self.TEST_W * self.TEST_TW.get(w, 0.0) / spread
+                hits[i].add(tid)
+        negpen_t: dict[int, float] = defaultdict(float)
+        for tid in tneg:
+            for i, w, rule_out in self.tpost[tid]:
+                if rule_out and i in scores:
+                    negpen_t[i] += self.TEST_NEG * self.TEST_TW.get(w, 0.0)
         negpen: dict[int, float] = defaultdict(float)
         for t in neg:
             for i, w in self.post.get(t, ()):
@@ -592,7 +655,7 @@ class KnowledgeBase:
             if sex_t is not None and sex_t[i] and sex_t[i] != sex:
                 continue
             cover = len({f for t in hits[i] for f in matched[t]}) / max(n_q, 1)
-            score = s * (a + (1 - a) * cover) * self.prior[i] - self.NEG_W * negpen[i]
+            score = s * (a + (1 - a) * cover) * self.prior[i] - self.NEG_W * negpen[i] - negpen_t[i]
             if age is not None and self._age[i] and ((self._age[i] == "child") != (age < 18)):
                 score *= self.AGE_PEN
             out.append((score, i))
@@ -600,15 +663,18 @@ class KnowledgeBase:
         res = []
         for score, i in out[:k]:
             d = self.diseases[i]
-            direct = {t for t, _ in d["symptoms"]} | {t for t, _ in d.get("risk", [])}
+            direct = ({t for t, _ in d["symptoms"]} | {t for t, _ in d.get("risk", [])}
+                      | {x[0] for x in d.get("findings_from_tests", [])})
             res.append({
                 "id": d["id"], "name_ko": d["names_ko"][0][0] if d["names_ko"] else d["names_en"][0][0],
                 "name_en": d["names_en"][0][0] if d["names_en"] else "", "score": round(score, 3),
                 "kcd": [c for c, _ in d["codes"].get("kcd", [])][:2],
                 "matched": [{**self.term(t), "finding": matched[t][0]}
-                            for t in sorted(hits[i], key=lambda t: (t not in direct, -self.idf[t]))],
+                            for t in sorted(hits[i], key=lambda t: (t not in direct, not t.startswith("TF:"),
+                                                                    -self.idf.get(t, 0.0)))],
                 "sources": sorted({x for t, ss in d["symptoms"] + d.get("risk", [])
-                                   if t in hits[i] or self.implies.get(t, set()) & hits[i] for x in ss}),
+                                   if t in hits[i] or self.implies.get(t, set()) & hits[i] for x in ss}
+                                  | ({"curated"} if any(t.startswith("TF:") for t in hits[i]) else set())),
             })
         return res
 
@@ -627,6 +693,18 @@ class KnowledgeBase:
             out[f"{key}_a_only"] = [{**self.term(t), "src": fa[t]} for t in order(set(fa) - set(fb))]
             out[f"{key}_b_only"] = [{**self.term(t), "src": fb[t]} for t in order(set(fb) - set(fa))]
             out[f"{key}_shared"] = [self.term(t) for t in order(set(fa) & set(fb))]
+        # decisive test results (curated): a result linked to one disease only (or much more strongly) separates them
+        ta = {x["id"]: x for x in self._test_feats(a)}
+        tb = {x["id"]: x for x in self._test_feats(b)}
+        a_only = [x for t, x in ta.items() if x["weight"] > tb.get(t, {}).get("weight", 0)][:n]
+        b_only = [x for t, x in tb.items() if x["weight"] > ta.get(t, {}).get("weight", 0)][:n]
+        out["test_findings_a_only"], out["test_findings_b_only"] = a_only, b_only
+        out["test_findings_shared"] = [self.term(t) for t in ta if t in tb
+                                       and ta[t]["weight"] == tb[t]["weight"]][:n]
+        # also first in tests_*_only (weight ≥ 2), so callers that read only "tests" see the decisive result
+        for side, lst in (("a", a_only), ("b", b_only)):
+            strong = [x for x in lst if x["weight"] >= 2]
+            out[f"tests_{side}_only"] = (strong + out[f"tests_{side}_only"])[:n]
         return out
 
     def _kcd_table(self):
@@ -730,10 +808,14 @@ class KnowledgeBase:
             sx = [s["ko"] for s in p["symptoms"] if s["ko"] not in hit][:5]
             if sx:
                 parts.append("전형 증상: " + ", ".join(sx))
+            tf = [s["ko"] for s in p["findings_from_tests"] if s["weight"] >= 2][:3]
+            if tf:
+                parts.append("결정적 검사: " + ", ".join(tf))
             ts = [s["ko"] for s in p["tests"] if s["en"].lower() not in _GENERIC_TESTS][:3]
-            if ts:
+            if ts and not tf:
                 parts.append("검사: " + ", ".join(ts))
-            src = sorted({SRC_SHORT.get(x, x) for f in ("symptoms", "tests") for s in p[f][:5] for x in s["src"]})
+            src = sorted({SRC_SHORT.get(x, x) for f in ("symptoms", "tests", "findings_from_tests")
+                          for s in p[f][:5] for x in s["src"]})
             lines.append(head + " — " + " | ".join(parts) + (f" [{', '.join(src)}]" if src else ""))
         if len(rows) >= 2:
             dsc = self.discriminators(rows[0][0]["id"], rows[1][0]["id"], n=3)
@@ -741,6 +823,10 @@ class KnowledgeBase:
                 lines.append(f"감별 {dsc['a']} vs {dsc['b']}: " +
                              f"{dsc['a']}만 — {', '.join(x['ko'] for x in dsc['symptoms_a_only']) or '없음'}; " +
                              f"{dsc['b']}만 — {', '.join(x['ko'] for x in dsc['symptoms_b_only']) or '없음'}")
+            if dsc and (dsc["test_findings_a_only"] or dsc["test_findings_b_only"]):
+                ta = ", ".join(x["ko"] for x in dsc["test_findings_a_only"][:2]) or "없음"
+                tb = ", ".join(x["ko"] for x in dsc["test_findings_b_only"][:2]) or "없음"
+                lines.append(f"감별 검사: {dsc['a']} — {ta}; {dsc['b']} — {tb} [curated]")
         out = ""
         for line in lines:
             if len(out) + len(line) + 1 > max_chars:
