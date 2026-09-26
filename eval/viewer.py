@@ -16,7 +16,7 @@ PAGE = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>진료 기록 뷰어</title>
+<title>Doctor-Agent 진료 기록</title>
 <style>
 :root {
   --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
@@ -24,10 +24,14 @@ PAGE = r"""<!doctype html>
   --doctor-bg: #eef3fc; --patient-bg: #f3f4f6; --good: #0f8a6a; --mid: #c98a00; --bad: #d63939;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #12151b; --card: #1b1f27; --text: #e6e9ef; --muted: #9aa3b5; --line: #2a303b;
-    --doctor-bg: #1e2a40; --patient-bg: #232833;
+    --doctor-bg: #1e2a40; --patient-bg: #232833; color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --card: #1b1f27; --text: #e6e9ef; --muted: #9aa3b5; --line: #2a303b;
+  --doctor-bg: #1e2a40; --patient-bg: #232833; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
@@ -245,12 +249,26 @@ def build() -> Path:
     return out
 
 
+def build_share(out: Path) -> Path:
+    """Page body for publishing as a hosted artifact: no document skeleton (the host adds it)."""
+    html = build().read_text(encoding="utf-8")
+    start = html.index("<title>")
+    body = html[start:].replace("</head>\n<body>\n", "", 1)
+    body = body.rsplit("</body>", 1)[0]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(body, encoding="utf-8")
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-open", action="store_true")
+    ap.add_argument("--share", metavar="PATH", help="also write a share-ready page (no html/head/body skeleton)")
     args = ap.parse_args()
     out = build()
     print(f"viewer: {out}")
+    if args.share:
+        print(f"share page: {build_share(Path(args.share))}")
     if not args.no_open:
         webbrowser.open(out.as_uri())
 
