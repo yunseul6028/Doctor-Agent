@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=841) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "알레르기반응",
+  "difficulty": "어려움",
+  "teaching_point": "밀가루 등 특정 음식 섭취 후 운동을 했을 때 전신 두드러기, 저혈압 등 아나필락시스 증상이 나타나는 소견을 바탕으로 운동 유발성 아나필락시스를 진단할 수 있습니다.",
+  "initial": "45세 남성. 주호소: 운동 중 갑자기 발생한 전신 두드러기와 어지러움",
+  "history": {
+    "증상|경과|양상": "운동 중 갑자기 전신 두드러기랑 어지러움이 생겨서 왔어요. 이번에는 증상이 더 심하고 계속 지속돼요.",
+    "식사|음식|밀가루": "운동 시작하기 약 1시간 전에 밀가루가 포함된 식사를 했어요.",
+    "과거력|이전|이전 증상": "과거에도 비슷한 증상이 발생한 적이 있었는데, 당시에는 운동을 중단하고 휴식을 취하니까 증상이 호전됐어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박": "혈압 85/50 mmHg, 맥박 100회/분",
+    "신체진찰|피부|두드러기|발진": "전신적으로 발적과 부종을 동반한 두드러기성 발진 관찰됨"
+  },
+  "tests": {
+    "혈액검사|일반혈액검사": "백혈구 7,500/mm³, 혈소판 220,000/mm³, 호산구 3.5%, 총 IgE 105 IU/mL, 혈청 트립테이스 42 µg/L",
+    "동맥혈가스분석|ABGA": "pH 7.35, PaO2 70 mmHg, PaCO2 40 mmHg, HCO3- 23 mEq/L"
+  },
+  "diagnosis": "운동 유발성 아나필락시스",
+  "aliases": [
+    "식품 의존성 운동 유발성 아나필락시스",
+    "Exercise-induced anaphylaxis",
+    "Food-dependent exercise-induced anaphylaxis",
+    "FDEIA"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 841,
+    "license": "Apache-2.0"
+  }
+}

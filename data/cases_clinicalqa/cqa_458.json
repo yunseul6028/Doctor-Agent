@@ -1,0 +1,39 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=458) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두근거림",
+  "difficulty": "쉬움",
+  "teaching_point": "두근거림, 체중 감소, 열불내성 등의 갑상선 기능 항진증 증상과 함께 미만성 갑상선종 및 잡음이 관찰되고, 혈액 검사상 TSH 억제, 유리 T4/T3 상승, TRAb(항갑상선자극호르몬수용체항체) 양성 소견을 통해 그레이브스병으로 확진합니다.",
+  "initial": "32세 여성. 주호소: 3개월 전부터 시작된 두근거림, 체중 감소, 열불내성",
+  "history": {
+    "두근거림|가슴 뛰임|palpitations": "가슴이 빠르게 뛰는 느낌이 지속되고, 특히 밤에 누워있을 때 더 심해요.",
+    "체중|식욕|weight|appetite": "최근에 체중이 5kg 빠졌는데, 식욕은 오히려 늘었어요.",
+    "더위|손떨림|불안|증상|symptoms": "더위를 잘 못 참겠고, 손이 떨리면서 불안하고 초조해요. 월경도 불규칙해졌어요.",
+    "과거력|약물|history": "특별히 앓던 병이나 치료받던 것은 없어요.",
+    "가족력|family": "어머니께서 갑상선 질환으로 치료받으신 적이 있어요."
+  },
+  "exam": {
+    "활력징후|vital": "혈압 130/80 mmHg, 맥박 110회/분(규칙적), 호흡수 18회/분, 체온 37.2°C",
+    "갑상선 진찰|목 진찰|thyroid": "갑상선 미만성 종대, 촉진 시 잡음 청진됨",
+    "신경계 진찰|손떨림|tremor": "양손의 미세 진전 관찰됨",
+    "심음 청진|심장|heart": "규칙적인 빈맥, 수축기 잡음(2/6) 청진됨"
+  },
+  "tests": {
+    "혈액검사|갑상선기능검사|항체|lab": "TSH <0.01 mIU/L (정상: 0.4-4.0 mIU/L), 유리 T4 3.5 ng/dL (정상: 0.8-1.8 ng/dL), 유리 T3 8.0 pg/mL (정상: 2.3-4.2 pg/mL), anti-TPO 양성, TRAb 양성",
+    "심전도|EKG": "동성 빈맥, 심박수 112회/분",
+    "갑상선 초음파|ultrasound": "갑상선 미만성 종대, 혈류 증가",
+    "갑상선 스캔|scan": "미만성 섭취 증가"
+  },
+  "diagnosis": "그레이브스병",
+  "aliases": [
+    "Graves' disease",
+    "Graves disease",
+    "그레이브스씨병",
+    "독성 미만성 갑상선종"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 458,
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=1029) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "황달",
+  "difficulty": "어려움",
+  "teaching_point": "갑상선기능저하증 등 다른 자가면역 질환 동반 가능성이 있는 중년 여성에서 현저한 AST/ALT 상승과 함께 ANA/ASMA 자가항체 양성 및 혈청 IgG 상승이 관찰되므로 자가면역성 간염으로 진단할 수 있습니다.",
+  "initial": "42세 여성. 주호소: 2주 전부터 시작된 황달, 피로감, 식욕 감퇴",
+  "history": {
+    "증상|황달|피로|식욕": "2주 전부터 피부랑 눈이 노랗게 변하고 피로하고 식욕도 줄었어요.",
+    "과거력|약물|갑상선|우울증": "1개월 전에 갑상선기능저하증 진단받고 레보티록신 먹고 있고요, 3개월 전부터 우울증 때문에 항우울제(fluoxetine)도 복용 중이에요.",
+    "동반증상|열|발진": "발진이나 발열은 전혀 없었어요."
+  },
+  "exam": {
+    "신체진찰|공막|복부|압통": "공막 황달, 우상복부 압통 관찰됨. 발진 및 발열 없음."
+  },
+  "tests": {
+    "혈액검사|간기능검사": "총 빌리루빈 6.2 mg/dL, 직접 빌리루빈 4.5 mg/dL, AST 850 U/L, ALT 920 U/L, ALP 210 U/L, GGT 180 U/L",
+    "자가항체|면역검사|IgG": "항핵항체(ANA) 양성(1:320, 균질형 패턴), anti-smooth muscle antibody(ASMA) 양성(1:80), anti-LKM 음성, IgG 2450 mg/dL (정상 700-1600 mg/dL)",
+    "간염항원항체|바이러스": "HBsAg 음성, anti-HCV 음성",
+    "기타혈액검사|윌슨병": "혈청 ceruloplasmin 정상",
+    "복부초음파|초음파": "간 실질의 미만성 에코 증가, 담도 확장 소견 없음"
+  },
+  "diagnosis": "자가면역성 간염",
+  "aliases": [
+    "Autoimmune hepatitis",
+    "AIH",
+    "자가면역 간염"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 1029,
+    "license": "Apache-2.0"
+  }
+}

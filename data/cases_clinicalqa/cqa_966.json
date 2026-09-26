@@ -1,0 +1,31 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=966) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "허리통증",
+  "difficulty": "쉬움",
+  "teaching_point": "20대 젊은 남성에서 3개월 이상 지속되는 염증성 요통(아침 강직, 활동 후 호전, 야간 통증)과 가족력, 요추 운동 및 흉부 확장 제한이 관찰되면 강직성 척추염을 가장 먼저 의심할 수 있습니다.",
+  "initial": "25세 남성. 주호소: 6개월 전부터 시작된 만성 요통",
+  "history": {
+    "통증 양상|발병|증상 변화|아침 강직": "6개월 전부터 허리가 서서히 아프기 시작했어요. 특히 아침에 일어날 때 뻣뻣함이 심하고, 활동하고 움직이면 오히려 완화돼요.",
+    "야간 통증|수면": "밤에 통증 때문에 잠에서 깨는 경우도 있어요.",
+    "동반 증상|엉덩이 통증": "양쪽 엉덩이 쪽에도 통증이 있어요.",
+    "가족력": "아버지가 저랑 유사한 증상으로 진단받으신 적이 있다고 들었어요."
+  },
+  "exam": {
+    "활력징후|신체검진|요추 운동 범위": "요추부 운동 범위가 모든 방향으로 제한되어 있음",
+    "흉부 확장|흉추부 확장": "흉추부 확장(thoracic expansion) 제한",
+    "엉덩이 통증|천장관절": "양측 엉덩이 통증 호소"
+  },
+  "tests": {},
+  "diagnosis": "강직성 척추염",
+  "aliases": [
+    "Ankylosing spondylitis",
+    "AS",
+    "강직척추염"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 966,
+    "license": "Apache-2.0"
+  }
+}

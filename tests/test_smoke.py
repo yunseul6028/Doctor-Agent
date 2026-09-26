@@ -1,0 +1,172 @@
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
+
+from doctor_agent.agent.loop import run_case  # noqa: E402
+from doctor_agent.agent.parser import parse_action  # noqa: E402
+from doctor_agent.config import Config  # noqa: E402
+from doctor_agent.env.interface import ActionType  # noqa: E402
+from doctor_agent.llm.client import DummyLLM  # noqa: E402
+from eval.simulator import CaseFileEnvironment  # noqa: E402
+
+CASE = ROOT / "data/sample_cases/synthetic_001.json"
+
+
+def test_run_case_with_dummy_llm():
+    result = run_case(CaseFileEnvironment.from_file(CASE), DummyLLM(), Config())
+    assert result["diagnosis"]
+    assert result["llm_calls"] >= 1
+    assert result["n_turns"] <= 60
+
+
+def test_parse_action_handles_noise():
+    parsed = parse_action('thinking...\n{"type": "ask", "content": "열이 있나요?", "confidence": 0.2}')
+    assert parsed and parsed[0].type == ActionType.ASK
+    assert parse_action("not json") is None
+
+
+def test_case_file_is_utf8_json():
+    json.loads(CASE.read_text(encoding="utf-8"))
+
+
+def test_llm_patient_hides_answer():
+    from eval.llm_patient import LLMPatientEnvironment
+
+    case = json.loads(CASE.read_text(encoding="utf-8"))
+    env = LLMPatientEnvironment(case, DummyLLM())
+    assert case["diagnosis"] not in env.system
+
+
+def test_llm_patient_hides_meta_fields():
+    from eval.llm_patient import LLMPatientEnvironment
+
+    for path in (ROOT / "data/sample_cases").glob("*.json"):
+        case = json.loads(path.read_text(encoding="utf-8"))
+        system = LLMPatientEnvironment(case, DummyLLM()).system
+        for key in ("diagnosis", "teaching_point"):
+            if case.get(key):
+                assert case[key] not in system, (path.name, key)
+
+
+def test_personas_build_and_mixed_is_deterministic():
+    from eval.llm_patient import HARD_PERSONAS, PERSONAS, LLMPatientEnvironment, resolve_persona
+
+    case = json.loads(CASE.read_text(encoding="utf-8"))
+    for name in PERSONAS:
+        env = LLMPatientEnvironment(case, DummyLLM(), name)
+        assert case["diagnosis"] not in env.system
+    assert resolve_persona("mixed", "x") == resolve_persona("mixed", "x") in HARD_PERSONAS
+
+
+def test_role_config_fallback(monkeypatch):
+    from doctor_agent.config import LLMConfig
+
+    monkeypatch.setenv("LLM_MODEL", "shared-model")
+    monkeypatch.setenv("DOCTOR_LLM_MODEL", "doctor-model")
+    assert LLMConfig.from_env("DOCTOR_LLM").model == "doctor-model"
+    assert LLMConfig.from_env("PATIENT_LLM").model == "shared-model"
+
+
+def test_parse_action_skips_reasoning_block():
+    raw = ('<thought>ddx: [{"dx": "충수염", "p": 0.2}] 그래서 JSON: {"type": "ASK", "content": "초안"</thought>\n'
+           '{"type": "ASK", "content": "어디가 가장 아프세요?", "reason": "위치 확인", "ddx": [{"dx": "충수염", "p": 0.3}], "confidence": 0.1}')
+    action, ddx, conf = parse_action(raw)
+    assert action.content == "어디가 가장 아프세요?" and action.reason == "위치 확인"
+    assert ddx[0]["dx"] == "충수염" and conf == 0.1
+
+
+def test_parse_action_unclosed_reasoning_falls_back_to_last_json():
+    raw = '<thought>생각 중... {"type": "TEST", "content": "복부 CT", "confidence": 0.5}'
+    action, _, _ = parse_action(raw)
+    assert action.type == ActionType.TEST and action.content == "복부 CT"
+
+
+def test_clean_diagnosis_strips_sentence():
+    from doctor_agent.agent.loop import clean_diagnosis
+
+    assert clean_diagnosis("당신의 진단은 당뇨병성 케톤산증(Diabetic Ketoacidosis, DKA)입니다.") == "당뇨병성 케톤산증(Diabetic Ketoacidosis, DKA)"
+    assert clean_diagnosis("최종 진단: 급성 충수염") == "급성 충수염"
+    assert clean_diagnosis("급성 췌장염") == "급성 췌장염"
+
+
+def test_review_hold_returns_reviewers_next_action():
+    from doctor_agent.agent.policy import Policy
+    from doctor_agent.agent.state import CaseState
+
+    class Scripted:
+        call_count = 0
+        outputs = ['{"findings": [{"item": "B형·C형 간염 검사", "status": "음성"}], "ddx": [{"dx": "A형 간염", "p": 0.5}], '
+                   '"type": "DIAGNOSE", "content": "A형 간염", "reason": "추정", "confidence": 0.5}',
+                   '{"verdict": "보류", "issues": ["A형 간염 검사 없음"], "next": {"type": "TEST", "content": "자가항체 검사", "reason": "자가면역 간염 감별"}}']
+
+        def chat(self, messages):
+            self.call_count += 1
+            return self.outputs[min(self.call_count - 1, 1)]
+
+    state = CaseState(initial_info="40세 여성. 주호소: 황달")
+    action = Policy(Scripted(), Config().agent).next_action(state)
+    assert action.type == ActionType.TEST and action.content == "자가항체 검사"
+    assert state.reviews[0]["verdict"] == "보류"
+    assert state.findings.items[0].status == "음성" and state.ddx_ledger.entries[0].dx == "A형 간염"
+
+
+def test_review_approval_can_refine_diagnosis():
+    from doctor_agent.agent.policy import Policy
+    from doctor_agent.agent.state import CaseState
+
+    class Scripted:
+        call_count = 0
+        outputs = ['{"type": "DIAGNOSE", "content": "양극성 장애", "reason": "조증 삽화", "confidence": 0.8}',
+                   '{"verdict": "승인", "issues": [], "final_diagnosis": "양극성 II형 장애"}']
+
+        def chat(self, messages):
+            self.call_count += 1
+            return self.outputs[min(self.call_count - 1, 1)]
+
+    action = Policy(Scripted(), Config().agent).next_action(CaseState(initial_info="30세 여성. 주호소: 기분 변화"))
+    assert action.type == ActionType.DIAGNOSE and action.content == "양극성 II형 장애"
+
+
+def test_ledgers_merge_across_turns():
+    from doctor_agent.agent.ledger import DdxLedger, FindingsLedger
+
+    f = FindingsLedger()
+    f.update([{"item": "우하복부 압통", "status": "양성"}], 1)
+    f.update([{"item": "우하복부 압통", "status": "양성", "detail": "반발통 동반"}, {"item": "발열", "status": "없음"}], 2)
+    assert len(f.items) == 2 and f.items[0].detail == "반발통 동반" and f.items[1].status == "음성"
+    d = DdxLedger()
+    d.update([{"dx": "급성 충수염", "p": 0.5, "for": ["우하복부 압통"]}, {"dx": "장염", "p": 0.3}])
+    d.update([{"dx": "급성 충수염", "p": 0.8, "for": ["백혈구 증가"]}, {"dx": "장염", "p": 0.1, "status": "배제", "against": ["설사 없음"]}])
+    assert d.ranked()[0].dx == "급성 충수염" and d.ranked()[0].support == ["우하복부 압통", "백혈구 증가"]
+    assert "배제됨: 장염" in d.render()
+
+
+def test_missing_test_is_not_reported_as_normal():
+    case = json.loads(CASE.read_text(encoding="utf-8"))
+    from doctor_agent.env.interface import Action
+
+    obs = CaseFileEnvironment(case).step(Action(ActionType.TEST, "갑상선 기능 검사"))
+    assert "제공되지 않습니다" in obs.text
+
+
+def test_near_duplicate_actions_are_detected():
+    from doctor_agent.agent.state import CaseState, Turn
+    from doctor_agent.env.interface import Action
+
+    st = CaseState(initial_info="x")
+    st.turns.append(Turn(Action(ActionType.ASK, "혹시 최근에 체중이 갑자기 줄었거나, 식은땀이 나시나요?"), "아니요"))
+    assert st.asked(Action(ActionType.ASK, "혹시 최근에 갑자기 체중이 줄었거나 식은땀이 나시나요?"))
+    assert not st.asked(Action(ActionType.ASK, "기침이 있나요?"))
+    st.turns.append(Turn(Action(ActionType.ASK, "열이 있나요?"), "네"))
+    assert not st.asked(Action(ActionType.ASK, "기침이 있나요?"))
+
+
+def test_question_sent_as_exam_becomes_ask():
+    from doctor_agent.agent.policy import normalize_type
+    from doctor_agent.env.interface import Action
+
+    assert normalize_type(Action(ActionType.EXAM, "목이 뻣뻣하거나 고개를 숙일 때 통증이 심해지나요?")).type == ActionType.ASK
+    assert normalize_type(Action(ActionType.EXAM, "경부 강직 진찰")).type == ActionType.EXAM

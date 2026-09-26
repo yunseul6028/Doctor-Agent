@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=6) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가려움증",
+  "difficulty": "보통",
+  "teaching_point": "피부 발진 없는 전신 가려움증과 비장 비대 소견을 보이는 환자에서 백혈구, 적혈구, 혈소판이 모두 증가된 범혈구증가증(panmyelosis) 소견을 통해 진성 적혈구증가증을 진단할 수 있습니다.",
+  "initial": "68세 여성. 주호소: 6주 전부터 지속된 전신 가려움증",
+  "history": {
+    "가려움|증상|양상|밤": "6주 전부터 피부 발진 없이 온몸이 가려워요. 특히 밤에 증상이 더 심해집니다.",
+    "체중|식은땀|땀": "최근 3개월 동안 체중이 2kg 줄었고 식은땀이 났어요.",
+    "복부|배|불편감": "간헐적으로 배가 불편한 느낌이 있습니다."
+  },
+  "exam": {
+    "피부|진찰|발진|상처": "피부는 건조하고 긁은 자국이 관찰되나 특별한 발진은 없음",
+    "복부|진찰|촉진|비장": "복부 촉진 시 좌상복부에 압통 없는 비장 비대(2cm)가 확인됨"
+  },
+  "tests": {
+    "혈액검사|전혈구검사|CBC": "WBC 12,500/μL (호중구 55%, 림프구 30%, 호산구 3%, 단핵구 4%, 호염기구 8%), Hb 18.2g/dL, Hct 54%, MCV 90fL, Platelet 650,000/μL",
+    "혈액도말검사|말초혈액도말|PBS": "적혈구 증가, 과립구 증가, 혈소판 증가",
+    "간기능|신장기능|LFT|RFT": "간 기능 및 신장 기능 검사는 정상 범위"
+  },
+  "diagnosis": "진성 적혈구증가증",
+  "aliases": [
+    "진성적혈구증가증",
+    "Polycythemia vera",
+    "PV"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 6,
+    "license": "Apache-2.0"
+  }
+}

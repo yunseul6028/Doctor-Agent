@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=232) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "쉬움",
+  "teaching_point": "음주 후 첫 번째 중족지 관절에 발생한 급성 단관절염과 관절액 편광현미경 검사의 바늘 모양 음성 이중굴절 결정체를 통해 통풍으로 확진할 수 있습니다. 피로인산칼슘 결정체(양성 이중굴절)가 보이는 가성통풍이나 세균이 확인되는 화농성 관절염과 감별해야 합니다.",
+  "initial": "45세 남성. 주호소: 갑자기 시작된 우측 첫 번째 중족지 관절의 심한 통증",
+  "history": {
+    "통증|발병|증상|onset": "전날 저녁엔 괜찮았는데 새벽에 심한 관절 통증으로 잠에서 깨어 응급실로 왔어요.",
+    "회식|음주|술|음식|diet": "전날 저녁 회식에서 소주 2병과 많은 양의 육류를 먹었습니다.",
+    "외상|상처|trauma": "특별히 다친 적은 없었습니다.",
+    "과거력|재발|previous history": "이전에도 비슷한 증상이 2회 있었는데 저절로 좋아졌었어요. 최근 검진에서 고지혈증을 지적받았습니다."
+  },
+  "exam": {
+    "관절|신체진찰|MTP": "우측 첫 번째 MTP 관절: 현저한 부종, 붉은색 발적, 열감, 경한 접촉에도 심한 통증 소견",
+    "활력징후|체온|vitals": "체온 37.8°C"
+  },
+  "tests": {
+    "혈액검사|CBC|요산|uric acid|BUN|크레아티닌": "백혈구 11,500/μL (호중구 75%), 혈색소 15.5g/dL, 혈소판 230,000/μL, CRP 4.2mg/dL, ESR 45mm/hr, 혈청 요산 9.8mg/dL, BUN 18mg/dL, 크레아티닌 1.1mg/dL",
+    "관절액검사|편광현미경|synovial fluid": "백혈구 25,000/μL (호중구 85%), 그람 염색 음성, 편광현미경 검사상 바늘 모양의 음성 이중굴절 결정체 관찰",
+    "X선|X-ray|발 X선": "연부조직 부종, 관절간격 보존, 뼈 침식 소견 없음"
+  },
+  "diagnosis": "통풍",
+  "aliases": [
+    "통풍성 관절염",
+    "gout",
+    "gouty arthritis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 232,
+    "license": "Apache-2.0"
+  }
+}

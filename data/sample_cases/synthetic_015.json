@@ -1,0 +1,36 @@
+{
+  "_note": "Synthetic smoke-test case. Replace with the official sample cases once published.",
+  "initial": "20세 남성. 주호소: 어제부터 시작된 복통과 구토",
+  "history": {
+    "어디|위치|부위|언제|시작|어떻게|양상|onset|where": "어제 오후부터 배 전체가 쥐어짜듯이 아팠어요. 어디 한 군데가 콕 집어 아픈 건 아니에요.",
+    "구역|구토|메스꺼|nausea|vomit": "어제부터 열 번 가까이 토했어요. 물만 마셔도 토해요.",
+    "갈증|목마름|물을|물 마|소변|배뇨|자주|thirst|polyuria|polydipsia": "2주 전부터 목이 너무 말라서 하루에 물을 몇 리터씩 마셨어요. 밤에도 소변 보러 서너 번씩 깨요.",
+    "체중|살|몸무게|weight": "요즘 잘 먹었는데도 한 달 사이에 5kg 넘게 빠졌어요.",
+    "숨|호흡|가쁘|숨차|dyspnea|breath": "숨을 크게 몰아쉬게 되고 좀 가빠요.",
+    "피곤|기운|의식|졸|멍|fatigue|drowsy": "너무 기운이 없고 자꾸 졸려요.",
+    "설사|대변|stool|diarrhea": "설사는 없어요. 변은 이틀 전에 봤어요.",
+    "열|오한|fever": "열이 나는 느낌은 없어요.",
+    "음식|먹은|식중독|주변|food": "특별히 상한 음식을 먹은 건 없고, 같이 사는 친구들은 아무렇지 않아요.",
+    "과거|병력|지병|약|복용|가족|당뇨|술|음주|alcohol|family|medication|history": "원래 아픈 데 없었고 먹는 약도 없어요. 어머니가 갑상선 질환이 있어요. 술은 가끔 맥주 한두 캔 마셔요."
+  },
+  "exam": {
+    "활력|생체|혈압|맥박|호흡수|vital": "체온 36.9℃, 맥박 124회/분, 혈압 102/62 mmHg, 호흡 30회/분(깊고 빠른 호흡), 산소포화도 99%",
+    "전신|외관|탈수|점막|입|냄새|general|dehydrat|breath odor": "구강 점막 건조, 피부 긴장도 저하, 호기에서 과일향 냄새, 기면 상태이나 지남력 유지",
+    "복부|배|abdom": "복부 전반의 경한 압통, 반발통 및 근육 강직 없음, 장음 약간 감소",
+    "흉부|폐|청진|chest|lung": "호흡음 깨끗함, 수포음 없음"
+  },
+  "tests": {
+    "혈당|glucose|당뇨|bst": "혈당 512 mg/dL",
+    "동맥혈|가스|abga|abg|ph|산염기": "동맥혈가스: pH 7.10, PaCO2 19 mmHg, HCO3- 7 mEq/L",
+    "케톤|ketone|요검사|소변검사|urinalysis": "요검사: 요당 4+, 요케톤 3+ / 혈청 베타하이드록시부티르산 6.4 mmol/L",
+    "전해질|나트륨|칼륨|electrolyte|sodium|potassium|신기능|크레아티닌|bun": "Na 131 mEq/L, K 5.6 mEq/L, Cl 96 mEq/L (음이온차 28), BUN 32 mg/dL, 크레아티닌 1.4 mg/dL",
+    "혈액|cbc|피검사|백혈구|리파아제|lipase": "백혈구 16,800/μL(호중구 82%), 혈색소 16.2 g/dL, 리파아제 48 U/L",
+    "ct|씨티|단층|초음파|ultrasound": "복부 CT: 급성 복부 질환을 시사하는 특이 소견 없음"
+  },
+  "diagnosis": "당뇨병성 케톤산증",
+  "aliases": ["당뇨병케톤산증", "케톤산증", "DKA", "제1형 당뇨병의 당뇨병성 케톤산증", "diabetic ketoacidosis", "new-onset type 1 diabetes with DKA"],
+  "must_check": ["혈당|glucose|당뇨|bst", "동맥혈|가스|abga|abg|케톤|ketone|산증", "전해질|칼륨|potassium|electrolyte"],
+  "category": "복통",
+  "difficulty": "어려움",
+  "teaching_point": "구토와 복통으로 내원한 젊은 환자에서 다음·다뇨·체중감소와 쿠스마울 호흡을 놓치지 않고 혈당·산염기·케톤을 확인하여, 위장관염으로 오인하기 쉬운 당뇨병성 케톤산증을 진단하는지 평가한다."
+}

@@ -1,0 +1,2 @@
+# Submission dependencies (pin every version). Also record any additions in docs/licenses.md.
+openai==1.109.1

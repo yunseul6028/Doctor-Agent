@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=630) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "무월경",
+  "difficulty": "쉬움",
+  "teaching_point": "무월경과 유루증을 호소하는 환자에서 고프로락틴혈증과 뇌 MRI 상 터키안 내 종괴 및 시신경교차 압박 소견을 확인하여 프로락틴 분비 뇌하수체 선종을 진단할 수 있습니다.",
+  "initial": "28세 여성. 주호소: 6개월 동안의 무월경과 양측 유방의 유즙 분비",
+  "history": {
+    "월경|생리|period|menstruation": "2년 전까지는 규칙적이었는데 점차 불규칙해지더니 최근 6개월 동안은 생리가 없었어요.",
+    "동반증상|두통|시야|headache|vision": "가끔 머리가 아프고, 최근 2개월 전부터 시야가 흐려지는 증상이 있어요.",
+    "체중|체중변화|weight": "최근에 체중이 5kg 증가했어요.",
+    "임신|출산력|약물|pregnancy|medication": "아이를 낳은 적은 없고 현재 복용 중인 약도 없어요. 임신 가능성은 없습니다."
+  },
+  "exam": {
+    "유방진찰|유즙분비|breast": "양측 유방 압박 시 유즙 분비 관찰됨",
+    "신경학적검사|시야검사|vision test": "양이측성 시야 결손 확인됨"
+  },
+  "tests": {
+    "혈액검사|호르몬검사|blood test": "프로락틴 220 ng/mL (정상: 4-23 ng/mL), FSH 2.1 mIU/mL (정상: 3.5-12.5 mIU/mL), LH 1.8 mIU/mL (정상: 2.4-12.6 mIU/mL), 에스트라디올 18 pg/mL (정상: 30-400 pg/mL), TSH 2.5 mIU/L (정상: 0.4-4.0 mIU/L), β-hCG 음성",
+    "뇌MRI|영상검사|brain MRI": "터키안(sella turcica) 내에 1.2cm 크기의 종괴가 관찰되며, 시신경교차(optic chiasm)를 압박하고 있음"
+  },
+  "diagnosis": "프로락틴 분비 뇌하수체 선종",
+  "aliases": [
+    "프로락틴종",
+    "고프로락틴혈증",
+    "Prolactinoma",
+    "Prolactin-secreting pituitary adenoma"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 630,
+    "license": "Apache-2.0"
+  }
+}

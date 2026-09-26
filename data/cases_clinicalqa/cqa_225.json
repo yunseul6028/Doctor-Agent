@@ -1,0 +1,30 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=225) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "쉬움",
+  "teaching_point": "무릎 관통상 후 발생한 급성 단관절염, 고열, 부종·발적 소견과 함께 관절액 백혈구 수의 현저한 증가(>50,000/mm³) 및 그람 양성 구균 확인을 통해 세균성 관절염으로 확진할 수 있습니다.",
+  "initial": "32세 남성. 주호소: 2일 전부터 시작된 오른쪽 무릎 통증, 부종, 발적",
+  "history": {
+    "외상|상처|다친 적|가시|동반증상|발열|열": "4일 전에 무릎을 찔리는 상처를 입었고, 그 뒤로 통증이 점차 악화되면서 38.7°C 정도로 열이 나요. 움직일 때 무릎이 너무 아픕니다."
+  },
+  "exam": {
+    "체온|활력징후|발열": "38.7°C",
+    "무릎|진찰|관절|부종|발적|열감": "오른쪽 무릎의 현저한 부종, 발적, 열감이 관찰됨. 움직임 시 심한 통증 호소."
+  },
+  "tests": {
+    "혈액검사|WBC|ESR|CRP": "혈액 검사: 백혈구 15,200/mm³(호중구 85%), ESR 75 mm/hr, CRP 18.5 mg/dL",
+    "관절액검사|천자|그람염색": "관절액 천자 시 탁한 황색의 관절액 배출. 관절액 검사: 백혈구 수 85,000/mm³(다형핵백혈구 92%), 그람 염색에서 그람 양성 구균."
+  },
+  "diagnosis": "세균성 관절염",
+  "aliases": [
+    "감염성 관절염",
+    "Septic arthritis",
+    "Bacterial arthritis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 225,
+    "license": "Apache-2.0"
+  }
+}

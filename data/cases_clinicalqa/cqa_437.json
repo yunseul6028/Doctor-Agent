@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=437) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "다뇨증",
+  "difficulty": "어려움",
+  "teaching_point": "두부 외상 병력이 있는 환자에서 다뇨, 다음 및 고삼투압성 고나트륨혈증이 나타날 때 수분제한검사 후 데스모프레신 투여 시 소변 삼투압이 유의하게 증가하므로 중추성 요붕증으로 진단할 수 있습니다.",
+  "initial": "45세 여성. 주호소: 2개월 동안 지속된 심한 갈증과 잦은 소변",
+  "history": {
+    "증상|음수량|야간뇨|갈증|다뇨": "하루에 물을 6~7리터 정도 마시고, 밤에도 여러 번 깨서 소변보고 물을 마셔요. 최근에는 두통이 심해져서 응급실에 가기도 했어요.",
+    "과거력|외상|머리 손상|사고": "1년 전에 자동차 사고로 머리를 심하게 부딪힌 적이 있어요."
+  },
+  "exam": {
+    "신체진찰|진찰소견": "특이 소견 없음"
+  },
+  "tests": {
+    "제한수분검사|water deprivation test": "수분 제한 시 소변 삼투압 지속적으로 낮게 유지됨(100 mOsm/kg), 혈장 삼투압 증가함(310 mOsm/kg). 데스모프레신(desmopressin) 투여 후 소변 삼투압 450 mOsm/kg으로 증가함.",
+    "혈액검사|전해질|혈당|삼투압": "Na 148 mEq/L, K 3.8 mEq/L, Cl 108 mEq/L, 포도당 95 mg/dL, BUN 15 mg/dL, Cr 0.8 mg/dL, 혈장 삼투압 310 mOsm/kg",
+    "소변검사|urinalysis": "비중 1.002, 단백질 음성, 포도당 음성, 소변 삼투압 100 mOsm/kg",
+    "뇌 MRI|brain MRI|영상검사": "뇌하수체 줄기와 후엽 부위에 신호 감소 소견 관찰됨"
+  },
+  "diagnosis": "중추성 요붕증",
+  "aliases": [
+    "중추성 요붕증",
+    "Central diabetes insipidus",
+    "CDI"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 437,
+    "license": "Apache-2.0"
+  }
+}

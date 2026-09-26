@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=121) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "객혈",
+  "difficulty": "쉬움",
+  "teaching_point": "과거 폐결핵으로 인한 공동 내에 형성된 종괴와 CT의 'air crescent sign', 가래 KOH 도말상 격벽이 있는 균사 및 아스페르길루스 특이 IgG 항체 양성을 종합하여 폐아스페르길루스종으로 진단합니다.",
+  "initial": "60세 남성. 주호소: 간헐적으로 발생하는 객혈",
+  "history": {
+    "객혈|피|가래|양|증상": "2년 전부터 간헐적으로 소량의 객혈이 있었지만 그냥 나아졌었어요. 그런데 최근 2주 동안 객혈량이 늘어서 하루에 50mL 정도 선홍색 피가 기침할 때 나와요.",
+    "과거력|결핵|폐결핵|병력": "30년 전에 폐결핵으로 치료받은 적이 있습니다.",
+    "동반증상|발열|열|체중감소|살|야간발한|땀|기침": "경미한 기침 외에는 열이 나거나 살이 빠지거나 밤에 땀이 나는 것 같은 증상은 전혀 없어요."
+  },
+  "exam": {
+    "활력징후|신체진찰|청진|수포음|가슴": "우상부 흉부에서 수포음 청진됨. 다른 특이 소견은 관찰되지 않음."
+  },
+  "tests": {
+    "흉부 X선|X-ray|엑스레이": "우상엽에 동그란 종괴와 주변 공동이 관찰됨",
+    "흉부 CT|컴퓨터단층촬영": "우상엽에 이전 결핵으로 인한 공동 내부에 5cm 크기의 둥근 종괴, 주변에 'air crescent sign' 관찰됨",
+    "혈액검사|CBC|CRP|헤모글로빈|백혈구": "헤모글로빈 13.5 g/dL, 백혈구 7,000/μL (호산구 3%), 혈소판 250,000/μL, CRP 0.8 mg/dL",
+    "혈청검사|항체|항원|아스페르길루스": "아스페르길루스 특이 IgG 항체 양성, 아스페르길루스 갈락토만난 항원 음성",
+    "가래검사|객담검사|항산균|KOH|균사": "항산균 도말 및 배양 음성, KOH 도말에서 격벽이 있는 균사 관찰됨"
+  },
+  "diagnosis": "폐아스페르길루스종",
+  "aliases": [
+    "폐 아스페르길루스종",
+    "폐진균구",
+    "Pulmonary aspergilloma",
+    "Aspergilloma"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 121,
+    "license": "Apache-2.0"
+  }
+}

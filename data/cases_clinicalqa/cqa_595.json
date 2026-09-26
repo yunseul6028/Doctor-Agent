@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=595) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "무뇨증/핍뇨증",
+  "difficulty": "보통",
+  "teaching_point": "식사 모임 후 집단으로 발생한 무뇨증과 소화기 증상, 소변 검사의 과립원주(granular cast) 소견을 통해 독소 노출 등에 의한 급성 세뇨관 괴사를 진단할 수 있으며, 신장 초음파 상 신우 확장이 없어 요로 폐쇄성 원인을 배제할 수 있습니다.",
+  "initial": "68세 남성. 주호소: 2일 전부터 시작된 소변량 감소",
+  "history": {
+    "주호소|경과|증상|무뇨": "2일 전부터 소변량이 현저히 줄더니, 오늘 아침부터는 소변이 전혀 안 나와요. 구역질나고 토할 것 같고 배도 아픕니다.",
+    "동반증상|식사|모임|식중독": "3일 전에 지인 집 식사 모임에 다녀왔는데, 같이 먹었던 다른 사람들도 저랑 비슷한 증상을 보였다고 들었어요.",
+    "과거력|지병|약물|혈압": "20년 전에 고혈압 진단을 받아서 아모디핀을 복용하고 있습니다."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|체온": "혈압 150/90 mmHg, 맥박 92회/분, 호흡수 20회/분, 체온 37.3°C",
+    "복부|늑골척추각|CVA|압통|방광": "복부 검진: 양측 늑골척추각 압통 있음. 방광 팽창은 관찰되지 않음."
+  },
+  "tests": {
+    "혈액검사|CBC|신장기능|전해질|BUN|Cr": "WBC 12,000/μL, Hb 14.2 g/dL, Platelet 240,000/μL, BUN 58 mg/dL, Creatinine 4.2 mg/dL, Na 138 mEq/L, K 5.8 mEq/L, Cl 102 mEq/L, AST 42 U/L, ALT 38 U/L",
+    "소변검사|요검사|과립원주": "비중 1.025, pH 5.5, 단백 2+, 적혈구 many/HPF, 백혈구 2-3/HPF, 과립원주 2+",
+    "신장초음파|초음파|US": "양측 신장 크기 정상, 에코 증가, 신우 확장 없음"
+  },
+  "diagnosis": "급성 세뇨관 괴사",
+  "aliases": [
+    "급성 세뇨관 괴사증",
+    "ATN",
+    "Acute Tubular Necrosis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 595,
+    "license": "Apache-2.0"
+  }
+}

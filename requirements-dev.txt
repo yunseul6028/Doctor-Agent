@@ -1,0 +1,2 @@
+pytest
+pyarrow==25.0.1  # read snuh/ClinicalQA parquet (scripts/convert_clinicalqa.py); dev only

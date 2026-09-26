@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=742) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "배뇨곤란/배뇨통",
+  "difficulty": "쉬움",
+  "teaching_point": "고열, 오한, 우측 늑골척추각 압통, 배뇨통 및 소변검사상 농뇨/세균뇨 소견은 급성 신우신염의 전형적인 임상 양상입니다. 복부 CT에서 나타난 신장 부종 및 신주위 지방 침윤 소견으로 확진할 수 있습니다.",
+  "initial": "35세 여성. 주호소: 2일 전부터 시작된 우측 옆구리 통증과 배뇨통, 고열",
+  "history": {
+    "통증|옆구리|증상": "2일 전부터 갑자기 우측 옆구리가 심하게 아프고 소변볼 때 통증이 있어요.",
+    "발열|오한|체온": "열이 높게 나고 오한이 동반되었어요.",
+    "소화기증상|구역|구토": "구역과 구토도 있었어요.",
+    "소변|배뇨통|탁함": "배뇨 시 통증이 있고 소변이 탁하게 나와요.",
+    "과거력|방광염|약물": "3주 전에 단순 방광염으로 3일간 항생제를 복용한 적이 있어요.",
+    "임신력|출산력|여성력": "임신은 2번 했고 출산도 2번 했어요(G2P2L2)."
+  },
+  "exam": {
+    "활력징후|체온|혈압|맥박": "체온 39.2°C, 혈압 110/70 mmHg, 맥박 102회/분, 호흡수 20회/분",
+    "복부진찰|늑골척추각|압통": "우측 늑골척추각 압통 현저함, 우측 상복부 압통 있음"
+  },
+  "tests": {
+    "혈액검사|WBC|CRP|전신염증": "WBC 18,500/μL (호중구 85%), Hb 13.2 g/dL, Platelet 230,000/μL, CRP 156 mg/L, BUN 22 mg/dL, Cr 1.1 mg/dL",
+    "소변검사|요검사|농뇨|세균뇨": "pH 6.5, 백혈구 >100/HPF, 적혈구 10-15/HPF, 세균 +++, 아질산염 양성, 백혈구 에스테라아제 양성",
+    "복부CT|CT|영상검사": "우측 신장의 부종과 조영 증강 지연, 신주위 지방 침윤 소견"
+  },
+  "diagnosis": "급성 신우신염",
+  "aliases": [
+    "Acute pyelonephritis",
+    "APN",
+    "신우신염"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 742,
+    "license": "Apache-2.0"
+  }
+}

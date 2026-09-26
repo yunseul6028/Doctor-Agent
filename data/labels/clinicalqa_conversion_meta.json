@@ -1,0 +1,557 @@
+{
+  "script": "scripts/convert_clinicalqa.py",
+  "dataset": "snuh/ClinicalQA",
+  "dataset_revision": "29bdc9043f3e693b7671f868e2038ec7ac288acd",
+  "dataset_license": "Apache-2.0",
+  "model": "gemini-3.6-flash",
+  "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+  "temperature": 0.0,
+  "reasoning_effort": "low",
+  "max_tokens": 4096,
+  "date": "2026-09-25",
+  "selected_ids": [
+    1,
+    6,
+    42,
+    47,
+    52,
+    117,
+    121,
+    148,
+    157,
+    181,
+    211,
+    225,
+    232,
+    238,
+    285,
+    328,
+    343,
+    383,
+    388,
+    404,
+    437,
+    458,
+    466,
+    516,
+    521,
+    523,
+    550,
+    578,
+    595,
+    630,
+    660,
+    734,
+    742,
+    762,
+    841,
+    940,
+    966,
+    996,
+    1024,
+    1029
+  ],
+  "difficulty_override": {
+    "181": "어려움",
+    "238": "어려움",
+    "328": "어려움",
+    "437": "어려움",
+    "466": "어려움",
+    "521": "어려움",
+    "841": "어려움",
+    "1029": "어려움"
+  },
+  "system_prompt": "당신은 의학 교육용 객관식 문항을 대화형 진단 연습 증례(JSON)로 바꾸는 변환기입니다.\n원문 문항에 적힌 사실만 옮기세요. 원문에 없는 증상, 병력, 진찰 소견, 검사 결과, 수치, 음성 소견을 절대 만들어 내지 마세요.\n\n출력 형식: 아래 키를 가진 JSON 객체 하나만 출력하세요 (코드블록, 설명 문장 금지).\n{\n  \"initial\": \"<나이>세 <남성|여성>. 주호소: <주호소와 기간>\",\n  \"history\": {\"<키워드1|키워드2|english>\": \"<환자 말투 답변>\", ...},\n  \"exam\": {\"<키워드|english>\": \"<진찰 소견>\", ...},\n  \"tests\": {\"<키워드|english>\": \"<검사 결과>\", ...},\n  \"diagnosis\": \"<정답 진단명(한국어)>\",\n  \"aliases\": [\"<한국어 동의어>\", \"<영어 진단명>\", ...],\n  \"difficulty\": \"<쉬움|보통|어려움>\",\n  \"teaching_point\": \"<한국어 1~2문장>\"\n}\n\n규칙:\n1. initial: 나이, 성별, 주호소(원문에 기간이 있으면 기간 포함)만 쓰세요. 다른 증상, 병력, 소견, 진단 힌트는 넣지 마세요.\n   형식 예: \"58세 남성. 주호소: 2시간 전부터 시작된 가슴 통증\".\n2. history: 원문의 병력 정보(발병 양상, 동반 증상, 과거력, 약물, 가족력, 사회력 등)를 주제별 항목으로 나누세요.\n   - 값은 환자 본인이 말하는 쉬운 한국어 구어체(1~2문장)로 쓰고, 의학 용어나 진단명은 쓰지 마세요\n     (예: \"고혈압\" → \"혈압이 높아서 약 먹고 있어요\"). 과거에 진단받은 병은 환자가 들은 이름으로 짧게 말해도 되지만,\n     검사 수치나 의학 약어(T-score, HbA1c 등)는 history에 넣지 말고 tests로 옮기세요.\n   - 원문에 \"~는 없다\"처럼 명시된 음성 정보만 음성으로 쓰세요. 원문에 없는 음성 정보를 추가하지 마세요.\n   - 수량·기간·횟수는 원문 숫자와 단위를 그대로 쓰고 다른 값으로 환산하거나 풀어 쓰지 마세요\n     (예: \"20갑년\" → \"하루 한 갑씩 20년\"처럼 바꾸면 안 됨. \"담배는 20갑년 정도 피웠다고 들었어요\"처럼 쓰세요).\n   - 원문에 없는 세부 묘사(통증 강도, 시각, 상황, 감정 등)를 덧붙이지 마세요.\n3. exam: 원문의 신체진찰 소견과 활력징후를 부위/종류별로 나누세요. 의학 용어 그대로, 원문 수치 그대로 쓰세요.\n   심전도, 영상, 혈액·소변 검사, 조직검사, 청력·폐기능 검사처럼 장비나 검체가 필요한 것은 원문에서 '신체 검사' 문장에\n   있더라도 exam이 아니라 tests에 넣으세요.\n4. tests: 원문의 검사 결과(혈액, 소변, 영상, 심전도, 조직검사 등)를 검사 종류별로 나누세요. 수치, 단위, 참고치(정상 범위)는\n   원문 그대로 모두 옮기고 빠뜨리지 마세요.\n   원문이 \"정상\"이라고 한 검사는 \"정상\"으로만 쓰세요.\n5. 키: \"|\"로 구분한 검색 키워드 3~8개 (한국어 일상어, 의학 용어, 영어 약어를 섞어서). 의사가 그 항목을 물을 때 쓸 법한 단어로 하세요.\n   키에 정답 진단명이나 그 약어를 넣지 마세요.\n6. 원문 문항 끝의 질문 문장(\"가장 가능성 높은 진단은?\")과 보기는 증례에 넣지 마세요. 해설은 teaching_point 작성에만 참고하고,\n   해설에만 있고 문항 본문·검사 소견에 없는 사실은 history/exam/tests에 넣지 마세요.\n7. diagnosis: 정답 보기의 진단명을 한국어로 쓰세요 (정답 보기 문구를 그대로 쓰는 것이 원칙). aliases: 한국어 동의어·다른 표기와 영어 진단명, 흔한 약어.\n8. difficulty: 문진·진찰·검사를 순서대로 해 나가는 대화형 진단 기준으로 매기세요.\n   \"쉬움\": 흔한 질환의 전형적 양상이고, 결정적 검사 한 가지로 바로 확진된다.\n   \"보통\": 병력·진찰·검사 소견을 여러 개 종합해야 하거나, 결정적 단서가 특정 질문(과거력, 약물, 가족력, 노출력)으로만 드러난다.\n   \"어려움\": 드문 질환이거나, 비전형적 양상이거나, 다른 진단을 시사하는 혼란 소견이 있거나, 보기 중 비슷한 감별진단과 구별이 어렵다.\n9. teaching_point: 이 증례에서 어떤 단서로 어떤 감별진단과 구별해 진단하는지 한국어 1~2문장.\n",
+  "user_template": "[원문 문항 — {dataset} question_id={id}]\n주호소 분류: {chief_complaint}\n학습 목표: {purpose}\n\n문항 본문:\n{question}\n\n검사 소견:\n{exam}\n\n보기:\n{options}\n\n정답: {answer_letter}. {answer_text}\n\n해설 (teaching_point 작성용 참고, 사실 추출 금지):\n{explanation}\n",
+  "retry_rule": "one retry with the validation errors appended as a user turn; skipped if it fails again",
+  "items": {
+    "1": {
+      "id": 1,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "6": {
+      "id": 6,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "42": {
+      "id": 42,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "47": {
+      "id": 47,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "52": {
+      "id": 52,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "117": {
+      "id": 117,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "answer term '폐색전증' appears in history value (check it is a source fact)"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "answer term '폐색전증' appears in history value (check it is a source fact)"
+      ],
+      "llm_difficulty": "쉬움"
+    },
+    "121": {
+      "id": 121,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "148": {
+      "id": 148,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "157": {
+      "id": 157,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "181": {
+      "id": 181,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "211": {
+      "id": 211,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "225": {
+      "id": 225,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "232": {
+      "id": 232,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "238": {
+      "id": 238,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "285": {
+      "id": 285,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "328": {
+      "id": 328,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "343": {
+      "id": 343,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "383": {
+      "id": 383,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "388": {
+      "id": 388,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "404": {
+      "id": 404,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "437": {
+      "id": 437,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "458": {
+      "id": 458,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "466": {
+      "id": 466,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "516": {
+      "id": 516,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "521": {
+      "id": 521,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "523": {
+      "id": 523,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "550": {
+      "id": 550,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "answer term '췌장암' appears in history value (check it is a source fact)"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "answer term '췌장암' appears in history value (check it is a source fact)"
+      ],
+      "llm_difficulty": "쉬움"
+    },
+    "578": {
+      "id": 578,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "595": {
+      "id": 595,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "630": {
+      "id": 630,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "660": {
+      "id": 660,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "734": {
+      "id": 734,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "742": {
+      "id": 742,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "762": {
+      "id": 762,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "841": {
+      "id": 841,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "940": {
+      "id": 940,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "966": {
+      "id": 966,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "996": {
+      "id": 996,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "1024": {
+      "id": 1024,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "1029": {
+      "id": 1029,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    }
+  }
+}

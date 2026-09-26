@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=762) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "변비",
+  "difficulty": "쉬움",
+  "teaching_point": "고령에서 새롭게 발생한 변비와 체중 감소 등 경고 증상이 있을 때 대장암을 의심해야 하며, 직장 수지 검사에서 딱딱하고 불규칙한 종괴 및 CEA 상승 소견으로 확진을 유도할 수 있습니다.",
+  "initial": "72세 여성. 주호소: 3개월간 지속된 변비",
+  "history": {
+    "변비 양상|배변 양상|증상|constipation": "주 1-2회 대변을 보고, 배변 시 과도한 힘을 주어야 하고 배변감이 남아있어요.",
+    "과거력|약물|고혈압|당뇨|관절통|medication|history": "고혈압으로 암로디핀, 당뇨로 메트포르민을 먹고 있고, 관절통이 있어서 이부프로펜을 간헐적으로 먹고 있어요.",
+    "체중 감소|식욕|체중|weight loss": "최근 3개월간 체중이 5kg 줄었고 식욕도 떨어졌어요."
+  },
+  "exam": {
+    "복부 진찰|복부|장음|abdomen": "복부는 부드럽고 편평하며, 장음은 정상임.",
+    "직장 수지 검사|DRE|rectal examination": "항문연으로부터 약 4cm 거리에 딱딱하고 불규칙한 종괴가 만져짐."
+  },
+  "tests": {
+    "혈액검사|CEA|혈액|cbc|lab": "혈색소 11.2 g/dL, 백혈구 7,500/μL, 혈소판 280,000/μL, CEA 8.2 ng/mL (정상: 0-5 ng/mL)"
+  },
+  "diagnosis": "대장암",
+  "aliases": [
+    "직장암",
+    "결장직장암",
+    "Colorectal cancer",
+    "Rectal cancer",
+    "Colon cancer"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 762,
+    "license": "Apache-2.0"
+  }
+}

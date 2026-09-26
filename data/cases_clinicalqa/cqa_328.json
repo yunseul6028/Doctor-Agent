@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=328) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기분장애",
+  "difficulty": "어려움",
+  "teaching_point": "과거 주요우울삽화의 병력이 있고, 최근 정신병적 증상이나 현저한 기능 장애 없이 수면 욕구 감소, 충동적 행동(주식 투자, 성욕 증가), 기분 고양 등 경조증 삽화의 소견을 보이므로 양극성 II형 장애로 진단합니다.",
+  "initial": "45세 남성. 주호소: 2개월 전부터 시작된 기분변동과 충동조절 문제",
+  "history": {
+    "증상|기분|충동|symptom": "최근 갑자기 화를 잘 내고 충동적인 행동을 보이고 기분이 급격하게 오르내려요. 낮에는 의욕이 넘치고 과도하게 활동적이다가 저녁에는 갑자기 우울해집니다.",
+    "수면|피로|sleep": "수면은 5-6시간으로 줄었는데 피로감은 없어요.",
+    "주식|성욕|충동행동|behavior": "최근 갑자기 주식 투자를 시작해서 큰 손실을 봤고, 평소와 달리 성적 욕구가 증가해서 가정불화가 생겼어요.",
+    "과거력|우울증|자살|history": "40세 때 6개월간 지속된 심한 우울증으로 정신과 치료를 받은 적이 있고, 당시 자살 시도도 했었어요.",
+    "스트레스|약물|stress|medication": "최근 특별한 스트레스 사건은 없었고, 약물 사용력도 없습니다."
+  },
+  "exam": {
+    "진찰|말투|지남력|환각|망상|mental status": "다소 과장된 말투와 행동을 보임. 지남력 정상, 환각이나 망상은 관찰되지 않음."
+  },
+  "tests": {},
+  "diagnosis": "양극성 II형 장애, 현재 경조증 삽화",
+  "aliases": [
+    "양극성 2형 장애",
+    "양극성 장애 II형",
+    "경조증",
+    "Bipolar II disorder, current episode hypomanic",
+    "Bipolar II disorder"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 328,
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=734) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "발작/간질",
+  "difficulty": "쉬움",
+  "teaching_point": "발열, 두통, 급성 의식 변화 및 행동 이상을 보이는 환자에서 뇌 MRI 상 양측 측두엽 내측의 신호 변화와 뇌척수액의 림프구 우세 세포증가증은 바이러스성 뇌염(특히 단순포진 바이러스 뇌염)을 강력히 시사합니다.",
+  "initial": "42세 여성. 주호소: 2일 전부터 시작된 의식 변화와 이상행동",
+  "history": {
+    "증상|의식|행동|기억력|memory": "2일 전부터 갑자기 기억력이 떨어지고 혼돈, 불안 증상이 시작됐어요. 오늘 입 주변이 저절로 움직이고 팔이 미세하게 떨리는 증상이 반복됐어요.",
+    "두통|발열|체중감소|headache|fever": "최근에 심한 두통과 발열이 있었고, 체중이 약 5kg 감소했어요.",
+    "과거력|평소건강|past history": "평소에는 건강했어요."
+  },
+  "exam": {
+    "신경학검사|지남력|기억력|neurological": "시간과 장소에 대한 지남력 저하, 단기 기억력 현저히 감소.",
+    "신체검진|vital|physical": "특이 소견 없음."
+  },
+  "tests": {
+    "뇌MRI|MRI|brain MRI": "T2강조영상과 FLAIR 영상에서 양측 측두엽 내측(medial temporal lobe) 고신호 강도 관찰.",
+    "뇌파검사|EEG": "좌측 측두엽에서 기원하는 주기적 예파 복합체(periodic sharp wave complexes) 관찰.",
+    "뇌척수액검사|CSF|lumbar puncture": "개방압력 18 cmH2O, WBC 30/mm³(림프구 우세), 단백질 70 mg/dL, 포도당 60 mg/dL."
+  },
+  "diagnosis": "바이러스성 뇌염",
+  "aliases": [
+    "바이러스 뇌염",
+    "단순포진 바이러스 뇌염",
+    "단순포진뇌염",
+    "viral encephalitis",
+    "herpes simplex encephalitis",
+    "HSV encephalitis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 734,
+    "license": "Apache-2.0"
+  }
+}

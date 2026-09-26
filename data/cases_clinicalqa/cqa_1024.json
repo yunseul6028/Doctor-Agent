@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=1024) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "황달",
+  "difficulty": "보통",
+  "teaching_point": "민물고기 섭취 및 간흡충 감염력과 현재 대변 검사 양성 소견은 담관세포암의 강력한 위험 인자입니다. 담즙정체성 간기능 이상, CA 19-9 상승 및 CT에서 간내 담관 확장과 조영증강되는 종괴를 확인하여 담관세포암을 진단할 수 있습니다.",
+  "initial": "64세 남성. 주호소: 2개월 전부터 진행되는 황달, 체중 감소, 전신 피로감",
+  "history": {
+    "주호소|증상|피로|체중감소": "2개월 전부터 황달이 나타나서 계속 심해지고 전신에 피로감이 있어요. 최근 1개월 동안 체중이 5kg 정도 줄었습니다.",
+    "식습관|민물고기|생선회|식생": "시골에 살면서 민물고기 회를 자주 먹었습니다.",
+    "과거력|병력|간흡충|디스토마": "30년 전에 민물고기 회를 먹고 배가 아파서 병원에 갔다가 간흡충증 진단을 받고 치료받은 적이 있습니다."
+  },
+  "exam": {
+    "신체진찰|공막황달|복부진찰|간비대": "공막 황달 소견이 관찰됨. 우상복부 압통 및 간비대 관찰됨."
+  },
+  "tests": {
+    "혈액검사|간기능검사|LFT": "총 빌리루빈 10.5 mg/dL, 직접 빌리루빈 8.2 mg/dL, AST 85 U/L, ALT 72 U/L, ALP 620 U/L, GGT 450 U/L",
+    "종양표지자|CA19-9": "혈청 CA 19-9: 420 U/mL (정상 범위: <37 U/mL)",
+    "복부CT|CT|영상검사": "복부 CT: 간내 담관 확장, 좌측 간내 담관 합류부 주변으로 불균일하게 조영증강되는 3cm 크기의 종괴, 간문부 림프절 비대",
+    "대변검사|소변대변검사|충란": "대변 검사: 간흡충 충란 양성"
+  },
+  "diagnosis": "담관세포암",
+  "aliases": [
+    "담관암",
+    "Cholangiocarcinoma",
+    "CCC"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 1024,
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=550) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "만성복통/소화불량/속쓰림",
+  "difficulty": "쉬움",
+  "teaching_point": "등으로 방사되는 심와부 통증, 체중 감소, 폐쇄성 황달 소견과 함께 복부 CT상 췌장 두부 종괴 및 double duct sign이 관찰되면 췌장암을 진단할 수 있습니다.",
+  "initial": "68세 남성. 주호소: 2개월간 지속된 심와부 통증, 체중 감소, 식욕 부진",
+  "history": {
+    "통증|양상|등|방사통|밤": "심와부 통증이 등 쪽으로 방사되고 밤에 더 심해지는 경향이 있어요.",
+    "체중 감소|식욕|식사": "최근 2개월 동안 체중이 8kg 줄었고 식욕이 없어서 음식을 먹기가 꺼려져요.",
+    "황달|피부|눈|소변|대변|변색": "피부랑 눈 흰자위가 노랗게 변했고 소변색이 진해졌어요. 대변은 회색빛을 띱니다.",
+    "과거력|약물|당뇨": "2년 전에 당뇨병을 진단받았습니다.",
+    "사회력|흡연|음주|담배|술": "20년 동안 하루에 한 갑씩 담배를 피웠고, 술은 일주일에 3회 정도 마십니다.",
+    "가족력": "어머니가 췌장암으로 사망하셨습니다."
+  },
+  "exam": {
+    "활력징후|외모|전신": "황달과 쇠약한 모습이 관찰됨",
+    "복부|진찰|압통|종괴": "심와부 압통이 있음. 촉진 시 우상복부에 압통은 있으나 종괴는 만져지지 않음."
+  },
+  "tests": {
+    "혈액검사|간기능|생화학": "총 빌리루빈 8.5 mg/dL, 직접 빌리루빈 6.8 mg/dL, ALP 580 U/L, AST 85 U/L, ALT 75 U/L, Amylase 65 U/L, Lipase 55 U/L",
+    "종양표지자|CA 19-9": "CA 19-9 750 U/mL (정상: <37 U/mL)",
+    "복부 CT|컴퓨터단층촬영|영상": "췌장 두부에 3.5cm 크기의 저음영 종괴, 종괴에 의한 총담관 압박과 근위부 담관 확장, 주췌관 확장(double duct sign)"
+  },
+  "diagnosis": "췌장암",
+  "aliases": [
+    "췌장 두부암",
+    "췌장머리암",
+    "Pancreatic cancer",
+    "Pancreatic head cancer"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 550,
+    "license": "Apache-2.0"
+  }
+}

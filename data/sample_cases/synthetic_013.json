@@ -1,0 +1,36 @@
+{
+  "_note": "Synthetic smoke-test case. Replace with the official sample cases once published.",
+  "initial": "53세 여성. 주호소: 어젯밤부터 계속되는 윗배 통증",
+  "history": {
+    "어디|위치|부위|언제|시작|어떻게|양상|onset|where": "어젯밤 삼겹살 먹고 두어 시간 뒤부터 오른쪽 윗배가 아프기 시작했어요. 조이듯이 계속 아프고 지금까지 안 가라앉아요.",
+    "방사|퍼지|등|어깨|radiat|back": "오른쪽 등 날개뼈 쪽으로 뻗치는 느낌이 있어요.",
+    "전에|이전|반복|예전|과거에도|before": "전에도 기름진 거 먹으면 오른쪽 윗배가 한두 시간 아프다가 저절로 좋아진 적이 몇 번 있었어요. 이번처럼 오래 간 건 처음이에요.",
+    "열|오한|fever|chill": "오늘 새벽에 으슬으슬 춥고 열이 났어요.",
+    "구역|구토|메스꺼|식욕|nausea|vomit": "메스껍고 두 번 토했어요.",
+    "황달|노랗|소변 색|대변 색|jaundice|stool": "눈이나 피부가 노래진 건 모르겠고, 소변 색이나 변 색도 평소랑 비슷해요.",
+    "술|음주|alcohol|흡연|담배": "술은 명절에 한두 잔 정도고 담배는 안 피워요.",
+    "가슴|흉통|숨|chest|dyspnea": "가슴이 아프거나 숨이 차지는 않아요.",
+    "과거|병력|지병|약|복용|수술|medication|history": "고지혈증 약을 먹고 있어요. 수술 받은 적은 없어요.",
+    "생리|월경|임신|폐경|lmp|pregnan": "3년 전에 폐경됐어요."
+  },
+  "exam": {
+    "활력|생체|혈압|맥박|vital": "체온 38.3℃, 맥박 102회/분, 혈압 138/84 mmHg, 호흡 18회/분, 산소포화도 98%",
+    "복부|배|abdom|머피|murphy": "우상복부 압통, 머피 징후 양성, 반발통 없음, 장음 정상",
+    "공막|황달|피부|sclera|jaundice": "공막 황달 없음",
+    "흉부|폐|심장|청진|chest|lung|heart": "호흡음 깨끗함, 심잡음 없음"
+  },
+  "tests": {
+    "초음파|ultrasound|sono|담낭": "복부 초음파: 담낭벽 비후(6mm), 담낭 경부에 매몰된 2cm 담석, 담낭 주위 액체, 초음파 머피 징후 양성, 총담관 직경 5mm로 정상",
+    "혈액|cbc|피검사|백혈구": "백혈구 14,600/μL, 호중구 84%, 혈색소 13.1 g/dL",
+    "간기능|간수치|lft|빌리루빈|ast|alt|alp": "AST 42 U/L, ALT 48 U/L, ALP 135 U/L, 총빌리루빈 1.3 mg/dL",
+    "리파아제|아밀라아제|lipase|amylase|췌장": "리파아제 38 U/L, 아밀라아제 72 U/L",
+    "심전도|ecg|ekg": "정상 동리듬, ST-T 변화 없음",
+    "crp|염증": "CRP 8.9 mg/dL"
+  },
+  "diagnosis": "급성 담낭염",
+  "aliases": ["담낭염", "급성 담석성 담낭염", "담석성 담낭염", "acute cholecystitis", "acute calculous cholecystitis", "cholecystitis"],
+  "must_check": ["복부|배|abdom|머피|murphy", "초음파|ultrasound|sono|담낭", "혈액|cbc|간기능|lft|백혈구"],
+  "category": "복통",
+  "difficulty": "쉬움",
+  "teaching_point": "지방식 후 지속되는 우상복부 통증·발열·머피 징후는 복부 초음파로 확인하는 전형적 급성 담낭염이며, 불필요한 검사 없이 효율적으로 진단할 수 있는지 평가한다."
+}

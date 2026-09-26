@@ -1,0 +1,31 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=660) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "물질남용",
+  "difficulty": "쉬움",
+  "teaching_point": "만성 알코올 남용 및 영양 불균형 환자에서 의식 변화(혼돈), 안구운동장애(외직근 마비, 안구진탕), 실조성 보행의 전형적인 3징후와 뇌 MRI상 유두체/시상의 고신호 강도를 통해 베르니케 뇌병증을 진단할 수 있습니다.",
+  "initial": "62세 남성. 주호소: 혼돈, 실조성 보행, 양안 외직근 마비",
+  "history": {
+    "음주|음주력|술|alcohol": "20년간 매일 소주 1병 이상을 마셨어요.",
+    "식사|영양|식사량|diet": "최근 한 달간 거의 식사를 하지 못했습니다."
+  },
+  "exam": {
+    "지남력|의식|단기기억|정신상태|mental": "시간과 장소에 대한 지남력이 저하되어 있고, 단기 기억력이 현저히 감소되어 있습니다.",
+    "신경학검사|눈|안구|안구진탕|외직근|보행|실조|neurology": "양안 외직근 마비, 안구진탕, 실조성 보행이 관찰됩니다."
+  },
+  "tests": {
+    "혈액검사|General blood test|CBC|LFT": "Hb 11.2 g/dL, MCV 105 fL, AST 85 U/L, ALT 45 U/L, 총빌리루빈 2.3 mg/dL",
+    "뇌MRI|Brain MRI|영상검사": "유두체와 시상의 T2 고신호 강도"
+  },
+  "diagnosis": "베르니케 뇌병증",
+  "aliases": [
+    "Wernicke encephalopathy",
+    "베르니케 뇌증",
+    "Wernicke's encephalopathy"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 660,
+    "license": "Apache-2.0"
+  }
+}

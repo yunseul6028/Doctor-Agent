@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=148) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "거품 소변",
+  "difficulty": "쉬움",
+  "teaching_point": "고칼슘혈증, 신기능 저하, 빈혈, 골 병변(CRAB) 증상과 함께 혈청 및 소변 전기영동에서 M-단백이 확인되면 다발성 골수종을 확진할 수 있습니다.",
+  "initial": "68세 남성. 주호소: 전신 무력감, 요통, 거품 소변",
+  "history": {
+    "주호소|경과|체중감소|무력감|요통": "6개월 전부터 전신 무력감과 체중이 10kg 줄었어요. 최근에는 허리 통증도 심해지고 소변에 거품도 납니다.",
+    "과거력|지병|약물": "혈압이 높아서 고혈압 약 먹는 것 외에는 다른 질환은 없었어요."
+  },
+  "exam": {
+    "활력징후|혈압": "혈압 145/85 mmHg",
+    "신체진찰|창백|갈비뼈|압통": "창백함 관찰됨, 오른쪽 갈비뼈 압통 있음"
+  },
+  "tests": {
+    "혈액검사|일반혈액검사|CBC": "헤모글로빈 8.5 g/dL, 백혈구 6,500/μL, 혈소판 210,000/μL",
+    "혈액생화학검사|신장기능|전해질|칼슘": "BUN 35 mg/dL, 크레아티닌 2.2 mg/dL, 칼슘 11.8 mg/dL, 알부민 3.6 g/dL, 총 단백 8.4 g/dL, 단백-알부민 격차 4.8 g/dL",
+    "소변검사|요검사": "단백 3+, 적혈구 0-1/HPF, 백혈구 0-2/HPF",
+    "소변단백전기영동|UPEP": "M-단백 검출 (규칙적인 형태의 단백뇨)",
+    "혈청단백전기영동|면역고정전기영동|SPEP|IFIX": "IgG κ 유형의 M-단백혈증",
+    "척추X선|X-ray|영상검사": "다발성 용해성 골 병변"
+  },
+  "diagnosis": "다발성 골수종",
+  "aliases": [
+    "Multiple myeloma",
+    "골수종",
+    "MM"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 148,
+    "license": "Apache-2.0"
+  }
+}

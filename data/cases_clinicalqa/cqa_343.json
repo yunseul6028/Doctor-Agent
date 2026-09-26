@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=343) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기억력 저하",
+  "difficulty": "보통",
+  "teaching_point": "급성 인지기능 저하와 함께 대적혈구성 빈혈, 설염, 하지 진동/위치 감각 저하가 관찰되면 비타민 B12 결핍을 의심해야 합니다. 혈청 비타민 B12 감소 및 호모시스테인, 메틸말론산 상승으로 확진할 수 있습니다.",
+  "initial": "75세 남성. 주호소: 3개월 전부터 급격히 악화된 기억력 저하와 혼란",
+  "history": {
+    "증상|기억력|혼란|symptoms": "3개월 전부터 급격히 기억력이 나빠지고 혼란스러워졌어요. 최근에는 시간과 장소도 헷갈리고 가족도 못 알아보고, 옛날 일이랑 지금 일을 섞어서 말하곤 합니다.",
+    "과거력|지병|수술|history": "2개월 전에 고관절 수술을 받았고, 제2형 당뇨병이랑 고혈압이 있어요.",
+    "약물|복용약|medication": "메트포르민이랑 로사르탄을 복용하고 있어요.",
+    "식욕|체중|appetite": "고관절 수술을 받고 나서부터 식욕이 많이 줄었어요."
+  },
+  "exam": {
+    "신체진찰|혀|구강|physical exam": "혀의 적색과 통증이 관찰됨",
+    "신경학 검사|감각|신경|neurologic exam": "양 하지의 진동 감각과 위치 감각 저하. 신경학적 검사에서 기억력, 지남력, 판단력의 저하가 관찰됨."
+  },
+  "tests": {
+    "혈액검사|CBC|blood test": "WBC 7,500/μL, Hb 10.2g/dL, Hct 34%, PLT 280,000/μL, MCV 110fL (정상 80-100fL)",
+    "간기능|신장기능|LFT|RFT": "AST 22U/L, ALT 25U/L, ALP 95U/L (정상 44-147U/L), GGT 30U/L (정상 8-61U/L), 총 빌리루빈 0.8mg/dL, BUN 15mg/dL, 크레아티닌 0.9mg/dL",
+    "갑상선검사|TSH|갑상선": "TSH 2.1mIU/L (정상 0.4-4.0mIU/L), T4 1.2ng/dL (정상 0.8-1.8ng/dL)",
+    "비타민|비타민B12|vitamin": "비타민 B12 150pg/mL (정상 200-900pg/mL), 호모시스테인 18μmol/L (정상 5-15μmol/L), 메틸말론산 0.8μmol/L (정상 0.1-0.4μmol/L)",
+    "뇌MRI|영상검사|MRI": "경도의 뇌위축 외에 특이 소견이 없었음"
+  },
+  "diagnosis": "비타민 B12 결핍",
+  "aliases": [
+    "비타민 B12 결핍증",
+    "비타민B12결핍",
+    "Vitamin B12 deficiency"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 343,
+    "license": "Apache-2.0"
+  }
+}

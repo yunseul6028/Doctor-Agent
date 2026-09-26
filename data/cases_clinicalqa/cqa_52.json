@@ -1,0 +1,28 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=52) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가슴통증/가슴불쾌감",
+  "difficulty": "쉬움",
+  "teaching_point": "갑자기 시작된 찢어지는 듯한 흉통과 방사통, 양팔의 혈압 차이 및 대퇴동맥 맥박 불일치, 이완기 심잡음 소견을 종합하면 대동맥 박리를 가장 먼저 의심할 수 있습니다.",
+  "initial": "55세 남성. 주호소: 3시간 전부터 시작된 심한 가슴 통증",
+  "history": {
+    "통증 양상|통증 양상 및 부위|특징|가슴 통증|방사통|chest pain": "3시간 전부터 갑자기 가슴 통증이 시작되었는데, 등으로 방사되는 찢어지는 듯한 통증이에요.",
+    "과거력|기저질환|고혈압|대동맥 판막|past history": "평소에 고혈압과 대동맥 판막 폐쇄부전이 있다는 말을 들었습니다."
+  },
+  "exam": {
+    "활력징후|혈압|양팔 혈압|vitals|bp": "혈압 우측 팔 170/100 mmHg, 좌측 팔 130/80 mmHg, 맥박 110회/분, 호흡수 24회/분",
+    "심음|청진|심잡음|auscultation": "심음 청진에서 이완기 잡음이 들림",
+    "맥박|대퇴동맥|동맥 맥박|pulse": "양측 대퇴동맥 맥박의 강도가 다르게 촉지됨"
+  },
+  "tests": {},
+  "diagnosis": "대동맥 박리",
+  "aliases": [
+    "급성 대동맥 박리",
+    "aortic dissection"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 52,
+    "license": "Apache-2.0"
+  }
+}

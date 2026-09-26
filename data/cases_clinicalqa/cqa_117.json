@@ -1,0 +1,39 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=117) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "객혈",
+  "difficulty": "쉬움",
+  "teaching_point": "장시간 비행 및 하지 심부정맥혈전증(DVT) 의심 소견 후 갑작스럽게 발생한 호흡곤란과 객혈, 심전도의 S1Q3T3 패턴, 흉부 CT 혈관조영술의 폐동맥 충만 결손을 종합하여 급성 폐색전증을 진단합니다.",
+  "initial": "48세 여성. 주호소: 2일 전부터 시작된 소량의 객혈과 호흡곤란",
+  "history": {
+    "주호소|증상|호흡곤란|객혈": "2일 전부터 피가 조금 섞인 가래가 나오고 숨이 차기 시작했어요. 숨은 가만히 있어도 갑자기 턱턱 막혀요.",
+    "여행|비행기|부동": "3주 전에 장시간 비행기를 타고 여행을 다녀왔어요.",
+    "다리|통증|부종|하지": "1주일 전부터 갑자기 오른쪽 다리가 아프고 부어올랐어요.",
+    "과거력|유산": "전에 두 번 자연유산을 한 적이 있어요.",
+    "가족력": "어머니께서 50대에 폐색전증으로 돌아가셨다고 들었어요."
+  },
+  "exam": {
+    "활력징후|진찰": "혈압 110/70 mmHg, 맥박 110회/분, 호흡수 24회/분, 체온 37.0°C, 산소포화도 92%(실내 공기)",
+    "빈맥|빈호흡": "빈맥, 빈호흡 관찰됨",
+    "하지|다리|종창|압통|호만스": "우측 하지 종창 및 압통, 호만스 징후(Homans' sign) 양성"
+  },
+  "tests": {
+    "심전도|ECG": "동성 빈맥, S1Q3T3 패턴",
+    "혈액검사|D-dimer|BNP|트로포닌": "D-dimer 2.8 μg/mL (정상 <0.5), NT-proBNP 450 pg/mL, 트로포닌 I 정상",
+    "동맥혈가스분석|ABGA": "pH 7.45, PaO2 68 mmHg, PaCO2 32 mmHg, HCO3 22 mEq/L, A-a gradient 증가",
+    "흉부CT|폐동맥CT|CT": "흉부 CT 혈관조영술: 양측 폐동맥 주요 분지의 다발성 충만 결손",
+    "초음파|하지초음파|도플러": "우측 하지 도플러 초음파: 우측 슬와정맥의 혈전"
+  },
+  "diagnosis": "급성 폐색전증",
+  "aliases": [
+    "폐색전증",
+    "폐 혈전색전증",
+    "Pulmonary embolism",
+    "PE"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 117,
+    "license": "Apache-2.0"
+  }
+}

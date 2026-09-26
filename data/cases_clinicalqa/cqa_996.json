@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=996) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "혈변/흑색변",
+  "difficulty": "쉬움",
+  "teaching_point": "선행하는 출혈성 설사 후 미세혈관병용혈빈혈, 혈소판 감소, 급성 신손상의 3대 징후와 대변 Shiga toxin 양성 소견을 통해 용혈성 요독 증후군(HUS)으로 진단할 수 있습니다.",
+  "initial": "7세 남아. 주호소: 4일 전부터 지속된 혈변과 복통",
+  "history": {
+    "설사|동반증상|혈변|복통|diarrhea": "1주일 전부터 설사를 하기 시작했고 점차 혈변으로 바뀌었어요. 4일 전부터 복통도 같이 나타났어요.",
+    "식욕|피로|소변량|전신상태|appetite|fatigue": "식욕이 줄고 피곤해 보여요. 오늘 아침부터는 소변량이 급격히 줄어들었어요."
+  },
+  "exam": {
+    "활력징후|혈압|심박수|vitals": "혈압 140/85 mmHg, 심박수 110회/분",
+    "외모|진찰|창백|physical exam": "창백한 얼굴이 확인됨"
+  },
+  "tests": {
+    "혈액검사|lab|cbc|lft|renal": "헤모글로빈 7.5 g/dL, 혈소판 30,000/mm³, BUN 50 mg/dL, 크레아티닌 2.8 mg/dL, LDH 900 U/L, 빌리루빈 1.8 mg/dL, haptoglobin 감소",
+    "말초혈액도말|pbs|smear": "분열적혈구 다수 관찰됨",
+    "대변검사|배양검사|shiga toxin|stool": "Shiga toxin 양성"
+  },
+  "diagnosis": "용혈성 요독 증후군",
+  "aliases": [
+    "용혈성요독증후군",
+    "HUS",
+    "Hemolytic uremic syndrome"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 996,
+    "license": "Apache-2.0"
+  }
+}

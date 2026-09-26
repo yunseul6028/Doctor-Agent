@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=516) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두통",
+  "difficulty": "쉬움",
+  "teaching_point": "주기적으로 밤마다 발생하는 일측성 안통과 동측 자율신경계 증상(결막 충혈, 코막힘, 축동 등), 발작 시 안절부절못하는 행동 양상을 통해 군발두통을 진단할 수 있습니다.",
+  "initial": "28세 남성. 주호소: 극심한 우측 안구 주변 통증",
+  "history": {
+    "통증 양상|두통 양상|양상|headache character": "통증이 뜨거운 쇠막대가 눈을 찌르는 것 같아요.",
+    "발병|기간|경과|duration|onset": "2주 전부터 매일 밤 같은 시간에 약 45분간 지속되는 심한 두통이 발생해요.",
+    "통증 부위|위치|location": "두통은 항상 우측 안구 주변에 국한되어 있어요.",
+    "동반 증상|자율신경 증상|눈물|코막힘|associated symptoms": "두통이 올 때 우측 눈물과 코막힘, 결막 충혈이 함께 나타나요. 통증이 너무 심해서 가만히 있지 못하고 방 안을 걸어다니거나 머리를 흔들게 돼요.",
+    "과거력|재발|past history": "1년 전에도 비슷하게 약 3주간 증상이 있었다가 완전히 사라졌는데, 최근에 다시 시작됐어요."
+  },
+  "exam": {
+    "신체 진찰|눈 진찰|동공|결막|physical exam": "우측 결막 충혈, 우측 동공 크기 감소(축동)"
+  },
+  "tests": {
+    "뇌 MRI|brain MRI": "정상",
+    "일반 혈액 검사|CBC|blood test": "정상 범위"
+  },
+  "diagnosis": "군발두통",
+  "aliases": [
+    "Cluster headache",
+    "군집두통",
+    "군발성 두통"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 516,
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=285) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "급성 복통",
+  "difficulty": "쉬움",
+  "teaching_point": "우상복부 압통과 Murphy's sign 양성, 발열이 동반되고 초음파에서 담낭벽 증후 및 담석이 확인되므로 급성 담낭염으로 진단할 수 있습니다.",
+  "initial": "60세 여성. 주호소: 하루 전부터 시작된 심한 배 통증",
+  "history": {
+    "통증|복통|양상|위치": "처음에는 가볍게 불편한 정도였는데 시간이 지나면서 심해졌어요. 움직이거나 숨을 깊이 들이마시면 더 아파요.",
+    "동반증상|발열|오한|메스꺼움|구토": "열이 나고 몸이 으슬으슬 떨렸어요. 메스꺼움도 느껴지고요."
+  },
+  "exam": {
+    "활력징후|체온|혈압|맥박": "체온: 38.5℃, 혈압: 125/80 mmHg, 맥박: 90회/분",
+    "복부진찰|압통|머피징후|우상복부": "우상복부 압통, 숨을 깊이 들이마시려다 멈춤 (Murphy’s sign 양성)"
+  },
+  "tests": {
+    "혈액검사|WBC|CRP|간기능검사": "백혈구 16,000/mm³, CRP 35 mg/L, ALT 60 IU/L, AST 55 IU/L, ALP 180 IU/L",
+    "복부초음파|초음파|US": "담낭 벽이 두꺼워져 있으며, 내부에 결석이 관찰됨",
+    "심전도|EKG": "정상 동성 리듬"
+  },
+  "diagnosis": "급성 담낭염",
+  "aliases": [
+    "Acute cholecystitis",
+    "담낭염"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 285,
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=466) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두근거림",
+  "difficulty": "어려움",
+  "teaching_point": "운동이나 스트레스 시 유발되는 두근거림 및 실신, 젊은 나이의 돌연사 가족력이 있는 환자에서 심전도상 QTc 연장(520ms)과 다형성 심실빈맥이 확인되어 긴 QT 증후군으로 진단할 수 있습니다.",
+  "initial": "16세 여성. 주호소: 체육시간 중 갑작스러운 두근거림과 의식 소실",
+  "history": {
+    "증상|두근거림|실신|의식소실": "체육시간에 운동하다가 갑자기 심장이 심하게 두근거리더니 정신을 잃고 쓰러졌어요. 발작을 하거나 대소변을 지리지는 않았어요.",
+    "과거력|이전증상|발병상황": "전에도 격렬한 운동을 하거나 감정적으로 스트레스를 받을 때 이번처럼 두근거리다가 쓰러진 적이 2번 있었어요.",
+    "가족력|급사|돌연사": "어머니께서 30대에 원인을 모른 채 갑자기 실신해서 돌아가셨다고 들었어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|청진": "혈압 110/70 mmHg, 맥박 65회/분(규칙적), 호흡수 16회/분, 체온 36.5°C. 청진 소견상 특이 사항 없음."
+  },
+  "tests": {
+    "심전도|EKG|ECG|모니터링": "입원 중 모니터링: 몇 차례의 다형성 심실빈맥 관찰. 심전도: 교정 QT 간격 520ms (정상: <440ms), T파 교대현상 관찰.",
+    "혈액검사|전해질|갑상선|혈당": "전해질: Na 140 mEq/L, K 4.3 mEq/L, Ca 9.5 mg/dL, Mg 2.1 mg/dL. 갑상선 기능 검사, 혈당 모두 정상 범위.",
+    "심초음파|ECHO": "정상 심장 구조 및 기능(좌심실 구혈률 65%), 판막 이상 없음.",
+    "뇌검사|뇌MRI|뇌파|EEG": "뇌 MRI 및 뇌파 검사: 정상.",
+    "운동부하검사|TMT": "심박수 증가와 함께 QT 간격 지속적 연장 및 다형성 심실빈맥 발생."
+  },
+  "diagnosis": "긴 QT 증후군",
+  "aliases": [
+    "선천성 긴 QT 증후군",
+    "LQTS",
+    "Long QT syndrome"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 466,
+    "license": "Apache-2.0"
+  }
+}

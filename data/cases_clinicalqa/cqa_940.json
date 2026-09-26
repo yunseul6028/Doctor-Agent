@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=940) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "피로",
+  "difficulty": "쉬움",
+  "teaching_point": "비장 비대와 야간 발한 등의 증상과 함께 말초혈액에서 백혈구 및 호염기구 증가, LAP score 감소, t(9;22) 필라델피아 염색체 양성을 보여 만성 골수성 백혈병(CML)으로 확진할 수 있습니다.",
+  "initial": "67세 남성. 주호소: 3개월 전부터 지속되는 피로감과 간헐적인 복부 팽만감",
+  "history": {
+    "피로|복부팽만|증상|fatigue|abdominal distension": "3개월 전부터 피로하고 가끔 배가 부른 느낌이 들어요.",
+    "식사|포만감|satiety": "밥을 조금만 먹어도 금방 배가 부릅니다.",
+    "호흡곤란|어지럼증|dizziness|dyspnea": "가볍게 운동하면 숨이 차고 어지러워요.",
+    "체중변화|체중감소|weight loss": "체중이 5kg 정도 줄었어요.",
+    "야간발한|땀|night sweats": "밤에 땀을 흘리는 일이 잦아요."
+  },
+  "exam": {
+    "복부진찰|비장|신체검사|abdominal exam|splenomegaly": "복부 진찰에서 비장이 촉지됨"
+  },
+  "tests": {
+    "CBC|전혈구검사|혈액검사|complete blood count": "WBC 68,500/uL (Neutrophil 63%, Basophil 5%), Hb 11.2 g/dL, Platelet 480,000/uL",
+    "말초혈액도말검사|PBS|peripheral blood smear": "다양한 형태의 백혈구가 보임. 골수구 계열 세포 증가, 호염기구 증가, blast 4%",
+    "염색체분석|유전자검사|t(9;22)|필라델피아|cytogenetics": "t(9;22) 양성",
+    "LAP score|LAP 점수|leukocyte alkaline phosphatase": "LAP score 감소"
+  },
+  "diagnosis": "만성 골수성 백혈병",
+  "aliases": [
+    "CML",
+    "Chronic myeloid leukemia",
+    "Chronic myelogenous leukemia",
+    "만성골수성백혈병"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 940,
+    "license": "Apache-2.0"
+  }
+}
