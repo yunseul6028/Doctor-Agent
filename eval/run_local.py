@@ -7,6 +7,10 @@ python eval/run_local.py --cases data/cases_clinicalqa data/cases_agentclinic da
 python eval/run_local.py --cases 'data/cases_*' --sample 30 --seed 1   # quick random subset (globs allowed)
 python eval/compare.py --latest 2                         # compare the two newest runs
 python eval/viewer.py                                    # view the results viewer only
+python eval/experiment.py --profile dev --doctor-endpoint competition   # standard profiles + cost guard (wraps this)
+
+Real LLM clients are metered (eval/usage.py): doctor token usage per case (`usage`) and per role for the run.
+Exit code 3 when the batch stopped on a billing error.
 """
 import argparse
 import glob
@@ -26,12 +30,22 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from doctor_agent.agent.loop import run_case  # noqa: E402
 from doctor_agent.config import Config, LLMConfig  # noqa: E402
-from doctor_agent.llm.client import BillingError, DummyLLM, OpenAICompatClient  # noqa: E402
+from doctor_agent.llm.client import DummyLLM, OpenAICompatClient  # noqa: E402
 from eval.compare import summarize, summarize_by_set  # noqa: E402
 from eval.judge import judge_diagnosis  # noqa: E402
 from eval.llm_patient import PERSONA_CHOICES, PERSONAS, LLMPatientEnvironment  # noqa: E402
 from eval.scorer import missed_checks, score_case  # noqa: E402
 from eval.simulator import CaseFileEnvironment  # noqa: E402
+from eval.usage import UsageMeter, attach  # noqa: E402
+
+try:
+    from doctor_agent.llm.client import BillingError  # noqa: E402
+except ImportError:  # older commits (v5 baseline worktrees) have no BillingError
+    class BillingError(RuntimeError):  # type: ignore[no-redef]
+        pass
+
+BILLING_ABORT_EXIT = 3  # process exit code when the batch stopped on a billing error (see eval/experiment.py)
+_last_aborted = False
 
 
 def load_dotenv(path: Path) -> None:
@@ -119,7 +133,10 @@ def main(argv: list[str] | None = None) -> Path | None:
     ap.add_argument("--limit", type=int, help="first N cases (after --sample)")
     ap.add_argument("--out", default=str(ROOT / "eval/results"))
     ap.add_argument("--no-view", action="store_true", help="do not open the results viewer when done")
+    ap.add_argument("--meta", default=None, help="JSON object stored as `experiment` in the result file")
     args = ap.parse_args(argv)
+    global _last_aborted
+    _last_aborted = False
 
     load_dotenv(ROOT / ".env")
     cfg = Config()
@@ -131,15 +148,31 @@ def main(argv: list[str] | None = None) -> Path | None:
           f"prompt={pv} commit={commit} cases={len(cases)} workers={args.workers}" + (f" label={args.label!r}" if args.label else ""))
     patient_llm = OpenAICompatClient(LLMConfig.from_env("PATIENT_LLM")) if args.patient == "llm" else None
     judge_llm = OpenAICompatClient(LLMConfig.from_env("JUDGE_LLM")) if args.judge == "llm" else None
+    # token usage per role (doctor also per case); only for real LLM clients
+    meters = {"doctor": UsageMeter(), "patient": UsageMeter(), "judge": UsageMeter()}
+    metered = {"doctor": args.doctor == "llm",
+               "patient": bool(patient_llm) and attach(patient_llm, meters["patient"]),
+               "judge": bool(judge_llm) and attach(judge_llm, meters["judge"])}
 
     def run_one(set_: str, path: Path) -> dict:
         case = json.loads(path.read_text(encoding="utf-8"))
         doctor = DummyLLM() if args.doctor == "dummy" else OpenAICompatClient(cfg.llm)  # new instance per case
+        case_meter = UsageMeter()
+        has_usage = attach(doctor, case_meter)
         env = LLMPatientEnvironment(case, patient_llm, args.persona) if patient_llm else CaseFileEnvironment(case)
         t0 = time.time()
-        result = run_case(env, doctor, cfg)
+        try:
+            result = run_case(env, doctor, cfg)
+        finally:
+            meters["doctor"].merge(case_meter)  # failed cases still spent tokens
         judged = judge_diagnosis(judge_llm, case, result["diagnosis"]) if judge_llm else None
-        scores = score_case(case, result, cfg.agent.max_turns, judged["score"] if judged else None)
+        try:
+            scores = score_case(case, result, cfg.agent.max_turns, judged["score"] if judged else None)
+            missed, score_error = missed_checks(case, result), None
+        except Exception as e:  # noqa: BLE001 — e.g. an old-commit worktree whose safety module differs; rescored later
+            scores = {"accuracy": judged["score"] if judged else None, "efficiency": None, "safety": None,
+                      "case_checks": None}
+            missed, score_error = [], f"{type(e).__name__}: {e}"[:300]
         persona = PERSONAS[env.persona]["label"] if patient_llm else "keyword"
         try:
             rel = str(path.resolve().relative_to(ROOT))
@@ -147,7 +180,9 @@ def main(argv: list[str] | None = None) -> Path | None:
             rel = str(path)
         return {"case": path.stem, "set": set_, "path": rel, "persona": persona, "initial": case["initial"],
                 "answer": case["diagnosis"], **result, "judge": judged, "scores": scores,
-                "missed_checks": missed_checks(case, result), "sec": round(time.time() - t0, 1)}
+                "missed_checks": missed, "sec": round(time.time() - t0, 1),
+                **({"usage": case_meter.totals()} if has_usage else {}),
+                **({"score_error": score_error} if score_error else {})}
 
     done: dict[int, dict] = {}
     failed: list[dict] = []
@@ -202,6 +237,7 @@ def main(argv: list[str] | None = None) -> Path | None:
                     break
     if abort.is_set():
         print("\nABORTED: LLM billing error (credits depleted?). No result file written.", flush=True)
+        _last_aborted = True
         return None
 
     rows = [done[i] for i in sorted(done)]
@@ -216,6 +252,10 @@ def main(argv: list[str] | None = None) -> Path | None:
         for s, m in by_set.items():
             print(f"  {s:<16} n={m['n']:<4} acc={m['accuracy']} eff={m['efficiency']} safety={m['safety']} "
                   f"turns={m['turns']} not_provided={m['not_provided']}")
+    usage = {k: meters[k].totals() for k in meters if metered[k]}
+    if usage:
+        print("usage: " + "  ".join(f"{k} calls={u['calls']} in={u['prompt_tokens']} out={u['completion_tokens']}"
+                                    for k, u in usage.items()))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     slug = re.sub(r"[^A-Za-z0-9._-]+", "-", args.label).strip("-")[:40]
@@ -229,6 +269,7 @@ def main(argv: list[str] | None = None) -> Path | None:
                     "label": args.label or None, "prompt_version": pv, "commit": commit,
                     "case_specs": args.cases, "sample": args.sample, "seed": args.seed if args.sample else None,
                     "limit": args.limit, "workers": args.workers,
+                    "experiment": json.loads(args.meta) if args.meta else None, "usage": usage,
                     "avg": avg, "avg_by_set": by_set, "overall": overall, "failed": failed, "cases": rows},
                    ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -242,4 +283,4 @@ def main(argv: list[str] | None = None) -> Path | None:
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(0 if main() else (BILLING_ABORT_EXIT if _last_aborted else 1))
