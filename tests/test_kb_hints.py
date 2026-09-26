@@ -82,3 +82,23 @@ def test_use_kb_env_override(monkeypatch):
     assert AgentConfig().use_kb is False
     monkeypatch.delenv("AGENT_USE_KB")
     assert AgentConfig().use_kb is True
+
+
+def test_single_test_result_match_is_enough(monkeypatch):
+    from doctor_agent.agent import kb_hints
+    from doctor_agent.knowledge import kb
+
+    fake = [{"id": "X", "name_ko": "급성 췌장염", "name_en": "acute pancreatitis", "score": 9.0, "kcd": ["K85"],
+             "matched": [{"id": "TF:lipase_high", "ko": "리파아제 상승", "finding": "리파아제 1850"}], "sources": ["curated"]},
+            {"id": "Y", "name_ko": "위염", "name_en": "gastritis", "score": 5.0, "kcd": [],
+             "matched": [{"id": "WD:1", "ko": "복통", "finding": "명치 통증"}], "sources": ["WD"]}]
+    monkeypatch.setattr(kb, "candidates", lambda *a, **k: fake)
+    monkeypatch.setattr(kb, "available", lambda: True)
+    monkeypatch.setattr(kb_hints, "_positives", lambda state: ["a", "b", "c"])
+    monkeypatch.setattr(kb_hints, "_negatives", lambda state: [])
+
+    class S:
+        class ddx_ledger:
+            entries = []
+    hint = kb_hints.candidate_hint(S(), set())
+    assert hint and "급성 췌장염" in hint and "위염" not in hint

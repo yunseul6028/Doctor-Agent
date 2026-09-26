@@ -56,7 +56,9 @@ def candidate_hint(state, seen: set) -> str | None:
         ids = {p["id"] for p in (kb.lookup(n) for n in names) if p}
         rows = []
         for c in kb.candidates(pos, k=12, negatives=_negatives(state)):
-            if len(c["matched"]) < 2 or _in_ledger(c["name_ko"], c["id"], ids, names):
+            # one match is enough when it is a test/lab result link (decisive findings like 리파아제 상승)
+            by_test = any(str(m.get("id", "")).startswith("TF:") for m in c["matched"])
+            if (len(c["matched"]) < 2 and not by_test) or _in_ledger(c["name_ko"], c["id"], ids, names):
                 continue
             code = c["kcd"][0] if c["kcd"] else ""
             code = f" {code[:3]}.{code[3:]}" if len(code) > 3 else f" {code}" if code else ""
