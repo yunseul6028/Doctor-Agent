@@ -39,6 +39,8 @@ class AgentConfig:
     target_turns: int = 20       # soft target for Efficiency
     confidence_to_diagnose: float = 0.8
     ddx_size: int = 5
+    # knowledge-base hints (candidates, discriminators, diagnosis normalisation); AGENT_USE_KB=0 turns them off
+    use_kb: bool = field(default_factory=lambda: os.getenv("AGENT_USE_KB", "1").strip().lower() not in ("0", "false", "no", "off"))
 
 
 @dataclass

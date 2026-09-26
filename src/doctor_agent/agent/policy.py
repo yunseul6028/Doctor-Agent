@@ -1,6 +1,6 @@
 import re
 
-from doctor_agent.agent import prompts
+from doctor_agent.agent import kb_hints, prompts
 from doctor_agent.agent.parser import _json_objects, extract_action_json, parse_action
 from doctor_agent.agent.state import CaseState
 from doctor_agent.config import AgentConfig
@@ -28,6 +28,7 @@ class Policy:
     def __init__(self, llm: LLMClient, cfg: AgentConfig):
         self.llm = llm
         self.cfg = cfg
+        self._kb_seen: set = set()  # KB hints already shown in this case (Policy is created per case)
 
     def next_action(self, state: CaseState) -> Action:
         remaining = self.cfg.max_turns - state.turn_count
@@ -70,7 +71,10 @@ class Policy:
     def _review(self, state: CaseState, action: Action) -> Action:
         """Pre-diagnosis review by the same LLM in a reviewer role. Returns the (possibly refined) diagnosis or the
         reviewer's next action on hold."""
-        raw = self.llm.chat(prompts.build_review_messages(state.view(), action.content, action.reason,
+        view = state.view()
+        if self.cfg.use_kb and (warn := kb_hints.normalize_hint(action.content, state.initial_info).get("warning")):
+            view += "\n\n[지식베이스 경고] " + warn
+        raw = self.llm.chat(prompts.build_review_messages(view, action.content, action.reason,
                                                           state.turn_count, self.cfg.max_turns))
         obj = next((o for o in reversed(_json_objects(raw or "")) if "verdict" in o), {})
         verdict = "보류" if str(obj.get("verdict", "")).strip() == "보류" else "승인"
@@ -120,6 +124,8 @@ class Policy:
             hints.append(clinical_rules.render_for_prompt(rules))
         if state.turn_count >= self.cfg.target_turns:
             hints.append("목표 턴 수를 넘었습니다. 충분히 확신하면 진단하세요.")
+        if self.cfg.use_kb:
+            hints += kb_hints.step_hints(state, self._kb_seen)
         return hints
 
     def _final_diagnosis(self, state: CaseState) -> Action:
