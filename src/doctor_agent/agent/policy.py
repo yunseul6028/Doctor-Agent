@@ -68,29 +68,42 @@ class Policy:
         return self._final_diagnosis(state)
 
     def _review(self, state: CaseState, action: Action) -> Action:
-        """Pre-diagnosis review by the same LLM in a reviewer role. Returns the (possibly refined) diagnosis or the
-        reviewer's next action on hold."""
+        """Pre-diagnosis review by the same LLM in a reviewer role. The reviewer only fills structured fields
+        (key findings explained or not, contradictions, confirmatory evidence, unresolved dangers); the verdict and
+        any renaming are decided here in code. Returns the (possibly refined) diagnosis, or the reviewer's next
+        action on hold."""
         raw = self.llm.chat(prompts.build_review_messages(state.view(), action.content, action.reason,
                                                           state.turn_count, self.cfg.max_turns))
-        obj = next((o for o in reversed(_json_objects(raw or "")) if "verdict" in o), {})
-        verdict = "보류" if str(obj.get("verdict", "")).strip() == "보류" else "승인"
-        issues = [str(x) for x in obj.get("issues", []) if str(x).strip()] if isinstance(obj.get("issues"), list) else []
-        state.reviews.append({"turn": state.turn_count + 1, "proposed": action.content, "verdict": verdict, "issues": issues})
-        if verdict == "승인":
-            refined = str(obj.get("final_diagnosis") or "").strip()
-            if refined and refined != action.content:
-                state.reviews[-1]["final_diagnosis"] = refined
-                return Action(ActionType.DIAGNOSE, refined, f"{action.reason} (검토의가 더 구체적인 진단명으로 수정)")
-            return action
-        nxt = obj.get("next") if isinstance(obj.get("next"), dict) else {}
-        try:
-            follow = Action(ActionType(str(nxt.get("type", "")).upper()), str(nxt.get("content", "")).strip(),
-                            "검토 보류: " + (str(nxt.get("reason", "")).strip() or "; ".join(issues)))
-        except ValueError:
-            follow = None
-        if follow is None or follow.type == ActionType.DIAGNOSE or not follow.content:
-            return Action(ActionType.DIAGNOSE, action.content, action.reason)  # unusable hold → keep the diagnosis
-        return normalize_type(follow)
+        objs = _json_objects(raw or "")
+        obj = next((o for o in reversed(objs) if "key_findings" in o or "confirmation" in o), objs[-1] if objs else {})
+        key = [(str(k.get("finding", "")).strip(), _explained(k.get("status"))) for k in _as_list(obj.get("key_findings"))
+               if isinstance(k, dict) and str(k.get("finding", "")).strip()]
+        contra = [str(x).strip() for x in _as_list(obj.get("contradicting")) if _meaningful(x)]
+        danger = [str(x).strip() for x in _as_list(obj.get("unresolved_danger")) if _meaningful(x)]
+        confirmation = str(obj.get("confirmation") or "").strip()
+        confirmed = _meaningful(confirmation)
+        reasons = ([f"설명 안 되는 소견: {f}" for f, ok in key if not ok] + [f"모순 소견: {x}" for x in contra]
+                   + ([] if confirmed else ["확진 근거 없음"]) + [f"미배제 위험 질환: {x}" for x in danger])
+        follow = _next_action(obj.get("next"), reasons)
+        if not obj:
+            reasons = []  # unparseable review → never block the diagnosis on it
+        verdict = "보류" if reasons and follow is not None else "승인"
+        record = {"turn": state.turn_count + 1, "proposed": action.content, "verdict": verdict, "issues": reasons,
+                  "key_findings": [{"finding": f, "explained": ok} for f, ok in key], "contradicting": contra,
+                  "confirmation": confirmation if confirmed else "없음", "unresolved_danger": danger}
+        state.reviews.append(record)
+        if verdict == "보류":
+            record["next"] = {"type": follow.type.value, "content": follow.content}
+            return follow
+        refined = str(obj.get("final_diagnosis") or "").strip()
+        if refined and _norm(refined) != _norm(action.content):
+            evidence = str(obj.get("refine_evidence") or obj.get("근거") or "").strip()
+            why_not = _refinement_problem(action.content, refined, evidence, state.transcript() + "\n" + state.findings.render())
+            record["refinement"] = {"name": refined, "evidence": evidence, "accepted": not why_not, "rejected": why_not}
+            if not why_not:
+                record["final_diagnosis"] = refined
+                return Action(ActionType.DIAGNOSE, refined, f"{action.reason} (검토의가 세부 진단명으로 수정: {evidence})")
+        return action
 
     @staticmethod
     def _learned(state: CaseState) -> str:
@@ -128,3 +141,83 @@ class Policy:
             return parsed[0]
         top = state.ddx[0].get("dx") if state.ddx and isinstance(state.ddx[0], dict) else None
         return Action(ActionType.DIAGNOSE, top or "진단 불가")
+
+
+# --- pre-diagnosis review helpers -------------------------------------------------------------------------------
+_NONE_WORDS = {"", "없음", "없다", "없습니다", "none", "null", "n/a", "na", "-", "해당없음", "해당 없음", "미확인", "추측", "불명"}
+_NOT_EXPLAINED = re.compile(r"안\s*됨|안됨|않|불충분|미설명|no|false|unexplained", re.I)
+# qualifiers that only add where the disease is or what caused/accompanies it; the standard name is preferred
+_LOCATION = re.compile(r"상행|하행|횡행|S상|구불|맹장부|좌측|우측|양측|좌엽|우엽|상엽|중엽|하엽|전벽|하벽|측벽|후벽|근위부|원위부|기저부|첨부")
+_CAUSE = re.compile(r"에\s*의한|(으)?로\s*인한|에\s*따른|에\s*동반된|의존성|유발성|연관|관련")
+_PARENS = re.compile(r"\([^)]*\)")
+
+
+def _as_list(x: object) -> list:
+    return x if isinstance(x, list) else ([] if x in (None, "") else [x])
+
+
+def _meaningful(x: object) -> bool:
+    t = str(x or "").strip().strip(".").lower()
+    return t not in _NONE_WORDS and not t.startswith("없음")
+
+
+def _explained(status: object) -> bool:
+    if isinstance(status, bool):
+        return status
+    return not _NOT_EXPLAINED.search(str(status or ""))
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"\s+", "", _PARENS.sub("", name)).lower()
+
+
+def _next_action(nxt: object, reasons: list[str]) -> Action | None:
+    if not isinstance(nxt, dict):
+        return None
+    try:
+        kind = ActionType(str(nxt.get("type", "")).upper())
+    except ValueError:
+        return None
+    content = str(nxt.get("content", "")).strip()
+    if kind == ActionType.DIAGNOSE or not content:
+        return None
+    return normalize_type(Action(kind, content, "검토 보류: " + (str(nxt.get("reason", "")).strip() or "; ".join(reasons))))
+
+
+_STOP = {"없음", "있음", "양성", "음성", "정상", "이상", "소견", "검사", "결과", "환자", "증상", "진단", "확인", "관련", "의한", "인한", "따른", "동반된"}
+
+
+def _words(text: str) -> list[str]:
+    return [w for w in re.findall(r"[0-9a-z가-힣]+", _PARENS.sub("", text).lower()) if len(w) >= 2 and w not in _STOP]
+
+
+def _grounded(text: str, case_text: str) -> bool:
+    """True if at least half of the content words of `text` literally appear in `case_text` (a trailing Korean
+    particle is tolerated)."""
+    case = re.sub(r"\s+", "", case_text).lower()
+    words = _words(text)
+    hits = sum(w in case or (len(w) >= 3 and w[:-1] in case) for w in words)
+    return bool(words) and hits * 2 >= len(words)
+
+
+def _refinement_problem(proposed: str, refined: str, evidence: str, case_text: str) -> str:
+    """Why the reviewer's renaming must be refused ("" = accept). A renaming is kept only when it is backed by a cited
+    finding of this case. Location qualifiers are always refused (the standard disease name is preferred); a cause or
+    trigger qualifier is refused unless the qualifier itself is in the case findings and in the cited evidence; adding a
+    manifestation to a cause diagnosis ("B12 결핍" → "B12 결핍에 의한 인지장애") is refused."""
+    if not _meaningful(evidence):
+        return "근거 인용 없음"
+    if not _grounded(evidence, case_text):
+        return "인용한 근거가 이 환자의 소견에 없음"
+    if set(_LOCATION.findall(refined)) - set(_LOCATION.findall(proposed)):
+        return "위치 수식어 추가 (표준 질환명 유지)"
+    markers = {m.group(0) for m in _CAUSE.finditer(refined)} - {m.group(0) for m in _CAUSE.finditer(proposed)}
+    if markers:
+        p, r = _norm(proposed), _norm(refined)
+        if p in r and any(_norm(m) in r[r.index(p):] for m in markers):
+            return "원인 진단에 증상·합병증을 덧붙임"
+        base = set(_words(proposed))
+        quals = [q for q in (_CAUSE.sub("", w) for w in _words(refined) if w not in base) if len(q) >= 2]
+        if not quals or not all(_grounded(q, case_text) and _grounded(q, evidence) for q in quals):
+            return "원인·유발 요인 수식어가 소견으로 뒷받침되지 않음"
+    return ""
