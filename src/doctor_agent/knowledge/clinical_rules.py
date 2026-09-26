@@ -19,8 +19,10 @@ Applicability (2026-09-26)
   (PubMed, re-read 2026-09-26) or, when marked, our own proxy / reviewer knowledge.
 - Duration (duration_level) and age (age_years) are parsed from the chief complaint only.
 - detect_categories(): "neuro" means the acute stroke protocol (focal deficit, altered mental status, seizure),
-  not syncope or isolated dizziness; "allergy" is the anaphylaxis protocol; neuro/allergy are dropped for
-  complaints lasting >= 2 weeks.
+  not syncope or isolated dizziness; "allergy" is the anaphylaxis protocol; neuro/allergy/rash are dropped for
+  complaints lasting >= 2 weeks. 13 more categories were added on 2026-09-26 (syncope, palpitations,
+  hemoptysis/chronic cough, jaundice, joint, back pain, rash, chronic pruritus, edema, amenorrhea/abnormal
+  vaginal bleeding, fatigue, cognitive decline, psychiatric); their checks live in safety/protocols.py.
 """
 from __future__ import annotations
 
@@ -39,6 +41,20 @@ CATEGORY_NAMES: dict[str, str] = {
     "fever": "발열",
     "abdominal_pain": "복통",
     "allergy": "알레르기 반응",
+    # 2026-09-26 additions (most common uncovered chief complaints in data/cases_aug)
+    "syncope": "실신/일과성 의식 소실",
+    "palpitations": "두근거림",
+    "hemoptysis_cough": "객혈/만성 기침",
+    "jaundice": "황달",
+    "joint": "관절 통증/부기",
+    "back_pain": "요통",
+    "rash": "급성 피부 발진",
+    "pruritus": "만성 전신 가려움",
+    "edema": "부종/거품뇨",
+    "menstrual": "무월경/비정상 질출혈",
+    "fatigue": "피로",
+    "cognitive": "기억력·인지 저하",
+    "psychiatric": "정신과적 증상(기분·행동·지각)",
 }
 
 # Lowercase substrings matched against the case text (Korean + English variants).
@@ -62,26 +78,70 @@ _ALLERGY: tuple[str, ...] = (
     "입술이 붓", "입술이 부", "혀가 붓", "혀가 부", "얼굴이 붓", "벌에 쏘", "anaphyla", "urticaria", "hives",
     "angioedema", "allergic reaction",
 )
+_HEMOPTYSIS: tuple[str, ...] = (
+    "객혈", "피가 섞인 가래", "피 섞인 가래", "피섞인 가래", "혈담", "피가래", "기침할 때 피", "기침하면 피",
+    "hemoptysis", "coughing up blood", "blood-streaked sputum",
+)
+_COUGH: tuple[str, ...] = ("기침", "cough")
+_ITCH: tuple[str, ...] = ("가려", "가렵", "소양", "itch", "prurit")
+_GENERALIZED: tuple[str, ...] = ("전신", "온몸", "몸 전체", "몸전체", "generalized", "whole body", "all over")
+# Bilateral/generalized or unilateral-limb swelling (not local swelling of a joint, the neck or the vulva)
+_RE_EDEMA = re.compile(
+    r"(다리|발목|발등|종아리|하지|전신|몸|눈꺼풀|눈 주위|눈두덩)\S{0,3}\s?(부종|붓|부었|부어|부기)")
+_JOINT_TRAUMA: tuple[str, ...] = ("사고", "외상", "넘어", "부딪", "골절", "탈구", "다친", "다쳤", "삐", "찰과상", "열상",
+                             "타박", "상처", "trauma", "injur", "fall", "fracture", "sprain")
 
 CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "chest_pain": (
         "흉통", "가슴 통증", "가슴통증", "가슴이 아", "가슴 아", "가슴이 답답", "가슴 답답", "가슴이 조이",
-        "가슴을 쥐어", "가슴이 쥐어", "가슴이 뻐근", "가슴이 찢", "가슴이 짓눌", "가슴이 타", "chest pain", "chest tightness", "chest discomfort",
+        "가슴을 쥐어", "가슴이 쥐어", "가슴이 뻐근", "가슴이 찢", "가슴이 짓눌", "가슴이 타", "흉골 뒤", "흉골하",
+        "chest pain", "chest tightness", "chest discomfort", "retrosternal",
     ),
     "dyspnea": (
-        "호흡곤란", "숨이 차", "숨차", "숨쉬기", "숨이 막", "숨 가쁨", "숨가쁨", "숨이 가쁘",
+        "호흡곤란", "숨이 차", "숨차", "숨이 참", "숨찬", "숨참", "숨쉬기", "숨이 막", "숨 가쁨", "숨가쁨", "숨이 가쁘",
         "dyspnea", "dyspnoea", "shortness of breath", "short of breath", "breathless",
     ),
     "headache": ("두통", "머리가 아", "머리 아", "머리가 깨질", "머리가 터질", "headache"),
     "neuro": _NEURO_FOCAL + _NEURO_AMS_SEIZURE,
     "fever": (
-        "발열", "열이", "열나", "열감", "오한", "고열", "미열", "fever", "febrile", "chills",
+        "발열", "열이", "열나", "열감", "열과 몸살", "오한", "고열", "미열", "fever", "febrile", "chills",
     ),
     "abdominal_pain": (
-        "복통", "배가 아", "배 아", "배 통증", "배가 쥐어", "명치", "윗배", "아랫배", "옆구리", "상복부",
+        "복통", "배가 아", "배 아", "배아픔", "배 통증", "배가 쥐어", "명치", "윗배", "아랫배", "옆구리", "상복부",
         "하복부", "abdominal pain", "belly pain", "stomach ache", "stomachache", "epigastric",
     ),
     "allergy": _ALLERGY,
+    # --- 2026-09-26 additions. Some categories need more than a keyword; see detect_categories(). ---
+    "syncope": (
+        "실신", "기절", "의식 소실", "의식소실", "의식을 잃", "의식 잃", "의식 상실", "정신을 잃", "쓰러졌", "쓰러짐",
+        "syncope", "faint", "passed out", "loss of consciousness",
+    ),
+    "palpitations": ("두근", "심계항진", "가슴이 뛰", "심장이 뛰", "심장이 빨리", "palpitation", "racing heart"),
+    "hemoptysis_cough": _HEMOPTYSIS,  # + chronic cough (>= 2 weeks), added in detect_categories
+    "jaundice": ("황달", "노랗", "노래졌", "노래지", "노란 변색", "jaundice", "icter", "yellowing"),
+    "joint": (
+        "관절", "무릎", "손목", "발목", "어깨", "팔꿈치", "고관절", "엄지발가락", "중족지", "통풍", "joint", "knee",
+        "ankle", "wrist", "shoulder", "elbow", "arthr", "gout",
+    ),
+    "back_pain": ("요통", "허리 통증", "허리통증", "허리가 아", "허리 아", "천골", "low back pain", "lumbago"),
+    "rash": ("발진", "물집", "수포", "홍반", "rash", "blister", "bullous", "exanthem"),
+    "pruritus": _ITCH,  # kept only when generalized and >= 2 weeks, see detect_categories
+    "edema": ("거품 소변", "거품뇨", "단백뇨", "foamy urine", "proteinuria", "leg swelling", "edema", "oedema"),
+    "menstrual": (
+        "무월경", "월경이 없", "생리가 없", "생리를 안", "생리가 안 ", "생리를 하지", "월경을 하지", "생리가 늦",
+        "초경", "질출혈", "질 출혈", "부정출혈", "부정 출혈", "폐경 후 출혈", "amenorrh", "missed period",
+        "vaginal bleeding", "postmenopausal bleeding",
+    ),
+    "fatigue": ("피로", "피곤", "무력감", "기운이 없", "쇠약감", "fatigue", "tiredness", "exhaustion"),
+    "cognitive": (
+        "기억력", "기억 장애", "기억장애", "건망", "치매", "인지 저하", "인지기능", "인지 기능", "깜빡", "memory",
+        "dementia", "cognitive decline", "forgetful",
+    ),
+    "psychiatric": (
+        "우울", "기분", "이상행동", "이상 행동", "행동 문제", "공격적", "환청", "환시", "환각", "망상", "초조", "경조증",
+        "자살", "자해", "불안감", "불안해", "공황", "depress", "suicid", "psychos", "hallucinat", "delusion",
+        "mania", "anxiety", "agitation",
+    ),
 }
 
 # Phrases blanked out before keyword matching (false friends of a keyword).
@@ -90,10 +150,10 @@ _MASKS: tuple[str, ...] = ("발작적", "발작성", "paroxysmal")
 # Categories whose protocol is acute-only: dropped for a chief complaint lasting >= 2 weeks (duration_level >= 1)
 # unless acute markers are present. Chronic focal deficits need imaging too, but not the stroke/reperfusion
 # protocol (onset time, emergent CT) that this category scores.
-ACUTE_ONLY_CATEGORIES: frozenset[str] = frozenset({"neuro", "allergy"})
+ACUTE_ONLY_CATEGORIES: frozenset[str] = frozenset({"neuro", "allergy", "rash"})
 
 _SIDE = r"(한쪽|한 쪽|편측|반쪽|왼쪽|오른쪽|좌측|우측|왼|오른|one side|left|right|unilateral)"
-_MOTOR = r"(힘이 빠|힘이 없|힘이 안|마비|위약|근력 저하|근력저하|weak)"
+_MOTOR = r"(힘이 빠|힘 빠|힘이 없|힘이 안|마비|위약|근력 저하|근력저하|weak)"
 _SENSORY = r"(저림|저리|저려|감각|numb)"
 _RE_SIDE_MOTOR = re.compile(_SIDE + r".{0,15}?" + _MOTOR)
 _RE_SIDE_SENSORY = re.compile(_SIDE + r".{0,15}?" + _SENSORY)
@@ -126,6 +186,7 @@ _ACUTE_MARKERS: tuple[str, ...] = (
     "sudden", "abrupt", "thunderclap", "minutes ago", "hours ago", "this morning", "today",
 )
 _CHRONIC_WORDS: tuple[str, ...] = ("만성", "오래전부터", "오래 전부터", "chronic", "long-standing", "longstanding")
+_RE_INFANT_AGE_DUR = re.compile(r"생후\s*\d+\s*(시간|일|주|개월|달)")
 _RE_PREG_WEEKS = re.compile(r"(임신|재태)\s*\d+\s*주|\d+\s*주\s*(차\s*)?임신|gestation")
 _RE_MONTHS_YEARS = re.compile(
     r"(\d+|몇|수|여러|반)\s*(개월|달|년)(?!생)|(?<![0-9])(한|두|세)\s달(?!리)"
@@ -148,6 +209,7 @@ def duration_level(text: str) -> int:
     if has_acute_marker(t):
         return 0
     t = _RE_PREG_WEEKS.sub(" ", t)
+    t = _RE_INFANT_AGE_DUR.sub(" ", t)  # "생후 9개월" is the age, not how long the complaint has lasted
     if any(k in t for k in _CHRONIC_WORDS) or _RE_MONTHS_YEARS.search(t):
         return 2
     for m in _RE_WEEKS.finditer(t):
@@ -168,6 +230,21 @@ def age_years(text: str) -> float | None:
     m = _RE_AGE.search(t)
     if m:
         return float(next(g for g in m.groups() if g))
+    return None
+
+
+_RE_AGE_INFANT = re.compile(r"생후\s*(\d+)\s*(시간|일|주|개월|달)")
+_INFANT_UNIT_DAYS = {"시간": 1 / 24, "일": 1, "주": 7, "개월": 30, "달": 30}
+
+
+def age_days(text: str) -> float | None:
+    """Infant age in days from "생후 5일", "생후 2주", "생후 3개월"; 0 for "신생아"/"newborn"; None otherwise."""
+    t = (text or "").lower()
+    m = _RE_AGE_INFANT.search(t)
+    if m:
+        return float(m.group(1)) * _INFANT_UNIT_DAYS[m.group(2)]
+    if any(k in t for k in ("신생아", "newborn", "neonat")):
+        return 0.0
     return None
 
 
@@ -202,7 +279,10 @@ def detect_categories(text: str, context: str = "") -> list[str]:
       Acute dizziness in the chief complaint also opens it when age >= 60 or a vascular risk factor is known
       (`context` = facts learned later, used only for risk factors / BPPV-like pattern), unless positional AND
       recurrent (BPPV-like).
-    - acute-only categories (neuro, allergy) are dropped when the complaint has lasted >= 2 weeks.
+    - acute-only categories (neuro, allergy, rash) are dropped when the complaint has lasted >= 2 weeks.
+    - hemoptysis_cough: hemoptysis at any duration, or cough lasting >= 2 weeks. pruritus: generalized itch
+      lasting >= 2 weeks. edema: limb/generalized/facial swelling or foamy urine (not a swollen joint or neck).
+      rash/edema are dropped in an allergic context; joint is dropped after trauma.
     """
     t = _mask((text or "").lower())
     found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws)}
@@ -213,7 +293,22 @@ def detect_categories(text: str, context: str = "") -> list[str]:
         found.discard("neuro")
     elif _dizzy_stroke_risk(t, context):
         found.add("neuro")
-    if duration_level(t) >= 1:
+    dur = duration_level(t)
+    # cough alone is only the chronic-cough protocol (>= 2 weeks, our proxy for ACCP's subacute/chronic cough)
+    if dur >= 1 and any(k in t for k in _COUGH):
+        found.add("hemoptysis_cough")
+    # chronic pruritus = generalized itch lasting >= 2 weeks (proxy; the European guideline defines >= 6 weeks)
+    if not (dur >= 1 and any(k in t for k in _GENERALIZED) and contains_affirmed(t, _ITCH)):
+        found.discard("pruritus")
+    if _RE_EDEMA.search(t):
+        found.add("edema")
+    if "allergy" in found:  # hives/angioedema: the anaphylaxis protocol, not rash or edema work-up
+        found -= {"rash", "edema"}
+    if "neuro" in found:  # acute altered mental status / focal deficit: organic work-up first
+        found.discard("psychiatric")
+    if "joint" in found and any(k in t for k in _JOINT_TRAUMA):  # injuries: fracture/dislocation, not arthritis
+        found.discard("joint")
+    if dur >= 1:
         found -= ACUTE_ONLY_CATEGORIES
     return [c for c in CATEGORY_KEYWORDS if c in found]
 

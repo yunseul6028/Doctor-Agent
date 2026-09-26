@@ -11,6 +11,9 @@ Verification (2026-09-25)
 - Citation.verified: bibliographic data checked against PubMed E-utilities.
 - Check.verification: "primary" = recommendation read in the guideline text; "secondary" = confirmed via
   secondary summaries only (guideline full text paywalled); "unverified" = from reviewer knowledge.
+- 2026-09-26: 13 categories added (syncope ... psychiatric) with 19 more guidelines; same verification scale,
+  what was read is stated in each Check.note. Check.min_duration / Check.min_age limit a check to the cited
+  guideline's population (chronic presentations, adults).
 """
 from __future__ import annotations
 
@@ -22,6 +25,8 @@ from doctor_agent.knowledge.clinical_rules import (
     C_ALVARADO,
     CATEGORY_NAMES,
     Citation,
+    age_days,
+    age_years,
     contains_affirmed,
     detect_categories,
     duration_level,
@@ -136,9 +141,134 @@ G_ENDOCARDITIS = Citation(
     verified=True, short_author="ESC 심내막염 지침",
 )
 
+# --- 2026-09-26 additions (bibliographic data checked against PubMed E-utilities on 2026-09-26) ---
+G_SYNCOPE = Citation(
+    "Shen WK, Sheldon RS, Benditt DG, et al.",
+    "2017 ACC/AHA/HRS Guideline for the Evaluation and Management of Patients With Syncope",
+    "Circulation", 2017, "136(5):e60-e122", doi="10.1161/CIR.0000000000000499", pmid="28280231",
+    verified=True, short_author="ACC/AHA/HRS 실신 지침",
+)
+G_PALPITATIONS = Citation(
+    "Raviele A, Giada F, Bergfeldt L, et al.",
+    "Management of patients with palpitations: a position paper from the European Heart Rhythm Association",
+    "Europace", 2011, "13(7):920-934", doi="10.1093/europace/eur130", pmid="21697315",
+    verified=True, short_author="EHRA 두근거림 권고",
+)
+G_HEMOPTYSIS = Citation(
+    "Expert Panel on Thoracic Imaging; Olsen KM, Manouchehr-Pour S, et al.",
+    "ACR Appropriateness Criteria Hemoptysis",
+    "J Am Coll Radiol", 2020, "17(5S):S148-S159", doi="10.1016/j.jacr.2020.01.043", pmid="32370959",
+    verified=True, short_author="ACR 객혈 적정성 기준",
+)
+G_COUGH = Citation(
+    "Irwin RS, Baumann MH, Bolser DC, et al.",
+    "Diagnosis and management of cough executive summary: ACCP evidence-based clinical practice guidelines",
+    "Chest", 2006, "129(1 Suppl):1S-23S", doi="10.1378/chest.129.1_suppl.1S", pmid="16428686",
+    verified=True, short_author="ACCP 기침 지침",
+)
+G_LIVER = Citation(
+    "Kwo PY, Cohen SM, Lim JK.",
+    "ACG Clinical Guideline: Evaluation of Abnormal Liver Chemistries",
+    "Am J Gastroenterol", 2017, "112(1):18-35", doi="10.1038/ajg.2016.517", pmid="27995906",
+    verified=True, short_author="ACG 간기능 이상 지침",
+)
+G_JAUNDICE_IMAGING = Citation(
+    "Expert Panel on Gastrointestinal Imaging; Hindman NM, Arif-Tiwari H, et al.",
+    "ACR Appropriateness Criteria Jaundice",
+    "J Am Coll Radiol", 2019, "16(5S):S126-S140", doi="10.1016/j.jacr.2019.02.012", pmid="31054739",
+    verified=True, short_author="ACR 황달 적정성 기준",
+)
+G_NEONATAL_JAUNDICE = Citation(
+    "Kemper AR, Newman TB, Slaughter JL, et al.",
+    "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More "
+    "Weeks of Gestation",
+    "Pediatrics", 2022, "150(3):e2022058859", doi="10.1542/peds.2022-058859", pmid="35927462",
+    verified=True, short_author="AAP 신생아 황달 지침",
+)
+G_HOT_JOINT = Citation(
+    "Coakley G, Mathews C, Field M, et al.",
+    "BSR & BHPR, BOA, RCGP and BSAC guidelines for management of the hot swollen joint in adults",
+    "Rheumatology (Oxford)", 2006, "45(8):1039-1041", doi="10.1093/rheumatology/kel163a", pmid="16829534",
+    verified=True, short_author="BSR 급성 관절염(hot swollen joint) 지침",
+)
+G_GOUT_DX = Citation(
+    "Richette P, Doherty M, Pascual E, et al.",
+    "2018 updated European League Against Rheumatism evidence-based recommendations for the diagnosis of gout",
+    "Ann Rheum Dis", 2020, "79(1):31-38", doi="10.1136/annrheumdis-2019-215315", pmid="31167758",
+    verified=True, short_author="EULAR 통풍 진단 권고",
+)
+G_LOW_BACK_PAIN = Citation(
+    "Chou R, Qaseem A, Snow V, et al.",
+    "Diagnosis and treatment of low back pain: a joint clinical practice guideline from the American College of "
+    "Physicians and the American Pain Society",
+    "Ann Intern Med", 2007, "147(7):478-491", doi="10.7326/0003-4819-147-7-200710020-00006", pmid="17909209",
+    verified=True, short_author="ACP/APS 요통 지침",
+)
+G_SJS_TEN = Citation(
+    "Creamer D, Walsh SA, Dziewulski P, et al.",
+    "U.K. guidelines for the management of Stevens-Johnson syndrome/toxic epidermal necrolysis in adults 2016",
+    "Br J Dermatol", 2016, "174(6):1194-1227", doi="10.1111/bjd.14530", pmid="27317286",
+    verified=True, short_author="BAD SJS/TEN 지침",
+)
+G_PRURITUS = Citation(
+    "Weisshaar E, Szepietowski JC, Dalgard FJ, et al.",
+    "European S2k Guideline on Chronic Pruritus",
+    "Acta Derm Venereol", 2019, "99(5):469-506", doi="10.2340/00015555-3164", pmid="30931482",
+    verified=True, short_author="유럽 만성 소양증 지침",
+)
+G_VTE_DX = Citation(
+    "Lim W, Le Gal G, Bates SM, et al.",
+    "American Society of Hematology 2018 guidelines for management of venous thromboembolism: diagnosis of "
+    "venous thromboembolism",
+    "Blood Adv", 2018, "2(22):3226-3256", doi="10.1182/bloodadvances.2018024828", pmid="30482764",
+    verified=True, short_author="ASH 정맥혈전색전증 진단 지침",
+)
+G_GLOMERULAR = Citation(
+    "Rovin BH, Adler SG, Barratt J, et al.",
+    "Executive summary of the KDIGO 2021 Guideline for the Management of Glomerular Diseases",
+    "Kidney Int", 2021, "100(4):753-779", doi="10.1016/j.kint.2021.05.015", pmid="34556300",
+    verified=True, short_author="KDIGO 사구체질환 지침",
+)
+G_AMENORRHEA = Citation(
+    "Practice Committee of the American Society for Reproductive Medicine.",
+    "Current evaluation of amenorrhea: a committee opinion",
+    "Fertil Steril", 2024, "122(1):52-61", doi="10.1016/j.fertnstert.2024.02.001", pmid="38456861",
+    verified=True, short_author="ASRM 무월경 평가",
+)
+G_PMB = Citation(
+    "American College of Obstetricians and Gynecologists.",
+    "ACOG Committee Opinion No. 734: The Role of Transvaginal Ultrasonography in Evaluating the Endometrium of "
+    "Women With Postmenopausal Bleeding",
+    "Obstet Gynecol", 2018, "131(5):e124-e129", doi="10.1097/AOG.0000000000002631", pmid="29683909",
+    verified=True, short_author="ACOG 폐경 후 출혈",
+)
+G_MECFS = Citation(
+    "National Institute for Health and Care Excellence.",
+    "Myalgic encephalomyelitis (or encephalopathy)/chronic fatigue syndrome: diagnosis and management "
+    "(NICE guideline NG206)",
+    "London: NICE", 2021, "NG206", pmid="35438859",
+    verified=True, short_author="NICE NG206",
+)
+G_DEMENTIA = Citation(
+    "Knopman DS, DeKosky ST, Cummings JL, et al.",
+    "Practice parameter: diagnosis of dementia (an evidence-based review). Report of the Quality Standards "
+    "Subcommittee of the American Academy of Neurology",
+    "Neurology", 2001, "56(9):1143-1153", doi="10.1212/wnl.56.9.1143", pmid="11342678",
+    verified=True, short_author="AAN 치매 진단 지침",
+)
+G_PSYCH_EVAL = Citation(
+    "Silverman JJ, Galanter M, Jackson-Triche M, et al.",
+    "The American Psychiatric Association Practice Guidelines for the Psychiatric Evaluation of Adults",
+    "Am J Psychiatry", 2015, "172(8):798-802", doi="10.1176/appi.ajp.2015.1720501", pmid="26234607",
+    verified=True, short_author="APA 정신과 평가 지침",
+)
+
 GUIDELINES: tuple[Citation, ...] = (
     G_CHEST_PAIN, G_AORTA, G_PE, G_HF, G_PLEURAL, G_ANAPHYLAXIS, G_HEADACHE, G_MENINGITIS, G_STROKE,
     G_SEPSIS, G_NEUTROPENIA, G_EARLY_PREGNANCY, G_ECTOPIC, G_AAA, G_AMI, G_ENDOCARDITIS,
+    G_SYNCOPE, G_PALPITATIONS, G_HEMOPTYSIS, G_COUGH, G_LIVER, G_JAUNDICE_IMAGING, G_NEONATAL_JAUNDICE, G_HOT_JOINT,
+    G_GOUT_DX, G_LOW_BACK_PAIN, G_SJS_TEN, G_PRURITUS, G_VTE_DX, G_GLOMERULAR, G_AMENORRHEA, G_PMB, G_MECFS,
+    G_DEMENTIA, G_PSYCH_EVAL,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -162,12 +292,22 @@ class Check:
     # history facts mention unrelated past durations ("6개월 전 건강검진").
     acute_only: int = 0
     predicate: str = ""  # name in PREDICATES; replaces `triggers` with a function of (chief complaint, all text)
+    # population limits from the chief complaint: minimum duration_level (e.g. 1 = >= 2 weeks) and age in years
+    # (an unstated age passes); used when the cited guideline covers only adults or chronic presentations
+    min_duration: int = 0
+    min_age: float | None = None
 
     def applies(self, text: str, cc: str | None = None) -> bool:
         """text = chief complaint + learned facts (triggers); cc = chief complaint (duration). cc defaults to text."""
         cc = text if cc is None else cc
         if self.acute_only and duration_level(cc) >= self.acute_only:
             return False
+        if self.min_duration and duration_level(cc) < self.min_duration:
+            return False
+        if self.min_age is not None:
+            age = age_years(cc)
+            if age is not None and age < self.min_age:
+                return False
         if self.predicate:
             return PREDICATES[self.predicate](cc, text)
         if not self.triggers:
@@ -295,7 +435,80 @@ def _ie_suspected(cc: str, text: str) -> bool:
     return contains_affirmed(text, _TRIG_IE) and not _sepsis_suspected(cc, text)
 
 
-PREDICATES = {"sepsis": _sepsis_suspected, "ie": _ie_suspected}
+
+# --- predicates for the 2026-09-26 categories (our operationalisations, not from the cited papers) ---------
+_TRIG_HEMOPTYSIS = ("객혈", "피가 섞인 가래", "피 섞인 가래", "피섞인 가래", "혈담", "피가래", "기침할 때 피",
+                    "기침하면 피", "hemoptysis", "coughing up blood", "blood-streaked sputum")
+_RE_UNILATERAL_LEG = re.compile(
+    r"(한쪽|한 쪽|편측|왼쪽|오른쪽|좌측|우측|왼|오른|one|left|right|unilateral)\s?\S{0,2}\s?"
+    r"(다리|종아리|하지|발목|허벅지|leg|calf)")
+_TRIG_KNOWN_PREGNANCY = ("임신 중", "임신중", "임산부", "산모", "pregnant")
+_TRIG_POSTMENOPAUSAL = ("폐경", "postmenopaus", "menopaus")
+_TRIG_AMENORRHEA = ("무월경", "월경이 없", "생리가 없", "생리를 안", "생리가 안 ", "생리를 하지", "월경을 하지",
+                    "생리가 늦", "초경", "amenorrh", "missed period")
+_RE_PREG_WEEKS_PR = re.compile(r"(임신|재태)\s*\d+\s*주|\d+\s*주\s*(차\s*)?임신")
+
+
+def _neonate(cc: str, text: str) -> bool:
+    """Newborn (<= 28 days) by the chief complaint: the AAP 2022 population (>= 35 weeks' gestation assumed)."""
+    d = age_days(cc)
+    return d is not None and d <= 28
+
+
+def _not_neonate(cc: str, text: str) -> bool:
+    d = age_days(cc)
+    return d is None or d > 28
+
+
+def _neonate_prolonged(cc: str, text: str) -> bool:
+    """Jaundiced newborn >= 14 days old (AAP 2022: formula-fed still jaundiced at 2 weeks, breastfed at 3-4)."""
+    d = age_days(cc)
+    return d is not None and 14 <= d <= 60
+
+
+def _hemoptysis(cc: str, text: str) -> bool:
+    return contains_affirmed(cc, _TRIG_HEMOPTYSIS)
+
+
+def _chronic_cough_only(cc: str, text: str) -> bool:
+    """Cough >= 2 weeks without hemoptysis (the hemoptysis CXR check covers that case, no double weight)."""
+    return duration_level(cc) >= 1 and not _hemoptysis(cc, text)
+
+
+def _unilateral_leg(cc: str, text: str) -> bool:
+    return bool(_RE_UNILATERAL_LEG.search((cc or "").lower()))
+
+
+def _not_unilateral_leg(cc: str, text: str) -> bool:
+    return not _unilateral_leg(cc, text)
+
+
+def _amenorrhea(cc: str, text: str) -> bool:
+    return contains_affirmed(cc, _TRIG_AMENORRHEA)
+
+
+def _postmenopausal_bleeding(cc: str, text: str) -> bool:
+    t = (cc or "").lower()
+    return not _amenorrhea(cc, text) and any(k in t for k in _TRIG_POSTMENOPAUSAL)
+
+
+def _pregnancy_possible(cc: str, text: str) -> bool:
+    """Amenorrhea, or abnormal vaginal bleeding when neither pregnancy nor menopause is already stated."""
+    if _amenorrhea(cc, text):
+        return True
+    t = (cc or "").lower()
+    if _RE_PREG_WEEKS_PR.search(t) or any(k in t for k in _TRIG_KNOWN_PREGNANCY + _TRIG_POSTMENOPAUSAL):
+        return False
+    age = age_years(cc)
+    return age is None or 10 <= age <= 55
+
+
+PREDICATES = {
+    "sepsis": _sepsis_suspected, "ie": _ie_suspected, "neonate": _neonate, "not_neonate": _not_neonate,
+    "neonate_prolonged": _neonate_prolonged, "hemoptysis": _hemoptysis, "chronic_cough": _chronic_cough_only,
+    "unilateral_leg": _unilateral_leg, "not_unilateral_leg": _not_unilateral_leg, "amenorrhea": _amenorrhea,
+    "postmenopausal_bleeding": _postmenopausal_bleeding, "pregnancy_possible": _pregnancy_possible,
+}
 
 
 def _vitals(citation: Citation, when: str = "도착 즉시", note: str = "") -> Check:
@@ -475,6 +688,277 @@ PROTOCOLS = PROTOCOLS + (
         ),
     ),
 )
+
+# --------------------------------------------------------------------------------------------
+# 2026-09-26 additions: the most common chief complaints in data/cases_aug that had no protocol.
+# Verification levels were set on 2026-09-26 from what was actually read (see each note).
+# --------------------------------------------------------------------------------------------
+
+_KW_CBC = ("일반혈액", "혈구", "cbc", "백혈구", "혈색소", "헤모글로빈", "혈소판", "말초혈액", "complete blood count",
+           "blood count", "hemoglobin", "platelet")
+_KW_LIVER = ("간기능", "간 기능", "간수치", "간 수치", "간효소", "간 효소", "빌리루빈", "bilirubin", "lft", "ast/alt",
+             "ast, alt", "ast와 alt", "ast·alt", "transaminase", "아미노전이효소", "알칼리성 인산", "alkaline phosphatase",
+             "liver function", "liver panel", "liver test", "liver chemistr")
+_KW_RENAL = ("신장 기능", "신장기능", "신기능", "콩팥 기능", "크레아티닌", "creatinine", "bun", "egfr", "사구체여과",
+             "renal function", "kidney function", "요소질소")
+_KW_TSH = ("tsh", "갑상선", "갑상샘", "thyroid")
+_KW_URINALYSIS = ("소변 검사", "소변검사", "요검사", "요 검사", "요분석", "단백뇨", "소변 단백", "알부민뇨", "urinalysis",
+                  "urine protein", "proteinuria", "urine albumin", "albuminuria", "dipstick")
+_KW_CHEST_CT = ("흉부 ct", "흉부ct", "가슴 ct", "폐 ct", "chest ct", "ct chest", "ct of the chest", "흉부 전산화",
+                "ct 혈관조영", "ct angiogra", "cta")
+_KW_MED_HISTORY = ("복용 중인 약", "복용중인 약", "복용하는 약", "복용하시는 약", "먹는 약", "드시는 약", "약을 먹",
+                   "약을 드", "새로 시작한 약", "약물", "처방", "한약", "건강보조", "보조제", "영양제", "medication",
+                   "drug", "medicine", "supplement", "herbal")
+_KW_ALCOHOL = ("음주", "술을", "술은", "술 마", "술도", "alcohol", "drink")
+
+PROTOCOLS = PROTOCOLS + (
+    Protocol(
+        category="syncope", name_ko=CATEGORY_NAMES["syncope"],
+        cant_miss=("부정맥(서맥·빈맥, QT 연장)", "구조적 심질환(대동맥판 협착, 비후성 심근병증)", "폐색전증",
+                   "대동맥 박리", "내출혈·저혈량"),
+        checks=(
+            Check("vitals", "활력징후(누운 자세·선 자세 혈압/맥박 포함)", "exam", _KW_VITALS + ("기립", "orthostatic"),
+                  G_SYNCOPE, "unverified", when="모든 실신",
+                  note="Orthostatic BP/HR is part of the initial evaluation in the guideline; the COR/LOE was not "
+                  "read (full text returned HTTP 403)."),
+            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_SYNCOPE, "secondary", when="모든 실신 초기 평가",
+                  note="Class I: resting 12-lead ECG in the initial evaluation. Full text paywalled (HTTP 403); "
+                  "confirmed via ACC 'Ten points to remember' and ACEP Now summaries."),
+            Check("cardiac_history", "심장성 실신 단서 문진(운동 중·누운 자세 실신, 전조 없는 실신, 두근거림, "
+                  "심질환, 가족 돌연사)", "ask",
+                  ("운동 중", "운동할 때", "누운 상태", "누워 있을 때", "전조", "두근", "심장병", "심장 질환", "심장질환",
+                   "돌연사", "급사", "exertion", "palpitation", "heart disease", "sudden death", "prodrome"),
+                  G_SYNCOPE, "secondary", when="모든 실신",
+                  note="Class I: detailed history and physical examination. The specific cardiac-syncope clues are "
+                  "the guideline's high-risk features as summarized by ACC; wording ours."),
+        ),
+    ),
+    Protocol(
+        category="palpitations", name_ko=CATEGORY_NAMES["palpitations"],
+        cant_miss=("심실성 빈맥", "심방세동", "WPW 증후군", "QT 연장 증후군", "갑상선 기능 항진증"),
+        checks=(
+            _vitals(G_PALPITATIONS, when="모든 두근거림",
+                    note="Part of the physical examination in the EHRA initial evaluation; vital signs as such are "
+                    "not a separately worded recommendation."),
+            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_PALPITATIONS, "primary", when="모든 두근거림",
+                  note="EHRA 2011: initial evaluation of all patients = history, physical examination and a "
+                  "standard 12-lead ECG (read in the Europace full text)."),
+            Check("tsh", "갑상선 기능 검사(TSH)", "test", _KW_TSH, G_PALPITATIONS, "unverified",
+                  triggers=("체중 감소", "체중이 줄", "살이 빠", "더위", "열불내성", "땀이 많", "손 떨림", "손이 떨",
+                            "떨림", "갑상선", "weight loss", "heat intolerance", "tremor", "thyroid"),
+                  when="체중 감소·더위 못 견딤·떨림 등 갑상선 기능 항진 단서",
+                  note="EHRA 2011 says specific laboratory tests when a systemic cause is suspected (read); choosing "
+                  "TSH for these clues is our operationalisation."),
+        ),
+    ),
+    Protocol(
+        category="hemoptysis_cough", name_ko=CATEGORY_NAMES["hemoptysis_cough"],
+        cant_miss=("대량 객혈", "폐암", "폐결핵", "폐색전증"),
+        checks=(
+            Check("cxr", "흉부 X선", "test", _KW_CXR, G_HEMOPTYSIS, "primary", predicate="hemoptysis",
+                  when="모든 객혈",
+                  note="ACR AC 2020 (abstract): chest radiograph and CT with contrast or CTA recommended for "
+                  "massive and nonmassive hemoptysis."),
+            Check("chest_ct", "흉부 CT(조영증강) 또는 CT 혈관조영", "test", _KW_CHEST_CT, G_HEMOPTYSIS, "primary",
+                  predicate="hemoptysis", when="모든 객혈",
+                  note="Same ACR AC 2020 statement (abstract)."),
+            Check("cxr_cough", "흉부 X선", "test", _KW_CXR, G_COUGH, "unverified", predicate="chronic_cough",
+                  when="2주 이상 지속되는 기침",
+                  note="Read (PMC3345522): CXR for cough with lung-cancer risk factors (grade E/A) and bronchoscopy "
+                  "for suspected airway malignancy. Applying CXR to every cough lasting >= 2 weeks is reviewer "
+                  "knowledge of the ACCP chronic-cough algorithm, not re-read."),
+        ),
+    ),
+    Protocol(
+        category="jaundice", name_ko=CATEGORY_NAMES["jaundice"],
+        cant_miss=("급성 간부전", "급성 담관염/담도 폐쇄", "췌담도 악성 종양", "용혈", "신생아 병적 황달·담도 폐쇄증"),
+        checks=(
+            Check("liver_panel", "간기능 검사(AST/ALT, ALP, 총·직접 빌리루빈 분획)", "test", _KW_LIVER, G_LIVER,
+                  "primary", predicate="not_neonate", when="모든 황달",
+                  note="ACG 2017 (abstract): elevated total bilirubin should be fractionated to direct/indirect."),
+            Check("med_alcohol_history", "약물·한약·건강보조제 복용력과 음주력 문진", "ask",
+                  _KW_MED_HISTORY + _KW_ALCOHOL, G_LIVER, "primary", predicate="not_neonate", when="모든 황달",
+                  note="ACG 2017 recommendation 11 (strong) + clinical assessment statement 1 (read in the ACG "
+                  "summary PDF)."),
+            Check("pt_inr", "PT/INR(간 합성능)과 의식 상태(간성 뇌증) 확인", "test",
+                  ("pt/inr", "inr", "프로트롬빈", "prothrombin", "응고 검사", "응고검사", "pt 검사", "coagulation"),
+                  G_LIVER, "primary", predicate="not_neonate", when="모든 황달",
+                  note="ACG 2017 recommendation 19: acute hepatitis with elevated PT and/or encephalopathy needs "
+                  "immediate referral to a liver specialist. That PT must be measured to apply it is our reading."),
+            Check("abdominal_us", "복부(간·담도) 초음파", "test",
+                  ("복부 초음파", "간 초음파", "담도 초음파", "상복부 초음파", "우상복부 초음파", "abdominal ultrasound",
+                   "abdominal us", "ruq ultrasound", "liver ultrasound", "복부 ct", "abdominal ct", "mrcp"),
+                  G_JAUNDICE_IMAGING, "unverified", predicate="not_neonate", when="모든 황달(담도 폐쇄 감별)",
+                  note="ACR AC Jaundice 2019 abstract lists US among the modalities; US as the usual first test is "
+                  "reviewer knowledge (variant tables not read)."),
+            Check("neonatal_bilirubin", "혈청 또는 경피 빌리루빈(TSB/TcB) 측정", "test",
+                  ("빌리루빈", "bilirubin", "tsb", "tcb", "경피"), G_NEONATAL_JAUNDICE, "secondary",
+                  predicate="neonate", when="황달이 있는 생후 28일 이내 신생아",
+                  note="AAP 2022 (>= 35 weeks' gestation): measure TSB/TcB in jaundiced infants and use TSB to "
+                  "guide treatment. Full text HTTP 403; confirmed via secondary summaries."),
+            Check("neonatal_direct_bilirubin", "직접(결합) 빌리루빈 측정(담즙 정체 배제)", "test",
+                  ("직접 빌리루빈", "직접빌리루빈", "결합 빌리루빈", "direct bilirubin", "conjugated", "direct-reacting"),
+                  G_NEONATAL_JAUNDICE, "secondary", predicate="neonate_prolonged",
+                  when="생후 2주 이후에도 지속되는 신생아 황달",
+                  note="AAP 2022: measure total and direct/conjugated bilirubin in breastfed infants still jaundiced "
+                  "at 3-4 weeks and formula-fed at 2 weeks (secondary summaries). We use >= 14 days for both."),
+        ),
+    ),
+    Protocol(
+        category="joint", name_ko=CATEGORY_NAMES["joint"],
+        cant_miss=("세균성(화농성) 관절염", "파종성 임균 감염", "결정성 관절염(통풍·가성통풍)"),
+        checks=(
+            Check("arthrocentesis", "관절 천자(활액 그람 염색·배양·결정 검사) — 항생제 전", "test",
+                  ("관절 천자", "관절천자", "관절액", "관절 액", "활액", "관절 흡인", "천자", "arthrocentesis",
+                   "synovial fluid", "joint aspiration", "joint fluid", "aspirat"),
+                  G_HOT_JOINT, "secondary", acute_only=1, min_age=16,
+                  triggers=("붓", "부었", "부어", "부종", "부기", "발적", "빨갛", "붉", "열감", "뜨겁", "뜨끈", "발열",
+                            "열이", "swell", "effusion", "erythem", "fever"),
+                  when="급성(2주 미만) 관절 부기·발적·열감(성인)",
+                  note="BSR 2006: aspirate, Gram-stain and culture synovial fluid before antibiotics in a hot "
+                  "swollen joint (confirmed via secondary summaries; abstract has no text). EULAR 2018 gout "
+                  "(abstract, read): search for crystals in synovial fluid in every person with suspected gout."),
+        ),
+    ),
+    Protocol(
+        category="back_pain", name_ko=CATEGORY_NAMES["back_pain"],
+        cant_miss=("마미 증후군", "척추 전이암", "척추 감염(골수염·경막외 농양)", "압박 골절", "복부 대동맥류"),
+        checks=(
+            Check("red_flags", "위험 신호 문진(암 병력·체중 감소, 발열, 대소변 장애·안장 감각 저하, 외상, "
+                  "진행하는 다리 약화)", "ask",
+                  ("체중 감소", "체중이 줄", "살이 빠", "암 병력", "암 진단", "암을", "발열", "열이", "대소변", "소변",
+                   "배변", "변실금", "안장", "외상", "넘어", "다리에 힘", "weight loss", "cancer", "fever", "bladder",
+                   "bowel", "incontinence", "saddle", "trauma"),
+                  G_LOW_BACK_PAIN, "primary", min_age=18, when="모든 요통",
+                  note="ACP/APS 2007 recommendation 1 (focused history and exam to find specific spinal causes) and "
+                  "3 (imaging when severe/progressive deficits or serious conditions are suspected), read in the "
+                  "abstract. The red-flag list is the guideline's usual list, wording ours."),
+            Check("neuro_exam_legs", "하지 신경학적 진찰(근력·감각·반사, 하지 직거상 검사)", "exam",
+                  _KW_NEURO_EXAM + ("하지 근력", "다리 근력", "근력 검사", "직거상", "slr", "straight leg", "반사",
+                                    "reflex", "감각 검사"),
+                  G_LOW_BACK_PAIN, "primary", min_age=18, when="모든 요통",
+                  note="ACP/APS 2007 recommendation 1 (physical examination to identify radiculopathy / "
+                  "neurologic deficit), abstract."),
+        ),
+    ),
+    Protocol(
+        category="rash", name_ko=CATEGORY_NAMES["rash"],
+        cant_miss=("스티븐스-존슨 증후군/독성 표피 괴사 용해", "DRESS", "수막구균혈증", "괴사성 근막염"),
+        checks=(
+            Check("drug_history", "최근(약 2개월) 새로 시작한 약물 문진", "ask", _KW_MED_HISTORY, G_SJS_TEN,
+                  "secondary", acute_only=1, min_age=16, when="급성 발진(성인)",
+                  note="BAD 2016: identify and withdraw the culprit drug (drug-induced in most SJS/TEN). Full text "
+                  "not read; confirmed via secondary summaries. Applying it to every acute adult rash is ours."),
+            Check("mucosal_exam", "점막 침범 진찰(눈·입안·생식기)", "exam",
+                  ("점막", "입안", "입 안", "구강", "결막", "눈 충혈", "눈이 충혈", "생식기", "성기", "mucos", "oral",
+                   "conjunctiv", "genital"),
+                  G_SJS_TEN, "secondary", acute_only=1, min_age=16, when="급성 발진(성인)",
+                  note="BAD 2016: history/exam for mucosal involvement (eyes, mouth, nose, genitalia) as an early "
+                  "SJS/TEN feature; confirmed via secondary summaries."),
+        ),
+    ),
+    Protocol(
+        category="pruritus", name_ko=CATEGORY_NAMES["pruritus"],
+        cant_miss=("담즙 정체성 간질환", "만성 콩팥병", "혈액 악성 종양(림프종, 진성 적혈구증가증)", "갑상선 질환",
+                   "임신성 담즙 정체"),
+        checks=(
+            Check("cbc", "일반혈액검사(CBC)", "test", _KW_CBC, G_PRURITUS, "primary", when="2주 이상 전신 가려움",
+                  note="European S2k 2019: baseline investigations for chronic pruritus of unknown origin include "
+                  "blood count, electrolytes, liver and kidney function, TSH and glucose (read in the Acta DV "
+                  "full text). The guideline defines chronic as >= 6 weeks; our category uses >= 2 weeks."),
+            Check("liver_panel", "간기능 검사(빌리루빈, ALP 포함)", "test", _KW_LIVER, G_PRURITUS, "primary",
+                  when="2주 이상 전신 가려움"),
+            Check("renal_function", "신장 기능(크레아티닌)", "test", _KW_RENAL, G_PRURITUS, "primary",
+                  when="2주 이상 전신 가려움"),
+            Check("tsh", "갑상선 기능 검사(TSH)", "test", _KW_TSH, G_PRURITUS, "primary", when="2주 이상 전신 가려움"),
+        ),
+    ),
+    Protocol(
+        category="edema", name_ko=CATEGORY_NAMES["edema"],
+        cant_miss=("심부정맥혈전증", "신증후군/사구체신염", "심부전", "간경변"),
+        checks=(
+            Check("urinalysis", "소변 검사(단백뇨·혈뇨)", "test", _KW_URINALYSIS, G_GLOMERULAR, "unverified",
+                  predicate="not_unilateral_leg", when="양측·전신·얼굴 부종 또는 거품뇨",
+                  note="KDIGO 2021 bibliographically verified; the urinalysis/proteinuria assessment recommendation "
+                  "was not read (executive-summary abstract only). Applying it to bilateral edema is ours."),
+            Check("dvt_workup", "심부정맥혈전증 평가(사전확률 → D-dimer 또는 하지 정맥 압박 초음파)", "test",
+                  ("d-dimer", "d dimer", "디다이머", "d-이합체", "하지 정맥 초음파", "다리 초음파", "하지 초음파",
+                   "정맥 초음파", "도플러", "압박 초음파", "compression ultrasound", "duplex", "venous ultrasound",
+                   "leg ultrasound"),
+                  G_VTE_DX, "primary", predicate="unilateral_leg", when="한쪽 다리 부종",
+                  note="ASH 2018 recommendations 5a/6a/7a (read in PMC6258916): D-dimer first at low pretest "
+                  "probability, proximal or whole-leg ultrasound at intermediate/high probability."),
+        ),
+    ),
+    Protocol(
+        category="menstrual", name_ko=CATEGORY_NAMES["menstrual"],
+        cant_miss=("임신(자궁외 임신 포함)", "자궁내막암(폐경 후 출혈)", "뇌하수체 종양"),
+        checks=(
+            Check("pregnancy_test", "임신 검사(β-hCG)", "test", _KW_PREGNANCY, G_AMENORRHEA, "secondary",
+                  predicate="pregnancy_possible", when="무월경 또는 가임기 비정상 질출혈",
+                  note="ASRM 2024: exclude pregnancy first in amenorrhea (full text not read; confirmed via ASRM "
+                  "page / secondary summaries). For bleeding in reproductive age, see ACEP 2017 / ACOG PB 193."),
+            Check("amenorrhea_labs", "TSH·프로락틴·FSH 검사", "test",
+                  ("tsh", "갑상선", "thyroid", "프로락틴", "prolactin", "fsh", "난포자극", "성선자극"), G_AMENORRHEA,
+                  "secondary", predicate="amenorrhea", when="무월경(임신 배제 후)",
+                  note="ASRM 2024: initial investigations = exclude pregnancy, TSH, prolactin, FSH (secondary)."),
+            Check("pmb_evaluation", "질식 초음파(자궁내막 두께) 또는 자궁내막 조직검사", "test",
+                  ("질식 초음파", "경질 초음파", "골반 초음파", "자궁내막", "자궁 내막", "transvaginal", "pelvic ultrasound",
+                   "endometrial"),
+                  G_PMB, "primary", predicate="postmenopausal_bleeding", when="폐경 후 질출혈",
+                  note="ACOG CO 734 (abstract): prompt evaluation to exclude endometrial carcinoma; TVUS (<= 4 mm) "
+                  "or endometrial sampling as the first approach."),
+        ),
+    ),
+    Protocol(
+        category="fatigue", name_ko=CATEGORY_NAMES["fatigue"],
+        cant_miss=("혈액 악성 종양(백혈병·림프종)", "빈혈", "갑상선 기능 저하증", "당뇨병", "우울증", "고형암"),
+        checks=(
+            Check("cbc", "일반혈액검사(CBC)", "test", _KW_CBC, G_MECFS, "primary", min_duration=1,
+                  when="2주 이상 지속되는 피로",
+                  note="NICE NG206 1.2.3: investigations to exclude other diagnoses include urinalysis, full blood "
+                  "count, U&E, liver function, thyroid function, ESR, CRP, ... (read in the guideline PDF). NICE "
+                  "suspects ME/CFS after 6 weeks (adults) / 4 weeks (children); our cut-off is >= 2 weeks."),
+            Check("tsh", "갑상선 기능 검사(TSH)", "test", _KW_TSH, G_MECFS, "primary", min_duration=1,
+                  when="2주 이상 지속되는 피로"),
+        ),
+    ),
+    Protocol(
+        category="cognitive", name_ko=CATEGORY_NAMES["cognitive"],
+        cant_miss=("비타민 B12 결핍", "갑상선 기능 저하증", "경막하 혈종·정상압 수두증·뇌종양", "우울증(가성 치매)",
+                   "섬망"),
+        checks=(
+            Check("b12", "비타민 B12 검사", "test", ("b12", "비타민 b", "코발라민", "cobalamin"), G_DEMENTIA,
+                  "primary", when="기억력·인지 저하",
+                  note="AAN 2001 (abstract): screening for depression, B12 deficiency and hypothyroidism should be "
+                  "performed (Guideline); structural neuroimaging (noncontrast CT or MRI) is appropriate."),
+            Check("tsh", "갑상선 기능 검사(TSH)", "test", _KW_TSH, G_DEMENTIA, "primary", when="기억력·인지 저하"),
+            Check("brain_imaging", "뇌 영상(비조영 CT 또는 MRI)", "test", _KW_BRAIN_IMAGING, G_DEMENTIA, "primary",
+                  when="기억력·인지 저하"),
+            Check("depression_screen", "우울증 선별 문진", "ask", ("우울", "기분", "흥미", "depress", "mood"),
+                  G_DEMENTIA, "primary", when="기억력·인지 저하"),
+        ),
+    ),
+    Protocol(
+        category="psychiatric", name_ko=CATEGORY_NAMES["psychiatric"],
+        cant_miss=("자살 위험", "물질 중독·금단", "기질적 원인(갑상선·약물·뇌 병변)", "섬망"),
+        checks=(
+            Check("suicide_risk", "자살 사고·계획·시도력 문진", "ask",
+                  ("자살", "죽고 싶", "죽고싶", "자해", "스스로 해", "삶을 끝", "극단적", "suicid", "self-harm",
+                   "kill yourself", "end your life"),
+                  G_PSYCH_EVAL, "secondary", min_age=18, when="성인의 기분·행동·지각 증상",
+                  note="APA 2015 guideline 3: assess current suicidal ideas, plans and intent and prior attempts. "
+                  "Full text HTTP 403; confirmed via AAFP 2016 practice-guideline summary."),
+            Check("substance_use", "음주·흡연·약물(마약, 처방약 오남용) 사용 문진", "ask",
+                  _KW_ALCOHOL + ("흡연", "담배", "마약", "약물", "물질", "대마", "smok", "tobacco", "substance",
+                                 "cannabis", "marijuana", "cocaine", "amphetamine"),
+                  G_PSYCH_EVAL, "secondary", min_age=18, when="성인의 기분·행동·지각 증상",
+                  note="APA 2015 guideline 2: assess use of tobacco, alcohol and other substances and misuse of "
+                  "prescribed/OTC medications (AAFP 2016 summary)."),
+        ),
+    ),
+)
+
 
 PROTOCOLS_BY_CATEGORY: dict[str, Protocol] = {p.category: p for p in PROTOCOLS}
 

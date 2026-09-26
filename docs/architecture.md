@@ -28,7 +28,7 @@ CaseState  Policy          LLM client     Knowledge
 3. DIAGNOSE → end the case
 
 ## Grounding (verified sources)
-- `safety/protocols.py`: per chief complaint, can't-miss diagnoses + minimum safety checks, each with a guideline citation (verification level recorded per item)
+- `safety/protocols.py`: per chief complaint, can't-miss diagnoses + minimum safety checks, each with a guideline citation (verification level recorded per item). 20 categories: chest pain, dyspnea, headache, acute neuro (stroke), fever, abdominal pain, allergy + (2026-09-26) syncope, palpitations, hemoptysis/chronic cough, jaundice (adult vs newborn), acute hot joint, low back pain, acute rash, chronic generalized pruritus, edema/foamy urine, amenorrhea/abnormal vaginal bleeding, fatigue ≥2 weeks, cognitive decline, psychiatric symptoms. Categories come from the chief complaint (`clinical_rules.detect_categories`); checks can be limited by duration (`acute_only`, `min_duration`), age (`min_age`), negation-aware triggers or a predicate (e.g. neonate, unilateral leg, postmenopausal bleeding)
 - `knowledge/clinical_rules.py`: 12 published clinical decision rules (Wells PE, HEART, qSOFA, Ottawa SAH, …) implemented by us, with a citation and DOI each
 - Policy puts can't-miss diagnoses, **pending** safety checks, and at most 2 relevant rules into the hint every turn (based on initial info + everything learned so far)
 - If a diagnosis is proposed while safety checks are still pending, push back once (diagnosing without them requires a stated reason)

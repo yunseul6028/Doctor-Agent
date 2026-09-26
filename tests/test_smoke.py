@@ -119,6 +119,9 @@ def _state(*exchanges):
     from doctor_agent.env.interface import Action
 
     st = CaseState(initial_info="40세. 주호소: 황달")
+    # these tests exercise the diagnosis review only; 황달 now has a safety protocol, whose one-time pushback
+    # before DIAGNOSE would consume a scripted output, so mark it as already given
+    st.safety_pushback = True
     for q, a in exchanges:
         st.turns.append(Turn(Action(ActionType.ASK, q), a))
     return st
