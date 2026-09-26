@@ -34,6 +34,8 @@ def check(files: list[Path]) -> list[str]:
             errors.append(f"missing {required}")
     for f in files:
         rel = f.relative_to(ROOT).as_posix()
+        if rel.startswith("data/cases") or rel.startswith("data/sample_cases") or rel.startswith("data/labels"):
+            errors.append(f"evaluation/labeling data must not be packaged: {rel}")
         if FORBIDDEN_FILES.search(rel):
             errors.append(f"weight-like file not allowed: {rel}")
         if f.suffix == ".py":

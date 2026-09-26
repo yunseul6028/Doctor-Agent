@@ -11,7 +11,8 @@ import re
 from doctor_agent.env.interface import Action, ActionType, Environment, Observation
 from doctor_agent.llm.client import LLMClient
 
-HIDDEN_KEYS = {"diagnosis", "aliases", "must_check", "_note", "teaching_point", "category", "difficulty", "source"}
+HIDDEN_KEYS = {"diagnosis", "aliases", "must_check", "_note", "teaching_point", "category", "difficulty", "source",
+               "augmented", "augmented_full"}
 
 BASE = """당신은 의료 시뮬레이션의 가상 환자 환경입니다. 아래 증례 정보만 사용해 의사의 요청에 한국어로 답하세요.
 
