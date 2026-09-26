@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=234) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "쉬움",
+  "teaching_point": "활동 시 악화되는 만성 무릎 통증, 30분 이내의 짧은 아침 강직, 연골 수술 과거력 및 X-선 검사의 관절간격 협소화와 골극 형성 소견을 통해 골관절염으로 진단할 수 있습니다.",
+  "initial": "68세 남성. 주호소: 3개월 전부터 악화된 우측 무릎 통증",
+  "history": {
+    "통증|증상|발병|onset": "10년 전부터 간헐적으로 무릎이 아프다가 3개월 전부터 더 심해졌어요. 계단을 오르내리거나 오래 걸을 때 특히 심해요.",
+    "아침|강직|stiffness": "아침에 일어날 때 약간 뻣뻣한데 30분 안으로 괜찮아져요.",
+    "동반증상|소리|부종|swelling": "요즘 무릎을 구부릴 때 소리가 나고 가끔 부어올라요.",
+    "과거력|지병|수술|past_history": "고혈압이랑 당뇨병으로 약을 먹고 있고, 20년 전에 우측 무릎 반월상 연골 손상으로 부분 절제술을 받았어요."
+  },
+  "exam": {
+    "신체진찰|무릎|관절|physical_exam": "우측 무릎 중등도 삼출액, 압통, 운동 범위 제한(신전 -5도, 굴곡 120도), 무릎 운동 시 염발음(crepitus) 촉지"
+  },
+  "tests": {
+    "혈액검사|lab": "백혈구 6,800/μL, 혈색소 14.2g/dL, 혈소판 240,000/μL, ESR 18mm/hr, CRP 0.9mg/dL, RF 음성, 항CCP 항체 음성, 요산 5.8mg/dL",
+    "엑스레이|X-ray|영상검사": "무릎 X-선 검사(기립 상태): 내측 관절간격 협소화, 내측 및 외측 골극 형성, 경골 및 대퇴골 내과의 경화, 경도의 외반 변형"
+  },
+  "diagnosis": "골관절염",
+  "aliases": [
+    "퇴행성 관절염",
+    "퇴행성 관절 질환",
+    "osteoarthritis",
+    "OA"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 234,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,87 @@
+{
+ "runs": [
+  {
+   "date": "2026-09-26T20:44:24",
+   "model": "gemini-3.6-flash",
+   "temperature": 0.0,
+   "reasoning_effort": "low",
+   "workers": 2,
+   "llm_calls": 154,
+   "failures": [],
+   "prompts": {
+    "term_ko": "당신은 의학 용어 번역기입니다. 영어 증상·징후·위험인자·검사 용어 목록을 한국 임상 현장에서 쓰는 한국어 용어로 옮기세요.\n규칙:\n1. ko: 한국 의사가 차트에 쓰는 짧은 표준 의학 용어 (예: dyspnea→호흡곤란, polyuria→다뇨, chest X-ray→흉부 X선).\n2. lay: 환자가 말할 법한 표현 0~3개. 어미를 뺀 짧은 어간 형태로 쓰세요 (예: \"숨이 차\", \"숨참\", \"가슴이 아프\"). 검사·위험인자는 빈 배열.\n3. 용어가 모호하면 의학적으로 가장 흔한 뜻으로 옮기세요. 설명을 덧붙이지 마세요.\n4. 입력의 번호와 개수를 그대로 유지하세요.\n출력: JSON 객체 하나만. {\"items\": [{\"i\": 1, \"ko\": \"...\", \"lay\": [\"...\"]}, ...]}",
+    "ddx_evidence": "당신은 의학 문진 항목 정리 도구입니다. 영어 문진 질문 목록(DDXPlus 데이터셋)을 받아 각각을 짧은 소견 용어로 바꾸세요.\n규칙:\n1. en: 질문이 확인하려는 소견의 짧은 영어 임상 용어 (예: \"Do you have a fever?\" → \"fever\"; 병력 질문은 \"history of ...\" 형태, 예: \"history of diabetes\").\n2. ko: 그 소견의 짧은 한국어 의학 용어 (예: 발열, 당뇨병 병력).\n3. lay: 환자가 말할 법한 표현 0~3개, 어미를 뺀 어간 형태 (예: \"열이 나\").\n4. q_ko: 의사가 환자에게 묻는 자연스러운 한국어 질문 한 문장 (원문의 뜻을 그대로).\n5. 입력의 번호와 개수를 그대로 유지하세요.\n출력: JSON 객체 하나만. {\"items\": [{\"i\": 1, \"en\": \"...\", \"ko\": \"...\", \"lay\": [\"...\"], \"q_ko\": \"...\"}, ...]}",
+    "mplus_extract": "당신은 의학 정보 추출 도구입니다. 입력은 미국 국립의학도서관 MedlinePlus의 질환 요약문(공공 도메인)입니다.\n각 요약문에서 **원문에 명시된 내용만** 추출하세요. 원문에 없는 증상·검사를 추가하지 마세요.\n1. symptoms: 이 질환의 증상·징후로 원문에 적힌 것. en은 짧은 영어 임상 용어(원문 단어를 최대한 유지), ko는 짧은 한국어 의학 용어. 없으면 빈 배열. 최대 12개.\n2. tests: 진단을 위해 원문에 언급된 검사·진찰 (치료는 제외). en/ko 형식 동일. 없으면 빈 배열. 최대 8개.\n3. summary_ko: 이 질환이 무엇인지 한국어 한 문장 (40~110자). 원문 내용만 쓰고 치료 권고는 넣지 마세요.\n출력: JSON 객체 하나만.\n{\"topics\": [{\"id\": \"<입력 id>\", \"summary_ko\": \"...\", \"symptoms\": [{\"en\": \"...\", \"ko\": \"...\"}], \"tests\": [{\"en\": \"...\", \"ko\": \"...\"}]}]}",
+    "disease_ko": "당신은 의학 용어 번역기입니다. 영어 질환명 목록을 한국 임상에서 쓰는 표준 한국어 질환명으로 옮기세요.\n규칙: 대한의학회·KCD 스타일의 공식 명칭을 우선하고, 없으면 가장 자연스러운 의학 번역을 쓰세요. 설명 없이 이름만. 번호와 개수를 유지하세요.\n출력: JSON 객체 하나만. {\"items\": [{\"i\": 1, \"ko\": \"...\"}, ...]}"
+   },
+   "cache": "data/labels/kb_llm_cache.json",
+   "stats": {
+    "profiles": 12597,
+    "profiles_with_symptoms": 1418,
+    "profiles_with_korean_name": 4620,
+    "profiles_with_kcd": 4055,
+    "profiles_with_tests": 473,
+    "profiles_with_summary_ko": 505,
+    "terms": 3071,
+    "terms_with_korean": 3071,
+    "ddxplus_mapped": 40,
+    "ddxplus_total": 49,
+    "medlineplus_mapped": 548,
+    "kcd_codes": 21124
+   },
+   "versions": {
+    "DO": "releases/2026-08-31/doid.obo",
+    "MedlinePlus": "09/26/2026 02:30:41",
+    "files": {
+     "ddx_conditions.json": {
+      "sha256": "56edf4682d8e86a4209fc3a33932e50ce03d1cc1fecc326c26d5ef8fa5c24890",
+      "bytes": 20889,
+      "retrieved": "2026-09-26"
+     },
+     "ddx_evidences.json": {
+      "sha256": "281c78b044ae60514e28ecc9052d08a8225dd3e2db3f00f8788b99c47b05e0c0",
+      "bytes": 120263,
+      "retrieved": "2026-09-26"
+     },
+     "hira_kcd.csv": {
+      "sha256": "5723ccce218d0b8bac4ab11c8376daac3db634f4a720f7b21c203d521e992e75",
+      "bytes": 5410884,
+      "retrieved": "2026-09-26"
+     },
+     "doid.obo": {
+      "sha256": "e729a25090b71f8d71be3e1f5ad3cf8c51d2ba7fb8232ca4ab12ecf4be633db9",
+      "bytes": 7221215,
+      "retrieved": "2026-09-26"
+     },
+     "mplus_topics.xml": {
+      "sha256": "1faaaf25c32fe303e59e5f2fe6625e0d039693966fd916f84c5afec584ecdf9e",
+      "bytes": 30130304,
+      "retrieved": "2026-09-26"
+     },
+     "wd_symptoms.tsv": {
+      "sha256": "001d36bb7ebdc4fadf1e392935fe257c6f517f06eab64a036d179cfda6a9cbcc",
+      "bytes": 985469,
+      "retrieved": "2026-09-26"
+     },
+     "wd_exams.tsv": {
+      "sha256": "5f7284382387682c9864e15a4224cada5de2e7f6b4a2d8875f86bca87cfa3e73",
+      "bytes": 107108,
+      "retrieved": "2026-09-26"
+     },
+     "wd_ids.tsv": {
+      "sha256": "73e8597889931dc1f9a9ab7c0b1913a7d9a81a0906869d24d5d0877db966b2e6",
+      "bytes": 1335646,
+      "retrieved": "2026-09-26"
+     },
+     "wd_labels.tsv": {
+      "sha256": "dec4a1de535f90fceefecfd5a0d1986981edad0feeb34f5b03075ac0683be244",
+      "bytes": 20147247,
+      "retrieved": "2026-09-26"
+     }
+    },
+    "built": "2026-09-26"
+   },
+   "note": "Outputs are cached per item in the cache file; MedlinePlus extractions keep only English terms grounded in the source summary text (others are listed under 'dropped'). Final data/kb was reassembled afterwards with --no-llm from this cache (build-code fixes only, no new LLM calls)."
+  }
+ ]
+}

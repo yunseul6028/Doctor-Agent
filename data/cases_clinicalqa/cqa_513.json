@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=513) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두통",
+  "difficulty": "쉬움",
+  "teaching_point": "세수, 칫솔질, 대화 등 무해한 자극에 의해 삼차신경 분지 영역을 따라 발작적이고 극심한 찌르는 듯한 통증이 유발되는 소견과 정상 뇌 MRI를 통해 삼차신경통을 진단할 수 있습니다.",
+  "initial": "45세 남성. 주호소: 1주일 전부터 시작된 왼쪽 얼굴과 눈 주변의 심한 통증",
+  "history": {
+    "통증 양상|발작|지속시간|양상": "갑자기 통증이 생겨서 수초에서 수분 정도 지속되다가 사라지는데, 하루에도 몇 번씩 발작처럼 반복돼요.",
+    "통증 부위|방사통|얼굴 통증": "왼쪽 광대뼈 부위에서 시작해서 왼쪽 위턱, 아래턱, 이마 부위까지 퍼집니다.",
+    "유발 요인|세수|양치|대화|자극": "세수를 하거나 얼굴을 만질 때, 말하거나 칫솔질할 때 통증이 확 심해져서 너무 괴로워요.",
+    "과거력|지병|고혈압|당뇨": "혈압이 높고 당뇨가 있어서 약을 먹고 있습니다."
+  },
+  "exam": {
+    "신경학 검진|신경학적 검진|삼차신경|감각 검사": "왼쪽 삼차신경 첫 번째 및 두 번째 분지 영역의 피부에 경미한 자극을 가했을 때 심한 통증을 호소함. 다른 신경학적 이상은 없음."
+  },
+  "tests": {
+    "뇌 MRI|MRI|뇌 영상 검사": "특이 소견 없음"
+  },
+  "diagnosis": "삼차신경통",
+  "aliases": [
+    "Trigeminal neuralgia",
+    "삼차 신경통",
+    "TN"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 513,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=636) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "무월경",
+  "difficulty": "쉬움",
+  "teaching_point": "저신장, 웹드 목, 넓은 가슴 등의 전형적인 외형적 특징과 함께 원발성 무월경을 보이는 환자에서 고곤나도트로핀성 성선기능저하증 및 염색체 검사(45,X 핵형)를 통해 터너 증후군을 진단할 수 있습니다.",
+  "initial": "17세 여성. 주호소: 초경이 없음",
+  "history": {
+    "초경|생리|무월경|menstruation": "아직 초경을 한 적이 없어요.",
+    "성장|키|체중|growth": "초등학교 때부터 또래보다 키가 작았고, 중학교 때부터는 성장 속도가 훨씬 떨어졌어요.",
+    "발달|유방|가슴|breast": "최근 수년간 유방 발달이 전혀 없었어요.",
+    "가족력|가족|family history": "가족력에서 특별한 건 없었어요."
+  },
+  "exam": {
+    "신체계측|신장|체중|키": "신장 142cm(3백분위수 미만), 체중 38kg",
+    "외모|목|가슴|유두|팔|neck|chest|cubitus": "웹드 목(webbed neck), 넓은 가슴(shield chest), 넓게 떨어진 유두, 외반주(cubitus valgus)",
+    "성발달|Tanner|유방|음모": "유방 발달 Tanner 1단계, 음모 발달 Tanner 2단계",
+    "심장|청진|잡음|murmur": "수축기 잡음 확인"
+  },
+  "tests": {
+    "혈액검사|호르몬|FSH|LH|에스트라디올|테스토스테론|TSH|Free T4": "FSH 75 mIU/mL (정상: 3.5-12.5 mIU/mL), LH 32 mIU/mL (정상: 2.4-12.6 mIU/mL), 에스트라디올 12 pg/mL (정상: 30-400 pg/mL), 테스토스테론 18 ng/dL (정상: 15-70 ng/dL), TSH 5.6 mIU/L (정상: 0.4-4.0 mIU/L), Free T4 0.9 ng/dL (정상: 0.8-1.8 ng/dL)",
+    "염색체검사|핵형|karyotype": "45,X 핵형",
+    "심초음파|echocardiography": "이첨판성 대동맥판막, 대동맥 축착증",
+    "골반초음파|pelvic US": "자궁 내부 구조 미발달, 난소 스트리크(streak) 양상"
+  },
+  "diagnosis": "터너 증후군",
+  "aliases": [
+    "Turner syndrome",
+    "터너증후군",
+    "45,X"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 636,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=366) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기침",
+  "difficulty": "쉬움",
+  "teaching_point": "발열, 인후통, 편도 화농성 삼출물 및 경부 림프절 종대가 있는 환자에서 인두 도말 검사를 통해 A군 베타용혈성 연쇄구균 항원 양성을 확인하여 연쇄구균성 인두편도염으로 확진할 수 있습니다.",
+  "initial": "28세 여성. 주호소: 5일 전부터 시작된 발열, 기침, 인후통",
+  "history": {
+    "증상|동반증상|가래|객담|수면": "3일 전부터 노란 가래가 나오고, 기침이 심해져서 밤에 잠을 잘 못 자요.",
+    "접촉력|노출력|감기환자": "최근에 감기 같은 상기도 감염 환자를 접촉한 적이 있어요."
+  },
+  "exam": {
+    "활력징후|체온|체온측정": "체온 38.2°C",
+    "목|인두|편도|진찰": "인두 발적, 편도 비대 및 화농성 삼출물 관찰됨",
+    "림프절|목림프절": "경부 림프절 경미하게 종대됨",
+    "청진|청진소견|심음|호흡음": "청진 시 심음과 호흡음 정상"
+  },
+  "tests": {
+    "혈액검사|백혈구|염증수치|CRP|프로칼시토닌": "백혈구 12,500/μL (중성구 82%), CRP 3.2 mg/dL, 프로칼시토닌 0.3 ng/mL",
+    "인두도말|도말검사|항원검사|연쇄구균검사": "인두 도말 검사: A군 베타용혈성 연쇄구균 항원 양성"
+  },
+  "diagnosis": "연쇄구균성 인두편도염",
+  "aliases": [
+    "A군 연쇄구균 인두염",
+    "A군 베타용혈성 연쇄구균 인두편도염",
+    "Streptococcal pharyngotonsillitis",
+    "Group A streptococcal pharyngitis",
+    "GAS pharyngitis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 366,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

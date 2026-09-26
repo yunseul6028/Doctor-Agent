@@ -1,0 +1,40 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=555) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "만성복통/소화불량/속쓰림",
+  "difficulty": "보통",
+  "teaching_point": "만성 설사, 복통, 영양 흡수장애(빈혈, 비타민 결핍) 소견에 포진상 피부염과 자가면역질환 병력이 동반된 경우 셀리악병을 의심해야 합니다. 혈청 조직트랜스글루타미나제 IgA 항체(tTG-IgA) 상승 및 대변 지방 검사 양성으로 진단할 수 있습니다.",
+  "initial": "38세 여성. 주호소: 6개월간 지속된 복통, 설사, 체중 감소",
+  "history": {
+    "복통|설사|체중감소|소화불량": "밥을 먹고 나면 하복부가 뒤틀리듯 아프고 배가 몹시 부풀어 올라요. 하루에 4-5번씩 물설사를 하고 6개월 동안 체중이 8kg이나 빠졌어요.",
+    "피부|발진|수포|가려움": "최근에 피부에 가렵고 물집이 잡히는 발진이 생겼어요.",
+    "저림|근력|피로|전신증상": "항상 피곤하고 손발이 저리면서 몸에 힘이 잘 들어가지 않아요.",
+    "과거력|약물|병력": "1형 당뇨병이 있어서 인슐린을 맞고 있고, 갑상선기능저하증으로 레보티록신을 복용 중이에요.",
+    "가족력": "아버지가 1형 당뇨병이 있으시고, 언니는 자가면역 갑상선염을 앓고 있어요."
+  },
+  "exam": {
+    "체중|BMI|신체계측": "BMI 18.5 kg/m²",
+    "복부진찰|압통|팽만": "복부 팽만, 하복부 압통",
+    "근력|신경검사": "팔과 다리의 근력 경미하게 감소",
+    "피부진찰|발진": "양측 팔꿈치 신전면과 무릎에 수포성 발진"
+  },
+  "tests": {
+    "혈액검사|빈혈|CBC": "Hb 10.8 g/dL, MCV 75 fL, 페리틴 10 ng/mL",
+    "생화학|비타민|전해질": "알부민 3.2 g/dL, 칼슘 8.1 mg/dL, 비타민 B12 180 pg/mL (정상: 200-900 pg/mL), 엽산 2.5 ng/mL (정상: >3 ng/mL)",
+    "혈청학|자가항체|tTG": "조직트랜스글루타미나제 IgA 항체(tTG-IgA): 120 U/mL (정상: <10 U/mL)",
+    "대변검사|지방변": "대변 지방 검사: 양성"
+  },
+  "diagnosis": "셀리악병",
+  "aliases": [
+    "셀리악병",
+    "celiac disease",
+    "복강질환",
+    "글루텐 유발 장병증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 555,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

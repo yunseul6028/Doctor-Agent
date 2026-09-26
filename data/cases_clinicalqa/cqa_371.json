@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=371) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기침",
+  "difficulty": "쉬움",
+  "teaching_point": "발열, 화농성 가래, 흉통을 동반한 급성 기침 환자에서 흉부 청진 상 수포음, 흉부 X선 상 경화, 객담 그람 염색의 그람 양성 쌍구균 소견을 종합하여 지역사회획득 세균성 폐렴으로 진단합니다.",
+  "initial": "45세 남성. 주호소: 5일간 지속된 기침, 발열, 호흡곤란",
+  "history": {
+    "기침|가래|객담|흉통|가슴통증": "기침할 때 노란색 가래가 나오고, 우측 흉부에 찌르는 듯한 통증이 있어요.",
+    "과거력|지병|약물": "평소 건강했고 특별한 과거력은 없어요.",
+    "여행력|감기|상기도감염|독감": "최근 여행력이나 독감 같은 상기도 감염 증상을 앓은 적은 없어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|체온|호흡|산소포화도|vitals": "체온 38.9°C, 혈압 130/80mmHg, 맥박 110회/분, 호흡수 24회/분, 산소포화도 92%(실내공기)",
+    "흉부청진|청진|수포음|폐음": "우측 하부 폐야에서 수포음이 들림",
+    "흉부타진|타진|탁음": "우측 흉부 타진 시 탁음이 관찰됨"
+  },
+  "tests": {
+    "혈액검사|백혈구|CBC|CRP|프로칼시토닌": "백혈구 15,000/μL(중성구 85%), 헤모글로빈 14.0g/dL, 혈소판 210,000/μL, CRP 15mg/dL, 프로칼시토닌 0.8ng/mL",
+    "객담검사|가래검사|그람염색|sputum": "그람 양성 쌍구균 다수 관찰됨",
+    "흉부X선|X-ray|엑스레이|CXR": "우측 하부 폐야에 경화(consolidation) 소견"
+  },
+  "diagnosis": "지역사회획득폐렴",
+  "aliases": [
+    "지역사회 획득 폐렴",
+    "폐렴",
+    "Community-acquired pneumonia",
+    "CAP"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 371,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=629) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "무월경",
+  "difficulty": "쉬움",
+  "teaching_point": "극심한 식이 제한, 체형 인식 왜곡, 저체중(BMI 16.5 kg/m²), 솜털(lanugo) 등 전형적인 신경성 식욕부진증 소견과 함께 GnRH 분비 억제로 인한 저성선자극호르몬성 성선저하증(FSH, LH, 에스트라디올 감소)을 종합하여 진단합니다.",
+  "initial": "19세 여성. 주호소: 6개월 동안 월경이 없음",
+  "history": {
+    "무월경|월경력|초경|생리": "6개월 전부터 생리가 안 나와요. 초경은 13세에 했고 이전에는 생리 주기가 규칙적이었어요.",
+    "체중변화|체중감소|다이어트|식이": "고등학교 3학년 때부터 살을 빼려고 밥을 아주 적게 먹기 시작했고, 최근 1년 동안 10kg이 빠졌어요.",
+    "운동|운동량": "매일 2시간 이상씩 운동을 하고 있어요.",
+    "동반증상|변비|추이": "최근 들어 변비가 생겼고 추위도 잘 타요.",
+    "체형인식|자해|정신과적 증상": "제 몸매가 여전히 뚱뚱하다고 느껴져요. 팔에 자해 흔적도 좀 있어요."
+  },
+  "exam": {
+    "신체계측|체중|BMI": "BMI 16.5 kg/m² (저체중)",
+    "피부|체모|시진": "피부가 건조함, 미세한 체모(lanugo) 관찰됨, 상완에 다수의 자해 흔적 관찰됨"
+  },
+  "tests": {
+    "혈액검사|호르몬검사|FSH|LH|에스트라디올|TSH|프로락틴|코르티솔": "FSH: 1.2 mIU/mL (정상: 3.5-12.5 mIU/mL)\nLH: 0.8 mIU/mL (정상: 2.4-12.6 mIU/mL)\n에스트라디올: 15 pg/mL (정상: 30-400 pg/mL)\nTSH: 3.8 mIU/L (정상: 0.4-4.0 mIU/L)\n프로락틴: 10 ng/mL (정상: 4-23 ng/mL)\n코르티솔: 22 μg/dL (정상: 5-25 μg/dL)",
+    "뇌MRI|영상검사": "뇌 MRI: 정상 소견",
+    "골밀도|DEXA|T-score": "골밀도 검사: T-score -2.2 (요추부)"
+  },
+  "diagnosis": "신경성 식욕부진증",
+  "aliases": [
+    "거식증",
+    "Anorexia nervosa",
+    "신경성 식욕 부진증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 629,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

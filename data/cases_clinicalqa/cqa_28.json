@@ -1,0 +1,31 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=28) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가려움증",
+  "difficulty": "보통",
+  "teaching_point": "햇빛 노출 부위의 poikiloderma, Gottron 징후 유사 병변, 항핵항체 양성 소견 및 전신 증상을 종합하여 피부근염(또는 무근병성 피부근염)을 진단할 수 있습니다.",
+  "initial": "60세 남성. 주호소: 3개월 전부터 시작된 머리, 목, 몸통의 가려운 발진",
+  "history": {
+    "발진 양상|햇빛|광과민성|가려움|rash|sun": "3개월 전부터 머리, 목, 몸통에 가려운 발진이 생겼어요. 햇빛 노출 부위에 주로 발생하고 햇빛을 쬐면 더 악화돼요.",
+    "전신 증상|체중 감소|피로|식욕|systemic": "최근에 식욕도 없고 체중도 줄었으며 심한 피로감을 느꼈어요."
+  },
+  "exam": {
+    "목|피부 소견|poikiloderma|neck": "목 부위 poikiloderma(색소 침착, 색소 탈실, 모세혈관 확장, 표피 위축이 혼합된 상태) 관찰됨",
+    "목|상부 흉부|손등|피부 사진|skin": "목과 상부 흉부에 poikiloderma(색소 침착과 탈색, 모세혈관 확장, 표피 위축)가 관찰되며, 손등에 Gottron 징후와 유사한 병변이 관찰됨"
+  },
+  "tests": {
+    "혈액 검사|CPK|항핵항체|항Jo-1|blood test|ANA": "CPK: 정상\n항핵항체(ANA): 양성\n항Jo-1 항체: 음성"
+  },
+  "diagnosis": "피부근염",
+  "aliases": [
+    "Dermatomyositis",
+    "무근병성 피부근염",
+    "Amyopathic dermatomyositis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 28,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

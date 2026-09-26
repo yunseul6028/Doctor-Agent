@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=726) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "발작/간질",
+  "difficulty": "쉬움",
+  "teaching_point": "의식 소실, 팔다리 강직 후 율동적 전신 경련, 혀 깨물음, 요실금, 발작 후 혼미 및 기억상실 등 임상 양상이 전형적인 강직-간대 발작의 소견입니다. 뇌파에서 결신 발작에 흔한 3Hz 극서파가 관찰되더라도 전형적인 전신 경련 임상 양상을 우선하여 강직-간대 발작으로 진단합니다.",
+  "initial": "22세 여성. 주호소: 갑작스러운 의식 소실 및 전신 경련",
+  "history": {
+    "증상|발작|경련|양상": "룸메이트 말로는 시험 기간이라 스트레스도 많고 며칠 거의 못 잤다고 해요. 의식을 잃기 직전에 고개를 왼쪽으로 돌리고 눈을 깜빡이더니 양팔과 다리가 뻣뻣해지고, 이후 2분 정도 전신을 털면서 경련을 했다고 들었어요. 혀도 깨물고 오줌도 쌌대요. 깨어나서 사건 상황은 기억이 안 나요.",
+    "과거력|발작력": "전에도 이것과 비슷한 발작이 2번 더 있었는데, 그때는 병원에 안 갔어요.",
+    "가족력": "가족 중에 특별한 병을 앓으신 분은 없어요."
+  },
+  "exam": {
+    "의식|신경학적검사": "응급실 도착 당시 의식 혼미, 지남력 저하. 1시간 후 의식 완전히 회복됨."
+  },
+  "tests": {
+    "혈액검사": "이상 소견 없음",
+    "뇌 CT|brain CT": "특이 소견 없음",
+    "뇌파검사|EEG": "3Hz의 미만성 양측성 극파-서파 복합체(spike-and-wave complexes) 관찰됨"
+  },
+  "diagnosis": "강직-간대 발작",
+  "aliases": [
+    "tonic-clonic seizure",
+    "전신 강직간대 발작",
+    "generalized tonic-clonic seizure",
+    "대발작"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 726,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

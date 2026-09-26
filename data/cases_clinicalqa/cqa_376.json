@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=376) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기침",
+  "difficulty": "쉬움",
+  "teaching_point": "어릴 적 반복된 폐렴 병력과 함께 아침에 다량 분출되는 화농성 가래, 곤봉지 및 흉부 CT상의 원통형 기관지확장과 점액 충만 소견을 통해 기관지확장증을 확진할 수 있습니다.",
+  "initial": "42세 남성. 주호소: 3주간 지속된 기침과 화농성 객담",
+  "history": {
+    "기침|가래|객담|증상|발병": "1년 전부터 간헐적으로 가래가 동반된 기침이 있었는데 최근 3주간 악화됐어요. 아침에 특히 누런 가래가 많이 나오고 가끔 피도 소량 섞여 나와요.",
+    "과거력|입원|어릴적|폐렴": "어린 시절에 폐렴으로 여러 차례 입원한 적이 있어요.",
+    "흡연|담배|사회력": "10년간 하루 1갑씩 담배를 피우고 있어요.",
+    "동반증상|체중|발한|열": "최근 체중 감소나 야간 발한은 없었어요."
+  },
+  "exam": {
+    "청진|청진소견|폐음|수포음": "양측 하폐야 수포음",
+    "시진|손가락|곤봉지": "손가락 곤봉지(clubbing)"
+  },
+  "tests": {
+    "일반혈액검사|혈액검사|CBC": "백혈구 10,200/μL, 혈색소 13.2 g/dL, 혈소판 320,000/μL",
+    "흉부X선|X-ray|엑스레이": "양측 하폐야의 침윤과 기관지벽 비후",
+    "흉부CT|CT": "양측 하엽의 원통형 기관지확장, 기관지벽 비후, 점액 충만 소견",
+    "객담배양|가래검사|균배양": "Pseudomonas aeruginosa 분리",
+    "폐기능검사|PFT": "FEV1 68% pred, FVC 75% pred, FEV1/FVC 72%"
+  },
+  "diagnosis": "기관지확장증",
+  "aliases": [
+    "Bronchiectasis",
+    "기관지 확장증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 376,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

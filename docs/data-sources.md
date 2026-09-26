@@ -124,3 +124,95 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 9. **규모 수치**: Disease Ontology 용어 수, MedlinePlus 토픽 수, MeSH descriptor 수, HPO 파일 크기, HIRA CSV 실제 용량은 확인하지 못했다(표에 "미확인"으로 표시).
 10. **한국어 임상 진료지침**: 대한의학회 임상진료지침정보센터 등 학회 지침은 학회별 저작권이라 일괄 라이선스를 찾지 못했다. KTAS(한국형 응급환자 분류도구) 같은 한국 도구의 라이선스도 확인하지 못했다.
 11. **대회 증례 언어·형식**: 참가자 가이드가 아직 공개되지 않아 한국어 자료의 우선순위는 가정에 기반한다.
+
+---
+
+## 6. 로컬 평가용 증례 변환 (eval-simulator, 2026-09-26)
+
+제출물에는 넣지 않는 **로컬 평가 전용** 증례. `scripts/package.py`는 허용 목록(`run.py`, `requirements.txt`, `src`, `eval/__init__.py`, `eval/simulator.py`, `data/kb`)만 묶으므로 아래 폴더는 들어가지 않는다. 원본 다운로드는 `data/external/`(git-ignored)에만 둔다.
+영어 원문은 증례 파일에 넣지 않는다(환자 LLM에 정답이 새지 않도록). 증례에는 `source {dataset, id, license, url}`만 남긴다.
+
+| 출처 | 라이선스 (1차 확인) | 출력 폴더 | 선택 기준 | 변환 스크립트 / 기록 |
+|---|---|---|---|---|
+| AgentClinic-MedQA | MIT, repo LICENSE.txt (https://github.com/SamuelSchmidgall/AgentClinic, commit b6570ed) | `data/cases_agentclinic/ac_<id>.json` | 기본 세트 107건 전부(`agentclinic_medqa_extended.jsonl` 0-106행 = `agentclinic_medqa.jsonl`). NEJM·MIMIC-IV 하위 세트는 쓰지 않음 | `scripts/convert_english_cases.py agentclinic` / `data/labels/agentclinic_conversion_meta.json` |
+| DiagnosisArena | MIT, HF 카드 + GitHub LICENSE (https://huggingface.co/datasets/shzyk/DiagnosisArena, rev 7163704) | `data/cases_diagnosisarena/da_<id>.json` | 915건 중 50건: 본문 700-2200자, 단일 진단(복합 병인·병기·숫자 제외), 피부 병변으로 시작하는 증례 제외(영상·조직 사진 의존), 본문에 정답명이 이미 나오는 증례 제외 → id 순 10개 층에서 5건씩 무작위(seed 20260926). 난이도는 모두 "어려움"으로 고정 | `scripts/convert_english_cases.py diagnosisarena` / `data/labels/diagnosisarena_conversion_meta.json` |
+| snuh/ClinicalQA (2차분) | Apache-2.0 | `data/cases_clinicalqa/cqa_<id>.json` (기존 40건은 수정하지 않음) | 진단형 문항 중 정답이 질환인 55건 추가(`EXTRA_IDS`) | `scripts/convert_clinicalqa.py --set extra` / `data/labels/clinicalqa_conversion_meta.json` |
+
+라이선스 주의
+- **AgentClinic-MedQA**: 저장소는 MIT이지만 증례는 MedQA(USMLE형) 문항을 LLM으로 확장한 것이다. MedQA 저장소도 MIT이나 문항 자체는 웹의 USMLE 대비 문제은행에서 수집되어 원 권리자의 허락 근거가 없다 → 출처 논란이 있으므로 발표·제출물에 쓰지 않는다.
+- **DiagnosisArena**: 저널 증례 보고(Cell, JAMA 등)를 각색한 데이터이고 제작자가 일부 저널을 저작권 때문에 뺐다고 적었다. MIT가 원문 저작권까지 해결하는지 불명확 → 내부 평가 전용.
+- MedR-Bench는 이번에 쓰지 않았다(DiagnosisArena로 충분하고, CC BY-SA 버전 미표기).
+
+변환 규칙 (공통)
+- LLM: `.env`의 `CONVERT_LLM_*`(없으면 `LLM_*`), temperature 0, 병렬 2개 이하(API 할당량 공유), 429는 클라이언트가 30초 대기 후 재시도(최대 6회).
+- 원문에 있는 사실만 옮긴다. 검증에 실패하면 오류를 붙여 한 번 재시도하고, 또 실패하면 건너뛰고 로그에 남긴다.
+- 검증: JSON 스키마, 정답 일치(영어 출처는 원문 영어 진단명이 `aliases`에 그대로 있어야 함), `initial`과 모든 키에 정답 누출 금지, exam/tests에 원문에 없는 숫자 금지(영어 숫자 단어 포함), exam/tests에 원문에 없는 단위 금지. 경고(로그만): 값 안의 정답명, 원문 숫자 누락, history의 추가 숫자.
+- 증례 형식: `category`(한국어 주호소, ClinicalQA 주호소 목록에서 선택), `difficulty`, `teaching_point`, `must_check: []`, `source`.
+
+결과 (2026-09-26, gemini-3.6-flash)
+
+| 세트 | 변환 / 건너뜀 | 재시도 | 난이도 (쉬움/보통/어려움) | 많은 주호소 |
+|---|---|---|---|---|
+| AgentClinic-MedQA | 107 / 0 | 4 | 38 / 68 / 1 | 피부발진 15, 팔다리 근력약화 9, 관절통 9, 피로 7, 기분장애 6 |
+| DiagnosisArena | 49 / 1 (id 178: history에 원문에 없는 숫자, 재시도 후에도 실패) | 8 | 0 / 0 / 49 (고정) | 호흡곤란·피부발진·발열 각 5, 의식변화 4 |
+| ClinicalQA 2차분 | 55 / 0 | 0 | 37 / 18 / 0 | 관절통 6, 가려움증·만성복통 각 5 |
+
+검토 결과와 알려진 한계
+- 사람이 원문과 대조해 18건을 확인했다(ClinicalQA 7, AgentClinic 7, DiagnosisArena 4). 없는 사실을 지어낸 것은 2건이었고, 둘 다 프롬프트·검증을 고친 뒤 전체를 다시 변환했다. (1) `11 pound` 뒤에 "약 5kg" 환산값을 덧붙임 → 환산 금지 규칙을 넣고 history 숫자 불일치를 오류로 격상. (2) 원문에 단위가 없는 수치(BMI 26)에 단위를 붙이고, 혈당의 원문 단위를 고침 → 단위 불일치 검사를 추가.
+- 한국어 용어 오역: 진단명과 모든 영어-한국어 쌍을 검토해 오역 13건(예: pemphigus vulgaris → "보통천식창", GFAP astrocytopathy → "…난소세포병증")과 한자가 섞인 출력 9건을 찾았다. `scripts/convert_english_cases.py`의 `OVERRIDES`에 기록하고 `--apply-overrides`로 LLM 없이 고쳤다. 이후 실행부터는 한자를 검증 오류로 처리한다.
+- 남은 사소한 문제: 검색 키 일부의 오타·무의미한 토큰, 어색한 표현("맥박 111/회"), 원문 수치 일부 누락(주로 °F 병기, 출생체중·산모 나이 등 13+16건, meta에 경고로 기록). 사실 오류는 아니다.
+- 원문 검사 결과 문장에 정답명이 들어 있는 경우(예: "MRI: PML에 부합하는 병변")는 원문 그대로 두었다(AgentClinic 21건, meta 경고). 이 증례들은 해당 검사를 하면 사실상 정답이 드러난다.
+- AgentClinic은 LLM이 매긴 난이도상 "어려움"이 1건뿐이다. 판별력이 필요하면 DiagnosisArena나 ClinicalQA의 어려움 증례와 섞어 쓴다.
+- DiagnosisArena의 `initial`은 원문 첫 문장 탓에 병력 정보가 많이 들어간 경우가 있다(예: da_854, da_858).
+
+재실행
+```bash
+source .venv/bin/activate
+# 원본 다운로드 (data/external/, git-ignored)
+mkdir -p data/external/agentclinic data/external/diagnosisarena
+curl -sSL https://raw.githubusercontent.com/SamuelSchmidgall/AgentClinic/b6570edefb940857a7c334350656b29f9d984f24/agentclinic_medqa_extended.jsonl -o data/external/agentclinic/agentclinic_medqa_extended.jsonl
+curl -sSL https://huggingface.co/datasets/shzyk/DiagnosisArena/resolve/7163704e580ba643647483307f64d426eef33ef0/data/test-00000-of-00001.parquet -o data/external/diagnosisarena/test.parquet
+# 변환 (기존 출력은 건너뜀, --overwrite로 다시 생성)
+python scripts/convert_clinicalqa.py --set extra
+python scripts/convert_english_cases.py agentclinic            # --set extended: 나머지 107건
+python scripts/convert_english_cases.py diagnosisarena
+python scripts/convert_english_cases.py agentclinic --apply-overrides      # 검토자 수정만 다시 적용 (LLM 호출 없음)
+python scripts/convert_english_cases.py diagnosisarena --apply-overrides
+# 평가에 쓰기
+python eval/run_local.py --cases data/cases_agentclinic
+```
+
+---
+
+## 6. 구축한 지식베이스 (data/kb/, 2026-09-26)
+
+`scripts/build_kb.py`가 원자료를 `data/external/kb_raw/`(git 제외)에 내려받아 `data/kb/`(제출 ZIP 포함)를 만든다. 추론 코드는 `src/doctor_agent/knowledge/kb.py` (표준 라이브러리만, CPU, 네트워크 없음, 처음 호출할 때 한 번 적재).
+
+### 포함한 자료와 재확인 결과
+| 자료 | 라이선스 재확인 | 쓰임 |
+|---|---|---|
+| DDXPlus 지식 파일 (영문판) | figshare API 메타데이터로 **CC BY 4.0** 확인 (앞선 조사의 "버전 미확인" 해소). https://api.figshare.com/v2/articles/22687585 | 질환 49개의 증상·병력, ICD-10, 중증도, 문진 질문 (LLM으로 한국어 질문 문구 생성) |
+| HIRA 상병마스터 20250930 | 데이터 페이지에 "공공저작물: 출처표시 (제 1유형)". 47,798행, 한방 전용 행 제외 | KCD 코드·한글/영문명·성별 제한 (`kcd.tsv.gz`), 프로필 한국어 이름 |
+| Disease Ontology releases/2026-08-31 | GitHub LICENSE = CC0 1.0 | 질환 뼈대 12,282개: 이름, 동의어, 정의, ICD-10-CM/MeSH/OMIM/ORDO 교차참조, `has_symptom` 문구 |
+| Wikidata (SPARQL, 2026-09-26) | 구조화 데이터 CC0 (https://www.wikidata.org/wiki/Wikidata:Licensing) | 질환↔증상(P780), 질환↔검사(P923), 한국어 라벨. DOID 또는 ICD-10이 있는 항목만 사용 (화학물질 노출 항목 제거) |
+| MedlinePlus Health Topics XML 2026-09-26 | 건강 주제 요약은 공공 도메인 (https://medlineplus.gov/about/using/usingcontent/). A.D.A.M.·ASHP·이미지는 사용 안 함 | 질환 토픽 548개에서 LLM으로 증상·검사·한 줄 한국어 요약 추출. 원문에 없는 영어 용어는 버림 |
+
+### 제외
+- **Human Phenotype Ontology + phenotype.hpoa**: 라이선스가 "HPO 파일의 내용과 논리적 관계를 어떤 식으로든 변경하지 말 것"을 요구한다 (http://human-phenotype-ontology.github.io/license.html; reusabledata.org는 "restrictive"로 분류). 우리 KB는 재구성·번역한 파생물이라 조건 충족이 불명확하고, 희귀질환 중심이라 가치도 낮아서 제외했다. 주석의 원천인 OMIM도 별도 라이선스가 있다.
+- **Human Symptoms–Disease Network (Zhou 2014, Nat Commun)**: Europe PMC 기준 오픈 액세스 라이선스가 확인되지 않아 제외.
+- NC/ND 자료(StatPearls, 국가건강정보포털 등)는 제출 KB에 넣지 않았다.
+
+### 규모 (현재 빌드)
+- `kb.json.gz` 1.6MB + `kcd.tsv.gz` 0.46MB. 제출 ZIP 전체 약 2.1MB.
+- 질환 프로필 12,597개. 증상 있음 1,418, 한국어 이름 4,620, KCD 코드 4,055, 검사 473, 한국어 요약 505.
+- 증상·위험인자·검사 용어 2,734개 (모두 한국어 라벨 있음). KCD 코드 21,124개.
+- DDXPlus 49개 중 40개는 DO/Wikidata 질환에 연결, 9개는 독립 프로필 (Boerhaave, 자발 늑골골절, 스콤브로이드 중독, 후두경련, 급성 근긴장이상, 국소 부종, 안정형 협심증, URTI, 만성 비부비동염).
+- LLM 호출: gemini-3.6-flash, temperature 0, 154회, 동시 작업 2개. 기록은 `data/labels/kb_build_meta.json`, 항목별 결과는 `data/labels/kb_llm_cache.json`에 있다 (재빌드 시 API 호출 없음: `--no-llm`).
+
+### 모든 필드에 출처가 있다
+이름·코드·정의는 `[값, 출처]`, 증상·검사는 `[용어 id, [출처...]]` 형태로 저장한다. 출처 태그는 `DO`, `WD`, `KCD`, `DDXPlus`, `MedlinePlus+LLM`(요약문에서 LLM이 뽑은 것), `LLM`(한국어 번역), `curated`(우리가 쓴 한국어 동의어 목록)이다. `tests/test_kb.py`가 이를 검사한다.
+
+### 한계
+- 증상 빈도 정보가 없다 (DDXPlus 조건 파일과 Wikidata 모두 빈도 없음). 대신 **여러 출처가 같은 증상을 들면 가중치를 높인다**. 그래도 발열+기침+흉통에서 폐렴은 결핵·인플루엔자와 비슷한 점수로 약 6위다. 후보 목록은 감별 힌트로만 쓰고, 순위를 진단 근거로 쓰면 안 된다.
+- 한국어 라벨 상당수(약 2/3)와 MedlinePlus 추출은 LLM 산출물이고 의사 검토를 받지 않았다. Wikidata의 증상 연결에는 이상한 항목도 섞여 있다 (예: 폐렴의 "코골이").
+- 조사용 소형 벤치마크(고전적 증상 조합 15개)에서 기대 질환이 1위 5개, 5위 이내 10개였다. 뇌졸중(편마비+구음장애)과 SLE는 순위가 낮다. MedlinePlus에서 뽑은 증상이 "갑작스러운 안면 및 사지 위약"처럼 긴 구절이라 짧은 소견과 잘 맞지 않기 때문이다.

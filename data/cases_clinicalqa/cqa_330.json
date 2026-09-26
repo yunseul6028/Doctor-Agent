@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=330) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기분장애",
+  "difficulty": "쉬움",
+  "teaching_point": "2개월간 우울감, 흥미 저하, 체중 감소, 수면 장애, 무가치감 등 DSM-5 주요우울삽화 기준을 충족하며, 갑상선 기능 이상 등 신체적 원인이 배제되어 주요우울장애로 진단합니다. 이혼 스트레스가 있었으나 증상의 기간과 심각도가 주요우울장애 기준을 완전히 만족하므로 단순 적응장애보다 주요우울장애가 적합합니다.",
+  "initial": "45세 여성. 주호소: 2개월 전부터 시작된 우울감, 불면증, 피로감",
+  "history": {
+    "증상|우울|불면|피로|체중|행동|집중력": "2개월 전부터 우울하고 잠도 잘 못 자고 너무 피곤해요. 거의 매일 모든 일에 흥미나 즐거움이 없고 집중도 잘 안 돼요. 행동도 느려졌다고 가족들이 말하고, 최근 한 달 사이에 체중이 5kg 빠졌어요. 새벽 3-4시에 자꾸 깨서 다시 잠들기 힘들어요.",
+    "생각|자살|기분|생각": "내가 쓸모없는 사람 같고 삶이 무가치하다는 생각이 계속 들어요. 그래도 직접 자살을 생각하거나 계획한 적은 없어요.",
+    "과거력|이전": "예전에도 비슷하게 우울했던 적이 있었는데, 그때는 증상이 더 가벼웠고 저절로 좋아졌어요.",
+    "가족력|유전": "어머니가 우울증으로 치료받으신 적이 있어요.",
+    "사회력|생활|이혼": "6개월 전에 남편과 이혼했어요."
+  },
+  "exam": {
+    "신체진찰|활력징후|vitals": "특이 소견 없음. 혈압 120/80mmHg, 맥박 78회/분, 호흡수 16회/분, 체온 36.5°C"
+  },
+  "tests": {
+    "혈액검사|lab|cbc|tsh": "백혈구 6,500/μL, 헤모글로빈 13.5g/dL, 혈소판 230,000/μL, TSH 2.5μIU/mL, 공복혈당 92mg/dL, 전해질 정상범위",
+    "소변검사|urinalysis": "정상"
+  },
+  "diagnosis": "주요우울장애",
+  "aliases": [
+    "주요 우울 장애",
+    "Major Depressive Disorder",
+    "MDD",
+    "우울증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 330,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

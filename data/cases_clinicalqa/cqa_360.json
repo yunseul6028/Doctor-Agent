@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=360) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기억력 저하",
+  "difficulty": "쉬움",
+  "teaching_point": "손발 저림 및 기억력 감퇴 등 신경학적 증상과 설염 소견을 보이는 환자에서 MCV 증가(대구성 빈혈), 과분절 호중구, 혈청 비타민 B12 감소를 통해 거대적아구성 빈혈을 진단할 수 있습니다.",
+  "initial": "63세 남성. 주호소: 최근 수개월간 진행된 손발 저림과 기억력 감퇴",
+  "history": {
+    "증상|손발저림|기억력|가장불편한점": "최근 수개월 전부터 손발이 저리고 기억력이 자꾸 떨어져요.",
+    "동반증상|피로|식욕|체중변화": "자주 피곤하고 식욕도 떨어져서 체중이 4kg 정도 빠졌어요."
+  },
+  "exam": {
+    "신체진찰|혀|구강": "혀가 매끈하고 부어 있음",
+    "신경진찰|심부건반사|반사": "심부건반사 약간 저하"
+  },
+  "tests": {
+    "혈액검사|CBC|전혈구검사": "WBC 5,400/uL, Hb 7.8 g/dL, Platelet 270,000/uL, MCV 110 fL",
+    "말초혈액도말검사|PBS|말초혈액도말": "과분절 호중구 관찰",
+    "비타민B12|혈청비타민": "혈청 비타민 B12 85 pg/mL (정상 200-900 pg/mL)"
+  },
+  "diagnosis": "거대적아구성 빈혈",
+  "aliases": [
+    "거대적아구빈혈",
+    "비타민 B12 결핍성 빈혈",
+    "Megaloblastic anemia"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 360,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

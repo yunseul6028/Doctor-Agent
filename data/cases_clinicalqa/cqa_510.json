@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=510) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두통",
+  "difficulty": "보통",
+  "teaching_point": "유두부종과 뇌척수액 개방 압력 상승(280 mmH2O) 소견을 보이고, 뇌 CT/MRI상 국소 병변이나 수두증이 없으며 CSF 분석이 정상인 경우 특발성 두개내 고혈압(IIH)으로 진단할 수 있습니다.",
+  "initial": "28세 여성. 주호소: 1주일 전부터 시작된 두통",
+  "history": {
+    "두통|통증 양상|headache": "두통이 양측 전두부와 측두부에 있고 멍한 느낌이에요. 지속적이고 체위를 바꿀 때 더 악화돼요.",
+    "동반 증상|시야|구역|associated symptoms": "시야가 흐려지는 증상이 있고 구역질도 나요.",
+    "과거력|수술력|제왕절개|past medical history": "2주 전에 경막외 마취받고 제왕절개 수술을 했어요."
+  },
+  "exam": {
+    "혈압|vital signs": "혈압 140/90 mmHg",
+    "신경학 검사|유두부종|neurologic exam": "유두부종 관찰됨, 다른 국소 신경학적 이상은 없음"
+  },
+  "tests": {
+    "뇌 CT|뇌 MRI|brain ct|brain mri": "뇌실 크기 정상, 뇌내 병변 관찰되지 않음",
+    "MR 정맥조영술|MRV": "횡정맥동(transverse sinus)의 협착 소견 관찰됨",
+    "요추 천자|뇌척수액 검사|CSF Analysis": "개방 압력 280 mmH2O(정상 <200 mmH2O)로 상승되어 있음, 뇌척수액 검사 정상"
+  },
+  "diagnosis": "특발성 두개내 고혈압",
+  "aliases": [
+    "Idiopathic intracranial hypertension",
+    "IIH",
+    "가성뇌종양",
+    "Pseudotumor cerebri"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 510,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

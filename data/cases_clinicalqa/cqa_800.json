@@ -1,0 +1,39 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=800) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "부종",
+  "difficulty": "쉬움",
+  "teaching_point": "성인에서 신증후군을 유발하는 대표적 원인으로, 신장 생검상 사구체 기저막 증두 및 면역형광검사상 IgG·C3 침착, 전자현미경상 subepithelial electron-dense deposit 소견을 통해 막성신병증(MGN)을 진단합니다.",
+  "initial": "45세 남성. 주호소: 3주 전부터 시작된 몸의 부종",
+  "history": {
+    "부종|얼굴|종아리|붓기": "3주 전부터 몸이 점점 부으면서 아침에 일어나면 얼굴이 퉁퉁 붓고 종아리를 눌렀을 때 쉽게 가라앉지 않아요.",
+    "과거력|고혈압|약물": "평소 고혈압이 있어서 약을 복용하고 있어요.",
+    "체중|체중증가": "최근 체중이 4kg 증가했어요.",
+    "소변|거품|거품뇨": "소변을 보면 거품이 많고 잘 가라앉지 않아요.",
+    "통증|동반증상": "특별한 통증은 없어요."
+  },
+  "exam": {
+    "혈압|활력징후|vitals": "혈압 145/95 mmHg",
+    "하지|함요부종|부종|진찰": "양측 하지에 함요부종 확인"
+  },
+  "tests": {
+    "신장생검|조직검사|생검|biopsy": "사구체 기저막이 두꺼워져 있음",
+    "면역형광검사|IF|immunofluorescence": "IgG 및 C3 침착 확인",
+    "전자현미경|EM|electron microscopy": "subepithelial electron-dense deposit"
+  },
+  "diagnosis": "막성신병증",
+  "aliases": [
+    "막성 신병증",
+    "막성사구체신염",
+    "Membranous nephropathy",
+    "Membranous glomerulonephritis",
+    "MGN",
+    "MN"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 800,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

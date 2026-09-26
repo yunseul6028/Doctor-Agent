@@ -1,0 +1,38 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=128) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "객혈",
+  "difficulty": "보통",
+  "teaching_point": "젊은 비흡연자에서 체위에 따라 변화하는 기침, 만성 객혈과 함께 기관지 내 중심성 결절 및 내시경상 풍부한 혈관을 가진 매끄러운 분홍색 종괴가 관찰될 때 기관지 카르시노이드 종양을 진단할 수 있습니다.",
+  "initial": "28세 여성. 주호소: 2년간 반복되는 간헐적인 소량의 객혈",
+  "history": {
+    "주호소|증상|동반증상|객혈|기침": "2년 전부터 간헐적으로 피가 조금씩 섞여 나왔어요. 기침도 간헐적으로 나는데 특히 오른쪽으로 누우면 더 심해져요. 최근 한 달 동안은 피가 나오는 빈도가 좀 늘었어요.",
+    "전신증상|발열|체중감소|야간발한": "열이 나거나 살이 빠지거나 밤에 식은땀이 나는 증상은 없었어요.",
+    "흡연|흡연력|담배": "담배는 피운 적 없어요.",
+    "과거력|결핵|접촉력": "예전에 결핵 환자와 접촉한 적은 없어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|체온": "혈압, 맥박, 호흡수, 체온 모두 정상 범위 내에 있습니다.",
+    "흉부청진|청진|진찰": "흉부 청진에서 특이 소견은 없습니다."
+  },
+  "tests": {
+    "흉부X선|X-ray|엑스레이": "정상",
+    "흉부CT|CT": "우중엽 기관지 내에 1.5cm 크기의 경계가 명확한 결절 관찰됨.",
+    "혈액검사|일반혈액검사|CBC|CRP": "헤모글로빈 13.5 g/dL, 백혈구 6,800/μL, 혈소판 280,000/μL, CRP 0.3 mg/dL",
+    "가래검사|객담검사": "항산균 도말 및 배양 음성, 세균 배양 음성, 세포검사 음성",
+    "기관지내시경|조직검사": "우중엽 기관지에 표면이 매끄럽고 혈관이 풍부한 분홍색 종괴가 관찰됨, 조직검사 시행함"
+  },
+  "diagnosis": "기관지 카르시노이드 종양",
+  "aliases": [
+    "기관지 유암종",
+    "폐 카르시노이드 종양",
+    "Bronchial carcinoid tumor",
+    "Bronchial carcinoid"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 128,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

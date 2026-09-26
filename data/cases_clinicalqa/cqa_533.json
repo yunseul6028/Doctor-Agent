@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=533) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "만성복통/소화불량/속쓰림",
+  "difficulty": "쉬움",
+  "teaching_point": "장기간의 위식도 역류 증상이 있는 환자에서 내시경상 위식도 접합부 상방의 원주상 붉은색 점막 변화 및 조직검사상 편평상피의 원주상피 화생 및 고도 이형성이 확인되어 바렛식도와 고도 이형성으로 진단합니다.",
+  "initial": "52세 남성. 주호소: 6개월간 지속된 가슴쓰림과 산역류",
+  "history": {
+    "증상|가슴쓰림|산역류|발병양상": "6개월 전부터 가슴이 쓰리고 산이 역류하는 느낌이 있어요. 주로 밥을 먹고 나거나 누울 때 증상이 심해져요.",
+    "삼킴곤란|음식물 걸림|동반증상": "최근에는 음식을 삼키기가 힘들고, 특히 딱딱한 음식을 삼킬 때 가슴에 걸리는 느낌이 들어요.",
+    "약물|제산제|약물복용력": "증상을 줄여보려고 약국에서 제산제를 사서 먹어봤는데 효과가 별로 없었어요.",
+    "흡연|음주|생활습관": "15년 전부터 하루에 담배 한 갑씩 피우고 있고, 술은 일주일에 두 번 소주 한 병 정도 마셔요."
+  },
+  "exam": {
+    "신체검진|진찰소견|체중": "특이 소견 없음. BMI 28 kg/m²"
+  },
+  "tests": {
+    "상부위장관내시경|내시경|조직검사|생검": "내시경 소견: 위식도 접합부 상방 5cm 부위부터 원주상으로 붉은색 점막이 관찰되며, 일부 영역에서는 점막의 불규칙성과 결절성 변화가 관찰됨.\n생검 결과: 편평상피가 원주상피로 대체된 바렛식도(Barrett's esophagus) 소견과 일부 영역에서 고도 이형성(high-grade dysplasia)이 관찰됨."
+  },
+  "diagnosis": "바렛식도와 고도 이형성",
+  "aliases": [
+    "바렛 식도",
+    "바렛식도",
+    "Barrett's esophagus",
+    "고도 이형성",
+    "High-grade dysplasia",
+    "Barrett's esophagus with high-grade dysplasia"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 533,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

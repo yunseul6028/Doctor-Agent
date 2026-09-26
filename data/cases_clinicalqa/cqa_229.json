@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=229) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "보통",
+  "teaching_point": "급성 단관절염 환자의 관절액 편광현미경 검사에서 짧은 육면체 모양의 양성 이중굴절 결정(CPPD)이 확인되면 가성통풍으로 진단할 수 있습니다. 바늘 모양의 음성 이중굴절 결정을 보이는 통풍이나 관절액 백혈구 수가 매우 높은 감염성 관절염과의 감별이 중요합니다.",
+  "initial": "64세 남성. 주호소: 3일 전부터 시작된 왼쪽 무릎 통증과 부종",
+  "history": {
+    "과거력|지병|기저질환": "당뇨병이랑 고혈압, 만성 신부전으로 치료받고 있어요.",
+    "약물|복용약|약": "평소에 멜로락 정을 간헐적으로 먹고 있어요."
+  },
+  "exam": {
+    "신체검진|관절소견|무릎": "왼쪽 무릎의 발적, 열감, 부종이 관찰되며 관절 운동 범위가 제한되어 있음."
+  },
+  "tests": {
+    "혈액검사|lab": "백혈구 9,800/mm³, ESR 45mm/hr, CRP 3.2mg/dL, 요산 5.8mg/dL, BUN 35mg/dL, Cr 1.8mg/dL",
+    "관절액천자|관절액검사": "백혈구 12,000/mm³ (중성구 75%)",
+    "편광현미경|결정검사": "짧은 육면체 모양의 양성 이중굴절 결정"
+  },
+  "diagnosis": "가성통풍",
+  "aliases": [
+    "Pseudogout",
+    "CPPD",
+    "칼슘피로인산 결정침착병",
+    "calcium pyrophosphate deposition disease"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 229,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

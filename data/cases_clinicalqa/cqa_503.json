@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=503) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두드러기/혈관부종",
+  "difficulty": "보통",
+  "teaching_point": "항히스타민제에 반응하지 않는 만성 두드러기 환자에서 ANA 양성 및 염증 수치(ESR) 상승, 진피층 림프구 침윤 소견을 통해 자가면역 두드러기를 진단할 수 있습니다.",
+  "initial": "40세 여성. 주호소: 6개월 전부터 발생한 전신 가려움과 두드러기",
+  "history": {
+    "증상|두드러기|가려움": "6개월 전부터 전신에 가려움과 두드러기가 반복적으로 나타나고 있어요.",
+    "약물|치료|항히스타민제": "항히스타민제를 매일 먹어도 증상이 조절되지 않았고, 스테로이드를 쓰면 일시적으로 나아지긴 했어요.",
+    "동반증상|피로|관절통": "전신에 피로감이 있고 최근에는 손가락과 손목 관절이 붓고 아파요."
+  },
+  "exam": {
+    "신체진찰|관절|피부": "피부 가려움 및 두드러기 소견, 손가락 및 손목 관절 부종 및 압통"
+  },
+  "tests": {
+    "혈액검사|CBC|ESR|CRP": "백혈구 6,700/mm³, 혈소판 220,000/mm³, 호산구 3.0%, ESR 40 mm/hr, CRP 1.5 mg/dL",
+    "자가항체|ANA|dsDNA|보체|RF": "ANA 양성(1:320), 항-이중가닥 DNA 항체 음성, C3/C4 보체 수치 정상, 류마티스 인자(RF) 음성",
+    "피부생검|조직검사": "진피층 림프구 침윤 관찰됨"
+  },
+  "diagnosis": "자가면역 두드러기",
+  "aliases": [
+    "Autoimmune urticaria",
+    "자가면역성 두드러기"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 503,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

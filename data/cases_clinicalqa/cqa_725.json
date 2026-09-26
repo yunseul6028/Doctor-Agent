@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=725) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "발열/불명열",
+  "difficulty": "보통",
+  "teaching_point": "발열, 혈소판 감소, 신기능 저하와 함께 말초혈액도말상 분열적혈구가 관찰되는 미세혈관병성 용혈성 빈혈 소견을 종합하여 혈전성 혈소판 감소성 자반증(TTP)을 진단할 수 있습니다.",
+  "initial": "34세 여성. 주호소: 3일 전부터 시작된 발열, 멍이 쉽게 드는 증상, 소변량 감소",
+  "history": {
+    "발열|열|멍|소변량|피로": "3일 전부터 열이 나고 멍이 쉽게 들면서 소변량이 줄었어요. 최근에 감기 기운이 있었는데 어제부터 너무 피곤해요.",
+    "감기|동반증상|상기전": "최근에 감기 증상이 좀 있었어요."
+  },
+  "exam": {
+    "혈압|심박수|활력징후|vitals": "혈압 145/90 mmHg, 심박수 95회/분",
+    "하지|점상출혈|피부|진찰": "양측 하지에 점상 출혈 관찰됨"
+  },
+  "tests": {
+    "혈액검사|일반혈액검사|cbc|hb|plt": "헤모글로빈 8.2 g/dL, 혈소판 20,000/mm³",
+    "신장기능|bun|cr|creatinine": "BUN 45 mg/dL, 크레아티닌 3.2 mg/dL",
+    "용혈검사|ldh|bilirubin|haptoglobin": "LDH 850 U/L, 빌리루빈 2.1 mg/dL, haptoglobin 감소",
+    "말초혈액도말|pbs|schistocyte": "분열적혈구(schistocyte) 다수 관찰됨"
+  },
+  "diagnosis": "혈전성 혈소판 감소성 자반증",
+  "aliases": [
+    "TTP",
+    "Thrombotic thrombocytopenic purpura",
+    "혈전혈소판감소자반증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 725,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

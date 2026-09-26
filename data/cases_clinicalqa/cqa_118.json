@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=118) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "객혈",
+  "difficulty": "쉬움",
+  "teaching_point": "류마티스열 과거력이 있는 환자에서 운동 시 호흡곤란, 객혈, 심방세동 소견과 함께 심초음파상 승모판 개구면적 감소 및 석회화가 확인되면 승모판 협착증으로 진단할 수 있습니다.",
+  "initial": "45세 여성. 주호소: 운동 시 호흡곤란과 간헐적인 소량의 객혈",
+  "history": {
+    "증상|호흡곤란|객혈|기간": "6개월 전부터 운동할 때 숨이 차는 증상이 점점 심해졌어요. 최근 1달 동안은 피가 조금씩 섞여 나오는 객혈을 3번 정도 했어요.",
+    "과거력|류마티스열|약물": "10년 전에 류마티스열을 앓았던 적이 있어요. 따로 복용하고 있는 약은 없어요."
+  },
+  "exam": {
+    "청진|심음|심잡음": "경도의 순음성 수축기 심잡음 관찰됨",
+    "폐 청진|수포음": "폐기저부에서 미세한 수포음 청진됨"
+  },
+  "tests": {
+    "흉부 X선|X-ray": "흉부 X-선: 좌심방 확대, 폐울혈 소견",
+    "심전도|EKG": "심전도: 좌심방 비대, 심방세동",
+    "심초음파|Echocardiography": "심초음파: 승모판막 개구면적 1.2 cm², 판막 비후 및 석회화, 좌심방 확대(직경 4.5 cm)",
+    "혈액 검사|CBC|BNP": "헤모글로빈 13.0 g/dL, 백혈구 7,500/μL, 혈소판 230,000/μL, BNP 180 pg/mL"
+  },
+  "diagnosis": "승모판 협착증",
+  "aliases": [
+    "승모판 협착",
+    "Mitral stenosis",
+    "MS"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 118,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

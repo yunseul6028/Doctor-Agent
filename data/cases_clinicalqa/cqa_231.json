@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=231) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "보통",
+  "teaching_point": "관절통과 RF 양성 소견으로 류마티스 관절염과 혼동될 수 있으나, 항CCP항체 음성이며 구강·안구 건조 증상, Schirmer 검사 양성 및 특징적인 항-SSA/Ro, 항-SSB/La 항체 양성을 통해 쇼그렌 증후군으로 진단할 수 있습니다.",
+  "initial": "42세 여성. 주호소: 3개월 전부터 악화된 오른쪽 손목과 손가락 관절 통증 및 부종",
+  "history": {
+    "증상|관절|통증|부종|조조강직": "3개월 전부터 오른쪽 손목이랑 손가락 관절이 아프고 부어서 심해졌어요. 아침에 30분 이상 뻣뻣하고, 특히 엄지손가락 쪽 통증이 심해요.",
+    "동반증상|두통|건조감|눈|입": "최근에 두통도 있고 입이랑 눈이 자주 마르는 느낌이 들어요."
+  },
+  "exam": {
+    "신체진찰|관절|손목|손가락|종창": "오른쪽 손목, 중수지관절, 근위지관절 압통 및 부종 소견. 엄지손가락 근위부 방추형 종창 관찰됨.",
+    "구강|안구|이하선|얼굴": "구강 및 안구 건조 소견 보임. 좌측 이하선 경미한 종대 소견."
+  },
+  "tests": {
+    "혈액검사|일반혈액검사|CBC|ESR|CRP": "백혈구 4,500/mm³, 혈색소 11.8g/dL, 혈소판 258,000/mm³, ESR 48mm/hr, CRP 2.2mg/dL",
+    "혈청학검사|류마티스인자|항체|RF|CCP|ANA|SSA|SSB": "RF 양성(85 IU/mL), 항CCP항체 음성, 항핵항체(ANA) 양성(1:320, speckled pattern), 항-SSA/Ro항체 양성, 항-SSB/La항체 양성",
+    "안과검사|쉬르머|Schirmer": "Schirmer 검사: 양안 3mm/5분"
+  },
+  "diagnosis": "쇼그렌 증후군",
+  "aliases": [
+    "Sjögren's syndrome",
+    "Sjogren syndrome",
+    "쇼그렌증후군"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 231,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

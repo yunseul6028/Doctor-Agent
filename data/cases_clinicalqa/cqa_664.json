@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=664) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "미숙아/저체중 출생아",
+  "difficulty": "쉬움",
+  "teaching_point": "미숙아에서 수유 후 복부 팽만, 담즙성 위 잔류물, 혈변이 나타나고 복부 X-선에서 장 벽 내 공기(pneumatosis intestinalis)나 문맥 정맥 내 공기가 관찰되면 괴사성 장염(NEC)을 진단할 수 있습니다.",
+  "initial": "0세 남아. 주호소: 출생 후 5일째 발생한 복부 팽만과 구토",
+  "history": {
+    "출생력|재태연령|체중|birth history": "재태연령 30주, 출생체중 1,300g으로 태어났어요.",
+    "수유|모유|feeding": "출생 후 1일째부터 모유수유를 시작했고 점차 수유량을 늘려왔어요.",
+    "증상|위잔류물|혈변|symptoms": "최근 24시간 동안 담즙성 위 잔류물이 증가했고 피가 섞인 대변을 봤어요."
+  },
+  "exam": {
+    "복부진찰|청진|촉진|abdominal exam": "복부는 전반적으로 팽만되어 있고 압통이 있으며, 복부 피부에 발적과 함께 반짝이는 양상(shiny appearance)이 관찰됩니다. 장음은 감소되어 있습니다."
+  },
+  "tests": {
+    "혈액검사|lab|cbc|crp": "혈액검사: WBC 18,500/mm³(호중구 80%), Hb 9.8 g/dL, Plt 95,000/mm³, CRP 15.2 mg/dL",
+    "복부 X선|엑스레이|x-ray|kUB": "복부 X-선 검사: 장 벽 내 공기(pneumatosis intestinalis)와 문맥 정맥 내 공기(portal venous gas)가 관찰됨"
+  },
+  "diagnosis": "괴사성 장염",
+  "aliases": [
+    "괴사성장염",
+    "Necrotizing enterocolitis",
+    "NEC"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 664,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

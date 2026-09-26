@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=31) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가려움증",
+  "difficulty": "쉬움",
+  "teaching_point": "당뇨병 및 고혈압 과거력이 있는 환자에서 수주에 걸친 요독 증상(구역, 식욕저하, 가려움증, 뇌증)과 함께 빈혈, 고칼륨혈증, 산증, 등장뇨(요비중 1.010)를 확인하여 만성 신부전을 진단할 수 있습니다.",
+  "initial": "58세 남성. 주호소: 심한 구역감과 식욕 저하",
+  "history": {
+    "기저질환|과거력|약물|당뇨|혈압": "수년 전에 당뇨랑 혈압이 있다는 소리를 들었는데, 약을 자주 거르고 검진도 잘 안 받았어요.",
+    "피로|가려움|증상|피부": "최근 몇 주 전부터 점점 피곤해지고 피부가 가려워지기 시작했어요.",
+    "동반증상|집중력|졸림|의식": "가족들이 보기에 제가 예전보다 집중력도 떨어지고 자주 졸려 보인다고 하더라고요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|호흡": "혈압 160/100 mmHg, 심박수 88회/분, 호흡수 20회/분",
+    "피부|진찰|결절": "피부에 미세한 결절들이 촉지됨"
+  },
+  "tests": {
+    "혈액검사|BUN|크레아티닌|신장기능|전해질|CBC|헤모글로빈": "BUN 98 mg/dL, 크레아티닌 9.2 mg/dL, 나트륨 138 mEq/L, 칼륨 6.2 mEq/L, 중탄산 14 mEq/L, 헤모글로빈 7.8 g/dL",
+    "소변검사|단백뇨|요검사|요비중": "단백뇨 3+, 적혈구 10-15/HPF, 요비중 1.010"
+  },
+  "diagnosis": "만성 신부전",
+  "aliases": [
+    "만성콩팥병",
+    "만성 신질환",
+    "Chronic Kidney Disease",
+    "CKD",
+    "Chronic Renal Failure",
+    "CRF"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 31,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

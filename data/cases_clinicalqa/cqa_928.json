@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=928) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "팔다리 근력약화/마비",
+  "difficulty": "쉬움",
+  "teaching_point": "3개월간 진행된 근위부 근력 저하와 상승된 근육 효소치(CK, LDH), Anti-Jo-1 항체 양성 소견이 관찰됩니다. 근전도의 근병증 소견 및 근육 생검상의 CD8+ T 세포 중심 근내막 염증 소견을 종합하여 다발성 근염으로 진단할 수 있습니다.",
+  "initial": "48세 남성. 주호소: 3개월 전부터 서서히 진행된 근력 저하",
+  "history": {
+    "증상|양상|근력저하|팔다리": "3개월 전부터 서서히 몸에 힘이 빠지는 게 느껴졌어요.",
+    "동반증상|계단|일상생활|머리": "계단 오르기가 어려워졌고, 머리를 빗거나 높은 선반에서 물건을 꺼내는 것이 힘들어요.",
+    "감각|감각이상|저림": "특별히 감각이 이상하거나 저린 부분은 없어요."
+  },
+  "exam": {
+    "신체진찰|근력|근위부": "근위부 근력 저하가 관찰됨, 감각 이상은 없음"
+  },
+  "tests": {
+    "혈액검사|근육효소|CK|LDH|간수치|AST|ALT": "CK: 4200 IU/L, LDH: 560 IU/L, AST: 75 IU/L, ALT: 62 IU/L",
+    "자가항체|항체|Anti-Jo-1": "Anti-Jo-1: positive",
+    "근전도|EMG": "EMG: myopathic pattern with fibrillations",
+    "근육생검|생검|조직검사|Muscle biopsy": "Muscle biopsy: endomysial inflammation with CD8+ T cell infiltrates"
+  },
+  "diagnosis": "다발성 근염",
+  "aliases": [
+    "Polymyositis",
+    "PM"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 928,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

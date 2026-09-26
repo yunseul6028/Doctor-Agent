@@ -1,0 +1,37 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=1025) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "황달",
+  "difficulty": "보통",
+  "teaching_point": "궤양성 대장염 병력이 있는 환자에서 담즙정체성 간기능 이상과 p-ANCA 양성, MRCP상 담관의 '구슬 목걸이' 양상이 확인되면 원발성 경화성 담관염(PSC)으로 진단합니다.",
+  "initial": "45세 남성. 주호소: 최근 6개월간 간헐적인 황달과 전신 가려움증",
+  "history": {
+    "황달|가려움증|증상|기간": "최근 6개월 동안 눈이나 피부가 노랗게 변하는 증상이 왔다 갔다 하고 전신이 가려워요.",
+    "궤양성 대장염|대장 질환|기저질환|과거력": "10년 전에 만성 궤양성 대장염을 진단받아서 계속 치료받고 있어요.",
+    "음주|술|약물|한약": "평소에 술을 마시거나 따로 복용하는 약물은 없어요.",
+    "가족력": "가족 중에 특이한 병을 앓으신 분은 없어요.",
+    "체중 감소|체중": "최근 3개월 동안 체중이 2kg 정도 줄었어요."
+  },
+  "exam": {
+    "눈|공막|황달|진찰": "공막 황달 없음",
+    "복부|간|복부 진찰": "간비대 없음, 복부 특이 소견 없음"
+  },
+  "tests": {
+    "혈액 검사|간기능 검사|빌리루빈|LFT": "총 빌리루빈 4.2 mg/dL, 직접 빌리루빈 3.1 mg/dL, AST 72 U/L, ALT 65 U/L, ALP 580 U/L, GGT 320 U/L",
+    "자가항체|혈청 검사|ANA|ANCA": "항핵항체(ANA) 약양성(1:40), p-ANCA 양성",
+    "복부 CT|CT": "간내 및 간외 담관의 불규칙한 협착과 확장, 담관벽의 비후, 간실질 이상 소견 없음",
+    "MRCP|자기공명 담췌관조영술": "간내 및 간외 담관의 다발성 협착과 확장을 보이는 '구슬 목걸이(beaded)' 양상"
+  },
+  "diagnosis": "원발성 경화성 담관염",
+  "aliases": [
+    "원발성 경화 담관염",
+    "Primary Sclerosing Cholangitis",
+    "PSC"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 1025,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=446) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두근거림",
+  "difficulty": "쉬움",
+  "teaching_point": "갑자기 시작된 규칙적인 좁은 QRS 빈맥과 함께 QRS 직후의 역행성 P파(short RP interval) 소견은 방실결절 회귀성 빈맥(AVNRT)의 전형적인 특징입니다.",
+  "initial": "23세 여성. 주호소: 약 30분 전 갑자기 시작된 심한 두근거림",
+  "history": {
+    "증상|발병|두근거림": "약 30분 전에 커피를 마시다가 갑자기 심장이 아주 빠르게 뛰기 시작했어요. 가슴이 답답하고 약간 숨도 차요.",
+    "과거력|재발": "과거에 특별한 병은 없었는데, 1년 전에도 비슷하게 심장이 뛰어서 응급실에 간 적이 있어요. 그때는 가만히 있으니 저절로 좋아졌어요.",
+    "가족력": "아버지가 부정맥으로 치료받으신 적이 있어요."
+  },
+  "exam": {
+    "활력징후|vitals": "혈압 110/70 mmHg, 맥박 180회/분, 호흡수 20회/분, 체온 36.7℃",
+    "신체검사|청진": "규칙적인 빈맥이 관찰되며, 심잡음은 청진되지 않음"
+  },
+  "tests": {
+    "심전도|EKG|ECG": "규칙적인 좁은 QRS 복합체(80 ms), 심박수 180회/분, P파가 QRS 직후에 역행성으로 관찰됨, RP 간격이 PR 간격보다 짧음, II, III, aVF 유도에서 역행성 P파 확인됨",
+    "혈액검사|갑상선|전해질": "갑상선 기능검사 및 전해질 검사는 정상 범위"
+  },
+  "diagnosis": "방실결절 회귀성 빈맥",
+  "aliases": [
+    "방실결절 재진입성 빈맥",
+    "AVNRT",
+    "Atrioventricular Nodal Reentrant Tachycardia"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 446,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

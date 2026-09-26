@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=538) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "만성복통/소화불량/속쓰림",
+  "difficulty": "쉬움",
+  "teaching_point": "배변 후 완화되는 만성 하복부 통증과 배변 습관 변화가 있으면서 체중 감소나 야간 설사 등 경고 증상(red flags)이 없고 혈액 및 대변 검사가 정상인 전형적인 설사 우세형 과민성 장증후군(IBS-D) 증례입니다.",
+  "initial": "38세 여성. 주호소: 6개월간 지속된 복통과 잦은 설사",
+  "history": {
+    "복통|통증|양상|위치|완화": "배가 주로 아랫배 쪽으로 아픈데, 배변을 하고 나면 좀 괜찮아져요. 스트레스를 받으면 증상이 더 심해지고 배에 가스가 차서 부풀어 오르는 느낌이 들어요.",
+    "설사|대변|변|양상|횟수|혈변|점액변": "일주일에 3일 이상, 하루 평균 3-4회 정도 무르거나 물 같은 똥을 눠요. 간혹 끈적한 점액이 섞여 나오긴 하는데 피는 안 나왔어요. 밤에 자다가 설사 때문에 깬 적은 없어요.",
+    "체중|전신증상": "체중이 줄지는 않았어요.",
+    "과거력|병력": "특별히 아팠거나 치료받은 병은 없어요.",
+    "가족력|암|염증성장질환": "가족 중에 염증성 장질환이나 대장암을 앓은 사람은 없어요."
+  },
+  "exam": {
+    "복부진찰|압통|반발통|장음|청진": "좌하복부에 경미한 압통 있음, 반발통 없음, 장음 약간 증가되어 있음"
+  },
+  "tests": {
+    "혈액검사|CBC|CRP|ESR": "백혈구 6,500/μL, 혈색소 13.5g/dL, 혈소판 280,000/μL, CRP 0.3mg/dL, ESR 10mm/hr",
+    "대변검사|잠혈": "대변 잠혈 검사: 음성"
+  },
+  "diagnosis": "과민성 장증후군",
+  "aliases": [
+    "과민성대장증후군",
+    "과민성 장 증후군",
+    "Irritable Bowel Syndrome",
+    "IBS"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 538,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

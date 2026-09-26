@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=771) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "변비",
+  "difficulty": "보통",
+  "teaching_point": "체중 감소, 염증 수치(CRP/ESR) 상승, 복부 경결 및 가족력 소견을 종합하여 기능성 장애인 과민성 장증후군과 구별하고 크론병을 진단할 수 있습니다.",
+  "initial": "25세 여성. 주호소: 6개월 전부터 시작된 심한 변비와 복통",
+  "history": {
+    "변비|배변|대변|변": "주 1-2회 대변을 보고 배변할 때 너무 아파서 종종 참기도 해요.",
+    "복통|배|배 아픔": "배가 아픈데 주로 왼쪽 아랫배가 아프고 대변을 보고 나서도 싹 나아지지 않아요.",
+    "체중 감소|살|체중": "최근 3개월 동안 체중이 5kg 빠졌어요.",
+    "피로|피곤|기운": "지속적으로 피로해요.",
+    "과거력|수술|수술력": "15살 때 충수돌기염으로 수술받은 적 말고는 다른 건 없어요.",
+    "가족력|어머니|엄마": "어머니께서 크론병을 앓고 계세요."
+  },
+  "exam": {
+    "복부 진찰|압통|경결|촉진": "복부 전반에 경미한 압통 있음, 좌하복부에 경결(induration) 만져짐",
+    "직장 수지 검사|항문 진찰|DRE": "압통은 있으나 종괴는 없음"
+  },
+  "tests": {
+    "혈액검사|CBC|염증수치|CRP|ESR": "백혈구 12,000/μL, 혈색소 10.8 g/dL, 혈소판 450,000/μL, CRP 3.5 mg/dL (정상: <0.5 mg/dL), ESR 40 mm/hr (정상: <20 mm/hr)"
+  },
+  "diagnosis": "크론병",
+  "aliases": [
+    "Crohn's disease",
+    "Crohn disease",
+    "크론 병"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 771,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

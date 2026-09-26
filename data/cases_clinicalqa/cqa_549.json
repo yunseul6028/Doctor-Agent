@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=549) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "만성복통/소화불량/속쓰림",
+  "difficulty": "쉬움",
+  "teaching_point": "장기간의 음주력과 췌장염 과거력이 있는 환자에서 등 쪽으로 방사되는 상복부 통증, 외분비 부전(지방변), 내분비 부전(당뇨 악화) 및 복부 CT상 췌장 석회화와 실질 위축 소견을 통해 만성 췌장염을 진단할 수 있습니다.",
+  "initial": "42세 남성. 주호소: 6개월 이상 지속된 상복부 통증, 소화불량, 체중 감소",
+  "history": {
+    "통증|양상|등|식사|복통": "상복부 통증이 등 쪽으로 뻗치고, 밥을 먹으면 더 심해져서 음식을 잘 안 먹게 돼요.",
+    "체중감소|소화|대변|지방변": "지난 6개월 동안 체중이 10kg이나 줄었어요. 최근엔 기름진 걸 먹으면 무르고 냄새가 독한 지방변을 봐요.",
+    "피로|혈당|당뇨|당뇨약": "평소보다 너무 피곤하고 혈당이 잘 안 잡혀서 얼마 전에 당뇨약 용량을 늘렸어요.",
+    "음주|술|과거력|췌장염": "10년 동안 거의 매일 소주를 하루 1병 이상 마셨고, 2년 전에 알코올성 췌장염으로 입원한 적이 있어요.",
+    "흡연|담배": "담배는 20갑년 정도 피웠습니다."
+  },
+  "exam": {
+    "활력징후|진찰|영양|압통|복부": "영양 상태 불량해 보임. 상복부 심와부 압통 있음."
+  },
+  "tests": {
+    "혈액검사|포도당|아밀라아제|리파아제|간수치|빌리루빈": "포도당 190 mg/dL, 아밀라아제 65 U/L(정상: 28-100 U/L), 리파아제 45 U/L(정상: 13-60 U/L), AST 45 U/L, ALT 38 U/L, ALP 130 U/L, 총 빌리루빈 1.1 mg/dL",
+    "복부CT|영상|CT": "췌장 실질의 위축과 다수의 석회화, 주췌관 확장, 가성낭종 관찰",
+    "대변지방검사|대변검사": "양성(>6g/24시간)"
+  },
+  "diagnosis": "만성 췌장염",
+  "aliases": [
+    "chronic pancreatitis",
+    "만성 췌장 염증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 549,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

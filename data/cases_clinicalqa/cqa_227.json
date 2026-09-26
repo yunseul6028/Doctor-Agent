@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=227) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "쉬움",
+  "teaching_point": "선행 장내/비뇨생식기 감염 후 발생한 비대칭적 하지 관절염, 요도염, 결막염의 삼징후와 HLA-B27 양성을 종합하여 반응성 관절염을 진단할 수 있습니다.",
+  "initial": "35세 남성. 주호소: 3주 전부터 시작된 오른쪽 무릎과 발목의 통증 및 부종",
+  "history": {
+    "장 증상|설사|복통|감염": "약 1개월 전에 설사와 복통이 1주일 정도 나다가 좋아졌어요.",
+    "배뇨|요도|비뇨기|분비물": "최근에 오줌 누울 때 아프고 요도에서 분비물이 조금 나왔어요.",
+    "눈|충혈|안구 통증": "양쪽 눈이 빨갛게 충혈되고 아파요."
+  },
+  "exam": {
+    "관절|무릎|발목|신체 진찰": "오른쪽 무릎과 발목에 부종과 압통이 관찰됨.",
+    "눈|결막|진찰 소견": "양안의 결막 충혈이 확인됨.",
+    "피부|점막|음경|귀두|구강 궤양": "음경 귀두에 표재성 궤양이 관찰되고, 구강 내 통증성 궤양이 발견됨."
+  },
+  "tests": {
+    "혈액 검사|CBC|염증 수치|HLA-B27": "백혈구 11,500/mm³, ESR 58 mm/hr, CRP 3.8 mg/dL, HLA-B27 양성",
+    "소변 검사|요 검사|urinalysis": "백혈구 15-20/HPF"
+  },
+  "diagnosis": "반응성 관절염",
+  "aliases": [
+    "라이터 증후군",
+    "Reactive arthritis",
+    "Reiter's syndrome"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 227,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

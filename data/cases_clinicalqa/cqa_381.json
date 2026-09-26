@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=381) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기침",
+  "difficulty": "쉬움",
+  "teaching_point": "장기간의 흡연력과 만성적인 기침·가래 및 호흡곤란을 가진 환자에서, 폐기능검사상 FEV1/FVC 비가 70% 미만이고 기관지확장제 후 가역성이 제한적(12% 미만)인 기류 제한을 통해 만성 폐쇄성 폐질환(COPD)을 진단할 수 있습니다.",
+  "initial": "68세 남성. 주호소: 6개월 전부터 점진적으로 악화되는 기침과 가래, 호흡곤란",
+  "history": {
+    "기침|가래|호흡곤란|증상|발병": "6개월 전부터 기침, 가래, 호흡곤란이 점점 악화되고 있어요. 매일 아침 다량의 점액성 가래가 섞인 기침을 하고, 최근 2개월 동안은 계단을 오르거나 평지를 걸을 때도 숨이 차네요. 사실 2년 전부터 기침과 가래가 있었는데 크게 신경 쓰지 않았습니다.",
+    "담배|흡연|사회의력": "50년간 하루에 1갑씩 담배를 피웠습니다."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|호흡|체온|비탈": "혈압 130/80 mmHg, 맥박 85회/분, 호흡수 20회/분, 체온 36.7°C",
+    "흉부|청진|폐|신체검진": "전후 직경이 증가된 통형 흉곽(barrel chest) 모양임. 청진에서 양측 폐야에서 호기 시 천명음이 들렸고 호기가 연장되어 있음."
+  },
+  "tests": {
+    "일반혈액검사|혈액검사|cbc": "헤모글로빈 15.2 g/dL, 백혈구 8,500/μL, 혈소판 230,000/μL",
+    "동맥혈가스분석|abga": "pH 7.38, PaO2 70 mmHg, PaCO2 46 mmHg, HCO3- 26 mEq/L (실내공기)",
+    "흉부 x선|엑스레이|x-ray|chest x-ray": "폐의 과팽창, 낮은 횡격막, 늑골 사이 간격 증가",
+    "폐기능검사|pft": "FEV1 60% pred, FVC 85% pred, FEV1/FVC 55%, 기관지확장제 사용 후 FEV1 8% 증가"
+  },
+  "diagnosis": "만성 폐쇄성 폐질환",
+  "aliases": [
+    "COPD",
+    "만성폐쇄성폐질환",
+    "Chronic Obstructive Pulmonary Disease"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 381,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

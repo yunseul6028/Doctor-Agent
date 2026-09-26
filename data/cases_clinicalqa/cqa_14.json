@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=14) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가려움증",
+  "difficulty": "보통",
+  "teaching_point": "임신 후반기(제3삼분기)에 복부 및 사지에 홍반성 구진과 판이 나타나고 간기능 검사가 정상이며 출산 후 호전되는 병력으로 임신성 소양진을 진단할 수 있습니다. 피부 병변 없이 가려움증과 간수치 상승을 보이는 임신성 담즙정체증이나 수포를 형성하는 임신성 유사천포창과 감별해야 합니다.",
+  "initial": "28세 여성. 주호소: 2주 전부터 시작된 전신 가려움증",
+  "history": {
+    "증상|가려움|전신가려움|symptom": "2주 전부터 전신이 가려운데, 특히 배랑 팔다리가 심하게 가려워요.",
+    "임신|임신주수|산과력|pregnancy": "지금 임신 32주째예요.",
+    "과거력|재발|이전임신|past history": "이전 임신 때도 비슷한 증상이 있었는데, 출산하고 나니까 저절로 좋아졌었어요."
+  },
+  "exam": {
+    "신체진찰|피부|복부|사지|진찰|physical exam": "복부와 사지에 다수의 홍반성 구진과 판(plaque)이 관찰되며, 일부는 융합되어 있음"
+  },
+  "tests": {
+    "피부소견|사진|피부병변|skin": "피부 병변 사진: 복부와 팔다리에 다수의 홍반성 구진과 판이 관찰되며, 일부는 융합되어 있고 배꼽 주위로 중심성 분포를 보임",
+    "혈액검사|간기능|빌리루빈|간효소|lab": "혈액 검사: 빌리루빈 및 간효소 수치 정상"
+  },
+  "diagnosis": "임신성 소양진",
+  "aliases": [
+    "임신성 소양성 구진 구진성 판",
+    "PUPPP",
+    "Pruritic urticarial papules and plaques of pregnancy",
+    "Prurigo gestationis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 14,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

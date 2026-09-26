@@ -1,0 +1,35 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=355) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "기억력 저하",
+  "difficulty": "보통",
+  "teaching_point": "주관적 인지 저하 호소 및 신경심리검상 지연 회상 영역에서 객관적 손상(1.5 표준편차 이하)이 확인되나, 복잡한 일상생활 기능을 독립적으로 수행할 수 있어 치매가 아닌 경도인지장애로 진단합니다.",
+  "initial": "67세 남성. 주호소: 1년 전부터 시작된 기억력 저하",
+  "history": {
+    "기억력|증상|발병": "최근 일에 대한 기억력이 현저히 떨어졌고 익숙한 물건 위치를 찾는 데 어려움을 겪고 있어요. 저도 기억력이 떨어진 걸 느끼고 불안해요.",
+    "일상생활|독립성": "일상생활 기능은 대체로 유지되고 있고, 은행 업무나 장보기 같은 복잡한 일도 약간 어려울 뿐 독립적으로 할 수 있어요.",
+    "과거력|약물|고혈압": "20년간 고혈압으로 약물 치료 중이고, 최근 혈압 모니터링에서는 잘 조절되고 있대요.",
+    "심장|심근경색|수술": "5년 전에 심근경색으로 관상동맥 스텐트 삽입술을 받았어요."
+  },
+  "exam": {
+    "신경학적검사": "국소 신경학적 결손 없음"
+  },
+  "tests": {
+    "MMSE|MoCA|선별검사": "간이정신상태검사(MMSE) 26점, 몬트리올 인지평가(MoCA) 23점",
+    "혈액검사": "공복혈당 95 mg/dL, HbA1c 5.6%, 총 콜레스테롤 180 mg/dL, LDL 110 mg/dL, TSH 2.8 μIU/mL, 비타민 B12 380 pg/mL, 엽산 10 ng/mL",
+    "뇌 MRI": "경도의 전반적인 뇌위축과 소혈관질환 소견, 내측두엽 구조물(해마 포함)의 경미한 위축",
+    "신경심리검사": "주의력 및 집행기능 정상, 언어유창성 정상, 시공간 능력 정상, 지연 회상에서 연령대 비 1.5 표준편차 이하의 수행"
+  },
+  "diagnosis": "경도인지장애",
+  "aliases": [
+    "Mild Cognitive Impairment",
+    "MCI",
+    "경도 인지 장애"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 355,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

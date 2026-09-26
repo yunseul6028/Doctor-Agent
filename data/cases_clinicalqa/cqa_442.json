@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=442) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "다뇨증",
+  "difficulty": "쉬움",
+  "teaching_point": "리튬 복용력이 있는 환자에서 수분 제한 검사 후 데스모프레신(항이뇨호르몬)을 투여했음에도 소변 삼투압이 유의하게 증가하지 않고 다뇨가 지속되면 신성 요붕증으로 진단할 수 있습니다.",
+  "initial": "35세 남성. 주호소: 극심한 다뇨와 갈증 (6개월 전 시작)",
+  "history": {
+    "주호소|경과|수면": "6개월 전부터 하루 소변량이 7-8리터로 늘었고 갈증이 심해서 물을 하루에 8리터 이상 마셔요. 밤에도 소변을 보려고 4-5번씩 깨서 잠을 잘 못 자요.",
+    "약물|과거력": "최근 1개월 전부터 양극성 장애로 리튬을 복용하고 있고, 다른 기저 질환은 없어요."
+  },
+  "exam": {
+    "활력징후|진찰": "활력 징후 안정적, 피부 및 구강 점막의 탈수 소견 없음"
+  },
+  "tests": {
+    "혈액검사": "Na 145 mEq/L, K 3.8 mEq/L, Cl 105 mEq/L, 혈당 85 mg/dL, BUN 20 mg/dL, Cr 1.0 mg/dL, 혈청 삼투압 298 mOsm/kg, 혈중 리튬 농도 1.2 mmol/L (치료 범위: 0.6-1.2 mmol/L)",
+    "소변검사": "비중 1.002, 삼투압 120 mOsm/kg, 당(-), 단백(-)",
+    "수분제한검사": "수분 제한 검사 후 소변 삼투압 150 mOsm/kg",
+    "데스모프레신검사": "데스모프레신 20μg 피하 주사 후에도 소변량이 유의하게 감소하지 않음. 데스모프레신 투여 후 소변 삼투압 160 mOsm/kg"
+  },
+  "diagnosis": "신성 요붕증",
+  "aliases": [
+    "Nephrogenic diabetes insipidus",
+    "신장성 요붕증",
+    "NDI"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 442,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=848) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "업무관련 건강문제",
+  "difficulty": "쉬움",
+  "teaching_point": "작업 환경(건설 현장, 페인트/금속 가루 노출)에서 증상이 악화되고 주말이나 휴가 시 호전되는 경향, 기관지 확장제 반응 양성을 통해 직업성 천식을 진단할 수 있습니다.",
+  "initial": "48세 남성. 주호소: 기침과 호흡곤란",
+  "history": {
+    "기침|호흡곤란|숨찬증상|가슴답답|symptoms": "건설 현장에서 일하면서 기침이랑 숨찬 게 점점 심해져요. 평일에 일할 때 심하고 주말이나 휴가 때 쉬면 좀 나아집니다. 요즘은 낮에도 숨차고 기침이 심해지면서 가슴도 답답해요.",
+    "직업|근무환경|노출력|일|occupation|work": "10년 넘게 건설 현장에서 일하고 있고, 페인트나 금속 가루를 자주 마십니다.",
+    "흡연|담배|smoking": "담배는 피우지 않습니다.",
+    "알레르기|기저질환|allergy": "평소에 특별한 알레르기 질환은 없었어요."
+  },
+  "exam": {
+    "진찰|청진|신체진찰|physical exam": "천명이 들리며, 호기 시 들숨보다 길어지는 패턴을 보임."
+  },
+  "tests": {
+    "폐기능검사|PFT": "FEV1 78%, FEV1/FVC 65%, 기관지 확장제 반응 검사: FEV1 변화 +18%",
+    "혈액검사|blood test": "백혈구 8,200/mm³, 호산구 5.1%, 총 IgE 150 IU/mL",
+    "흉부 X선|흉부 엑스레이|chest X-ray": "정상",
+    "기관지유발검사|메타콜린검사|methacholine test": "메타콜린 반응 양성"
+  },
+  "diagnosis": "직업성 천식",
+  "aliases": [
+    "Occupational asthma",
+    "직업천식"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 848,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

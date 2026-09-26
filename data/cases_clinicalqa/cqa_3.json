@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=3) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가려움증",
+  "difficulty": "보통",
+  "teaching_point": "심한 야간 가려움증과 병변의 태선화/판 형태, 피부 생검상의 해면화 및 호산구 침윤 소견을 종합하여 만성 단순 태선으로 진단합니다.",
+  "initial": "72세 남성. 주호소: 2개월 전부터 시작된 전신 가려움증과 피부 발진",
+  "history": {
+    "가려움증|발진|증상|itch|rash": "2개월 전부터 전신에 가려움증이랑 피부 발진이 생겼어요. 손등이랑 팔뚝 쪽이 특히 심하고, 밤만 되면 더 가려워서 잠을 잘 수가 없습니다.",
+    "과거력|지병|약물|고혈압|당뇨|고지혈증|history": "혈압, 당뇨, 고지혈증이 있어서 약을 복용하고 있습니다."
+  },
+  "exam": {
+    "신체진찰|피부|진찰|physical|skin": "손등, 전완부, 복부, 다리에 다수의 홍반성 구진과 판, 일부는 미란과 각질을 동반함. 몸통에는 다수의 원형 또는 타원형의 홍반성 인설성 판이 관찰됨."
+  },
+  "tests": {
+    "혈액검사|일반혈액검사|CBC": "WBC 7,800/μL (호산구 15%), Hb 13.5g/dL, Platelet 230,000/μL",
+    "혈액화학검사|간기능|신장기능|LFT|RFT": "BUN 22mg/dL, Cr 1.1mg/dL, AST 35U/L, ALT 42U/L",
+    "IgE|면역글로불린": "총 IgE 950 IU/mL (정상: <100 IU/mL)",
+    "피부생검|조직검사|biopsy": "표피의 해면화, 상부 진피의 혈관 주위 림프구 침윤, 다수의 호산구 침윤"
+  },
+  "diagnosis": "만성 단순 태선",
+  "aliases": [
+    "만성단순태선",
+    "Lichen simplex chronicus",
+    "LSC"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 3,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

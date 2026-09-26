@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=408) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "난청",
+  "difficulty": "쉬움",
+  "teaching_point": "가족력이 있는 젊은 성인에서 고막 소견은 정상이면서 양측성 전도성 난청(Rinne 음성, air-bone gap)을 보이고, 측두골 CT에서 등골 족판 주변의 경화 소견이 관찰되면 이경화증으로 진단합니다.",
+  "initial": "29세 여성. 주호소: 수년간 지속된 양측 난청",
+  "history": {
+    "증상|난청|청력|통화": "수전부터 양쪽 귀 청력이 서서히 나빠졌어요. 사람들이 말하는 걸 잘 못 알아듣겠고, 특히 전화 통화하기가 너무 어렵네요.",
+    "가족력|어머니|형제": "저희 어머니랑 형제도 저처럼 귀가 잘 안 들리는 증상이 있어요."
+  },
+  "exam": {
+    "외이도|고막": "양측 외이도와 고막은 정상",
+    "음차검사|웨버|리네|Weber|Rinne": "Weber 검사: 정중앙 편위. Rinne 검사: 양측 모두 음성(골도>기도)."
+  },
+  "tests": {
+    "청력검사|순음청력검사": "양측 귀 전도성 난청 확인. 양측 기도 청력역치 평균 55 dB, 골도 청력역치 평균 15 dB (기도-골도 차이 40 dB).",
+    "고막운동성검사|Tympanometry": "A형 (정상)",
+    "측두골CT|CT": "족판(stapes footplate) 주변의 경화성 변화 관찰됨"
+  },
+  "diagnosis": "이경화증",
+  "aliases": [
+    "Otosclerosis",
+    "등골경화증"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 408,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

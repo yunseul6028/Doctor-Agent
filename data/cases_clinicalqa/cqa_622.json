@@ -1,0 +1,40 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=622) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "무월경",
+  "difficulty": "쉬움",
+  "teaching_point": "무월경과 함께 고안드로겐혈증 증상(다모증, 여드름) 및 혈중 테스토스테론 상승이 있고, 초음파에서 다낭성 난소 소견을 보여 다낭성 난소 증후군(PCOS)으로 진단할 수 있습니다. 17-OH 프로게스테론 정상 소견으로 선천성 부신 과형성증을 배제하고, FSH 정상 소견으로 조기 난소 부전을 감별할 수 있습니다.",
+  "initial": "22세 여성. 주호소: 9개월 동안 지속된 무월경",
+  "history": {
+    "월경|생리|초경": "13세에 초경을 시작했고 그동안은 월경이 규칙적이었는데, 9개월 전부터 생리가 없어요.",
+    "체중|여드름|털|다모증": "최근에 체중이 10kg 늘었고 얼굴, 가슴, 등에 여드름이 많이 생겼어요. 턱이랑 윗입술에 털이 자라는 것도 신경 쓰여요.",
+    "가족력|당뇨": "어머니가 2형 당뇨병을 앓고 계세요."
+  },
+  "exam": {
+    "신체검진|체질량지수|BMI|혈압": "BMI 28kg/m², 혈압 125/85mmHg",
+    "다모증|털": "얼굴과 턱에 중등도의 다모증 관찰됨",
+    "복부|피부|색소침착": "복부에 검은색 색소 침착과 피부 비후 소견 있음"
+  },
+  "tests": {
+    "혈액검사|혈당|공복혈당": "공복혈당 110 mg/dL",
+    "갑상선|TSH": "TSH 2.8 μIU/mL",
+    "프로락틴|유즙분비호르몬": "프로락틴 18 ng/ ng/mL",
+    "테스토스테론|남성호르몬|안드로겐": "총 테스토스테론 80 ng/dL (정상 범위: 15-70 ng/dL)",
+    "DHEA-S": "DHEA-S 380 μg/dL (정상 범위: 35-430 μg/dL)",
+    "FSH|LH|성선자극호르몬": "FSH 5 mIU/mL, LH 12 mIU/mL",
+    "17-OH 프로게스테론|17-OHP": "17-OH 프로게스테론 1.2 ng/mL (정상 범위: <2 ng/mL)",
+    "골반 초음파|난소 초음파": "양측 난소 크기 증가, 각각 12개 이상의 2-9mm 크기 난포 관찰, 난소 용적 각각 12mL"
+  },
+  "diagnosis": "다낭성 난소 증후군",
+  "aliases": [
+    "PCOS",
+    "Polycystic Ovary Syndrome",
+    "다낭성난소증후군"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 622,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

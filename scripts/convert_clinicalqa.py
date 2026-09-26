@@ -7,6 +7,7 @@ data/external/snuh_clinicalqa/ (git-ignored, never packaged).
     python scripts/convert_clinicalqa.py                 # convert all SELECTED_IDS
     python scripts/convert_clinicalqa.py --ids 1 42      # only these ids
     python scripts/convert_clinicalqa.py --overwrite     # redo existing outputs
+    python scripts/convert_clinicalqa.py --set extra     # the second batch (EXTRA_IDS, added 2026-09-26)
 
 LLM: CONVERT_LLM_* in .env (falls back to the shared LLM_*). Output: data/cases_clinicalqa/cqa_<id>.json.
 Reproducibility record (prompt, model, date, per-item log): data/labels/clinicalqa_conversion_meta.json.
@@ -43,6 +44,19 @@ SELECTED_IDS = [
     437, 458, 466, 516, 521, 523, 550, 578, 595, 630,
     660, 734, 742, 762, 841, 940, 966, 996, 1024, 1029,
 ]
+
+# Second batch (eval-simulator, 2026-09-26): 55 more diagnosis-answer items, same criteria as SELECTED_IDS, picked
+# by hand from the remaining diagnosis-type stems. Skipped: answers that are a test/treatment/mechanism, diagnoses
+# already covered by SELECTED_IDS (e.g. 35/386 PE, 504 meningitis, 222 gout), and very short stems (< ~240 chars).
+EXTRA_IDS = [
+    3, 14, 17, 28, 31, 45, 61, 69, 113, 118,
+    128, 227, 229, 231, 234, 236, 245, 330, 355, 360,
+    366, 371, 376, 381, 408, 417, 442, 446, 503, 510,
+    513, 514, 530, 533, 538, 549, 555, 575, 580, 622,
+    627, 629, 636, 664, 725, 726, 729, 739, 744, 771,
+    800, 848, 912, 928, 1025,
+]
+ID_SETS = {"base": SELECTED_IDS, "extra": EXTRA_IDS, "all": SELECTED_IDS + EXTRA_IDS}
 
 SYSTEM_PROMPT = """당신은 의학 교육용 객관식 문항을 대화형 진단 연습 증례(JSON)로 바꾸는 변환기입니다.
 원문 문항에 적힌 사실만 옮기세요. 원문에 없는 증상, 병력, 진찰 소견, 검사 결과, 수치, 음성 소견을 절대 만들어 내지 마세요.
@@ -227,7 +241,7 @@ def validate(case: dict, item: dict) -> tuple[list[str], list[str]]:
 def convert_one(item: dict, client: OpenAICompatClient) -> dict:
     qid = item["question_id"]
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": build_user(item)}]
-    log = {"id": qid, "attempts": []}
+    log = {"id": qid, "date": dt.date.today().isoformat(), "attempts": []}
     for _ in range(2):  # first try + one retry
         raw = ""
         try:
@@ -252,7 +266,8 @@ def convert_one(item: dict, client: OpenAICompatClient) -> dict:
                 "diagnosis": case["diagnosis"],
                 "aliases": case["aliases"],
                 "must_check": [],
-                "source": {"dataset": DATASET, "id": qid, "license": "Apache-2.0"},
+                "source": {"dataset": DATASET, "id": qid, "license": "Apache-2.0",
+                           "url": "https://huggingface.co/datasets/snuh/ClinicalQA"},
             }
             (OUT_DIR / f"cqa_{qid}.json").write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n",
                                                      encoding="utf-8")
@@ -272,14 +287,18 @@ def convert_one(item: dict, client: OpenAICompatClient) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ids", type=int, nargs="*", default=SELECTED_IDS)
+    ap.add_argument("--ids", type=int, nargs="*", default=None, help="explicit ids (overrides --set)")
+    ap.add_argument("--set", choices=sorted(ID_SETS), default="base", help="which id list to convert")
     ap.add_argument("--overwrite", action="store_true")
-    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--workers", type=int, default=2, help="parallel LLM calls (keep low: shared API quota)")
     args = ap.parse_args()
+    if args.ids is None:
+        args.ids = ID_SETS[args.set]
 
     load_dotenv(ROOT / ".env")
     cfg = LLMConfig.from_env("CONVERT_LLM")
     cfg.temperature = 0.0
+    cfg.max_retries = 6  # the client sleeps 30 s on 429 before each retry
     client = OpenAICompatClient(cfg)
     items = load_items()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -308,6 +327,7 @@ def main() -> None:
         "max_tokens": cfg.max_tokens,
         "date": dt.date.today().isoformat(),
         "selected_ids": SELECTED_IDS,
+        "extra_ids": EXTRA_IDS,
         "difficulty_override": DIFFICULTY_OVERRIDE,
         "system_prompt": SYSTEM_PROMPT,
         "user_template": USER_TEMPLATE,

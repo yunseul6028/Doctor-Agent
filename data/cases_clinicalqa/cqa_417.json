@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=417) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "난청",
+  "difficulty": "보통",
+  "teaching_point": "30년간의 직업적 소음 노출력과 순음청력검사 상 4kHz 주파수 영역에서 뚜렷한 청력 저하(소음성 노치)를 보이는 양측 대칭성 감각신경성 난청 소견을 종합하여 소음성 난청으로 진단합니다.",
+  "initial": "58세 남성. 주호소: 2년 전부터 시작된 양측성 점진적 난청",
+  "history": {
+    "증상|난청|귀|대화": "약 2년 전부터 점차 청력이 떨어져서 일상 대화하기가 힘들고, 특히 시끄러운 데서 더 알아듣기 힘들어요. 최근에는 TV 소리를 자꾸 키워서 가족들이 불편해해요.",
+    "어지럼|이명|현훈": "어지럼증이나 귀에서 소리가 나는 이명 증상은 없습니다.",
+    "직업|소음|귀마개": "철강 공장에서 30년간 근무하면서 소음 환경에 노출되었는데, 귀마개는 간헐적으로만 착용했습니다.",
+    "과거력|약물|고혈압|당뇨": "고혈압과 당뇨병으로 10년 동안 약을 복용하고 있습니다.",
+    "흡연|담배": "담배는 현재까지 피우고 있고, 40갑년 정도 됩니다.",
+    "가족력": "가족 중에 청력 장애가 있는 사람은 없습니다."
+  },
+  "exam": {
+    "고막|외이도|이경": "양측 고막과 외이도는 정상",
+    "음차검사|웨버|린네|tuning fork": "512Hz 음차 검사: 웨버 검사(Weber test) 중앙, 린네 검사(Rinne test) 양측 모두 양성"
+  },
+  "tests": {
+    "순음청력검사|audiometry|PTA": "양측 대칭성 감각신경성 난청 (250Hz 25dB, 500Hz 30dB, 1kHz 35dB, 2kHz 45dB, 4kHz 65dB, 8kHz 70dB)",
+    "어음청력검사|SRT|WRS": "어음인지역치(SRT) 양측 35dB, 단어인지도(WRS) 양측 80%"
+  },
+  "diagnosis": "소음성 난청",
+  "aliases": [
+    "Noise-induced hearing loss",
+    "NIHL",
+    "직업성 난청"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 417,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=113) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "객혈",
+  "difficulty": "쉬움",
+  "teaching_point": "30갑년의 흡연력을 가진 중년 남성에서 객혈, 체중 감소, 마른 기침 등의 증상과 함께 흉부 영상에서 불규칙한 경계의 결절 및 종격동 림프절 비대가 관찰되므로 폐암을 가장 먼저 의심해야 합니다. 가래 항산균 도말 및 세균 배양이 음성인 점도 결핵이나 감염성 질환보다 폐암 가능성을 지지합니다.",
+  "initial": "58세 남성. 주호소: 3일 전부터 시작된 소량의 객혈",
+  "history": {
+    "객혈|피|가래|혈담": "3일 전부터 가래에 소량의 피가 섞여 나왔어요. 간헐적으로 보여요.",
+    "기침|동반증상|마른기침": "최근 2개월 동안 마른 기침이 이어졌고, 주로 아침에 심해요.",
+    "체중변화|식욕|전신증상": "최근 2개월 동안 식욕이 떨어지고 몸무게가 5kg 정도 줄었어요.",
+    "흡연|담배|사회력": "담배는 30갑년 정도 피웠습니다.",
+    "과거력|지병|기저질환": "과거에 특별히 아팠던 적은 없어요.",
+    "여행력|해외": "최근에 해외여행을 다녀온 적은 없어요."
+  },
+  "exam": {
+    "청진|숨소리|흉부진찰|수포음": "우측 상부 흉부에서 미세한 수포음이 청진됨.",
+    "림프절|림프절종대|목진찰": "림프절 종대는 관찰되지 않음."
+  },
+  "tests": {
+    "흉부 X-선|X-ray|엑스레이": "우상엽에 3cm 크기의 결절성 병변, 주변부 불규칙한 경계",
+    "흉부 CT|CT": "우상엽에 3.2cm 크기의 불규칙한 경계를 가진 종괴, 종격동 림프절 비대 소견",
+    "혈액검사|CBC|일반혈액검사": "헤모글로빈 13.2 g/dL, 백혈구 8,500/μL, 혈소판 210,000/μL",
+    "가래검사|객담검사|AFB|배양": "항산균 도말 음성, 세균 배양 검사 음성, 악성 세포 검사 시행 중"
+  },
+  "diagnosis": "폐암",
+  "aliases": [
+    "폐악성종양",
+    "Lung cancer"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 113,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

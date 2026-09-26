@@ -1,0 +1,40 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=744) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "배뇨곤란/배뇨통",
+  "difficulty": "보통",
+  "teaching_point": "3개월 이상 지속된 빈뇨, 절박뇨, 하복부 통증 및 성교통이 있고 항생제 치료에 반응이 없는 환자에서, 방광경 검사 상 헌트너 궤양과 출혈반점이 확인되면 간질성 방광염/방광통증 증후군으로 진단합니다.",
+  "initial": "28세 여성. 주호소: 3개월 전부터 시작된 하복부 통증, 빈뇨, 배뇨통",
+  "history": {
+    "증상|빈뇨|절박뇨|소변|통증": "3개월 전부터 하복통이랑 소변볼 때 통증이 계속돼요. 하루에 15번에서 20번 정도 소변을 보고, 방광이 항상 차 있는 느낌인데 소변량은 적어요. 소변을 참기가 너무 힘들어요.",
+    "성교통|성관계": "성관계할 때 통증이 있어서 피하고 있어요.",
+    "치료력|약물|항생제": "이전에 항생제 치료를 여러 번 받았는데 효과가 전혀 없었어요.",
+    "과거력|스트레스": "특별한 과거력은 없는데, 최근에 스트레스가 심한 편이에요."
+  },
+  "exam": {
+    "복부진찰|하복부|압통": "하복부 압통 경미하게 있음",
+    "질검진|골반진찰": "특이 소견 없음"
+  },
+  "tests": {
+    "소변검사|요검사": "정상",
+    "소변배양검사|배양검사": "병원균 미검출",
+    "방광경검사|내시경": "방광벽의 출혈반점과 경미한 발적 소견, 헌트너 궤양 관찰",
+    "방광용적검사|방광용적": "최대 방광 용적 150mL"
+  },
+  "diagnosis": "간질성 방광염/방광통증 증후군",
+  "aliases": [
+    "간질성 방광염",
+    "방광통증 증후군",
+    "간질성방광염",
+    "방광통증증후군",
+    "Interstitial cystitis",
+    "Bladder pain syndrome",
+    "IC/BPS"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 744,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=514) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "두통",
+  "difficulty": "쉬움",
+  "teaching_point": "두통 발생 전 시각 전조(지그재그 모양)가 선행하고, 일측성 박동성 두통, 빛/소리 과민성, 오심 및 가족력이 동반되므로 전조 편두통으로 진단할 수 있습니다.",
+  "initial": "35세 여성. 주호소: 반복되는 두통",
+  "history": {
+    "두통|발병|기간": "5년 전부터 한 달에 3-4회 정도 두통이 생겨요.",
+    "전조|시각|눈": "두통이 오기 한 20분 전쯤에 반짝이는 지그재그 모양이 보여요.",
+    "부위|양상|통증": "두통은 주로 왼쪽 머리 옆쪽이 쿵쾅거리듯 박동성으로 아프고 4-6시간 정도 지속돼요.",
+    "동반증상|빛|소리|속울렁": "두통이 있을 때 빛이나 소리에 민감해지고 속이 울렁거려요.",
+    "완화요인|자세": "조용한 방에 누워있으면 증상이 좀 나아져요.",
+    "가족력|어머니|언니": "어머니와 언니도 비슷한 증상이 있어요."
+  },
+  "exam": {
+    "신체진찰": "특이 소견 없음"
+  },
+  "tests": {
+    "신경학적 검사": "정상",
+    "두부 CT": "정상",
+    "일반 혈액 검사": "정상 범위"
+  },
+  "diagnosis": "편두통",
+  "aliases": [
+    "전조 편두통",
+    "migraine",
+    "migraine with aura"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 514,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

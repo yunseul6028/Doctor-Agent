@@ -1,0 +1,32 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=530) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "만성복통/소화불량/속쓰림",
+  "difficulty": "보통",
+  "teaching_point": "40세 이상 환자에서 지속되는 상복부 통증과 함께 체중 감소, 구토 등의 경고 증상(red flag)이 있고 위암 가족력 및 위험인자가 동반된 경우 위암을 우선적으로 의심하고 위내시경 검사를 시행해야 합니다.",
+  "initial": "45세 남성. 주호소: 3개월 동안 지속된 상복부 통증과 속쓰림",
+  "history": {
+    "증상|양상|통증|속쓰림|식사": "상복부가 아프고 속이 쓰린 지 3개월 정도 됐어요. 주로 밥을 먹고 나면 증상이 더 심해지고 위산분비억제제를 먹으면 잠시 좋아집니다.",
+    "체중감소|체중|구토": "최근 6개월 동안 체중이 5kg 정도 줄었고, 가끔 구토를 하긴 하는데 피가 섞여 나오진 않았어요.",
+    "음주|흡연|담배|술": "담배는 20년 동안 하루에 한 갑씩 피워왔고, 술은 주 3회 이상 소주 1병씩 마십니다.",
+    "가족력|부모|아빠": "아버지가 70세에 위암으로 돌아가셨습니다."
+  },
+  "exam": {
+    "활력징후|진찰|복부|압통|종괴": "상복부에 경미한 압통이 있으며, 만져지는 종괴는 없음"
+  },
+  "tests": {
+    "혈액검사|일반혈액검사|CBC|간기능검사": "백혈구 7,000/μL, 혈색소 12.3g/dL, 혈소판 250,000/μL, AST 32 IU/L, ALT 28 IU/L"
+  },
+  "diagnosis": "위암",
+  "aliases": [
+    "Gastric cancer",
+    "Gastric carcinoma",
+    "위선암"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 530,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

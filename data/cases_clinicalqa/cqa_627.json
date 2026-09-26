@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=627) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "무월경",
+  "difficulty": "쉬움",
+  "teaching_point": "무월경과 함께 체중 증가, 피로, 추위 불내성, 변비 등의 전형적인 대사 저하 증상이 있고, TSH 상승 및 Free T4 감소 소견을 통해 갑상선기능저하증을 진단할 수 있습니다. 경미한 프로락틴 상승은 갑상선기능저하증에 의한 이차적 반응일 수 있으며, FSH가 정상이고 임신 반응이 음성이므로 조기 난소 부전이나 임신을 배제할 수 있습니다.",
+  "initial": "35세 여성. 주호소: 2개월 전부터 시작된 무월경",
+  "history": {
+    "월경력|초경|주기|생리": "13세에 초경이 있었고, 평소에는 28~30일 주기로 규칙적으로 생리를 했어요.",
+    "동반증상|체중|피부|피로|추위": "최근에 체중이 10kg 정도 늘었고 피부가 건조해지면서 항상 피곤하고 추위를 많이 느껴요.",
+    "소화기증상|변비|탈모|머리카락": "변비가 심해지고 머리카락도 많이 빠져요.",
+    "과거력|약물|약": "특별히 앓던 병은 없고 복용하는 약도 없어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|심박수": "심박수 58회/분, 혈압 110/70 mmHg",
+    "시진|피부": "피부 건조함, 다소 창백함"
+  },
+  "tests": {
+    "혈액검사|갑상선기능검사|TFT|TSH|Free T4": "TSH 18.5 μIU/mL (정상 범위: 0.4-4.0), Free T4 0.6 ng/dL (정상 범위: 0.8-1.8)",
+    "자가항체|항체|TPO": "항갑상선 과산화효소 항체 양성",
+    "호르몬검사|프로락틴|FSH|LH|임신검사": "프로락틴 28 ng/mL (정상 범위: 4-23), FSH 4.2 mIU/mL, LH 3.5 mIU/mL, 임신 검사 음성"
+  },
+  "diagnosis": "갑상선기능저하증",
+  "aliases": [
+    "Hypothyroidism",
+    "원발성 갑상선기능저하증",
+    "Primary hypothyroidism",
+    "하시모토 갑상선염"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 627,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

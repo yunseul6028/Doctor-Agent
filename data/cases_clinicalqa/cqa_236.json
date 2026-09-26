@@ -1,0 +1,38 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=236) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "관절통/관절부기",
+  "difficulty": "쉬움",
+  "teaching_point": "반복적인 손목 및 엄지 사용 후 발생한 손목 요측 통증, Finkelstein 검사 양성 소견, 초음파상 제1 신전구획의 건초 비후 및 액체 저류를 종합하여 드퀘르벵 건초염으로 진단합니다.",
+  "initial": "35세 여성. 주호소: 2일 전부터 시작된 좌측 손목 통증과 부종",
+  "history": {
+    "통증 양상|통증|증상 변화|컴퓨터": "처음에는 경미했는데 점차 악화되었고 손목을 움직일 때 심해져요. 특히 엄지와 검지로 물체를 잡거나 돌리는 동작을 할 때 통증이 심해요.",
+    "발열|발적|열감|약물 반응|진통제": "손목 부위에 열감이랑 발적이 있어서 진통소염제를 복용했는데 효과가 미미했어요.",
+    "직업|업무|사용량|손목 사용": "사무직이라 컴퓨터 작업을 많이 하는데, 최근 업무량이 늘어서 하루 10시간 이상 컴퓨터 작업을 했어요.",
+    "과거력|외상|다친 적|기저질환": "특별한 과거력은 없고 다친 적도 없어요."
+  },
+  "exam": {
+    "시진|진찰|발적|부종|압통|손목": "좌측 손목 배측에 국소적인 부종과 발적, 압통이 있음",
+    "관절 운동|신전|수동적 운동": "손목을 신전할 때 통증이 악화됨. 손목 관절의 수동적 움직임에는 제한이 없음",
+    "핑켈스타인|Finkelstein|이학적 검사": "Finkelstein 검사 양성"
+  },
+  "tests": {
+    "혈액 검사|CBC|염증 수치|ESR|CRP": "백혈구 7,200/μL, 혈색소 13.5g/dL, 혈소판 250,000/μL, ESR 12mm/hr, CRP 0.8mg/dL",
+    "X-ray|손목 엑스레이|X선": "손목 X-선 검사: 정상, 골절이나 골미란 소견 없음",
+    "초음파|손목 초음파|도플러": "초음파 검사: 제1 신전구획(첫 번째 손목폄 구획)의 건초 비후와 주변 저에코성 액체 저류, 도플러 검사에서 혈류 증가 소견"
+  },
+  "diagnosis": "드퀘르벵 건초염",
+  "aliases": [
+    "드퀘르벵 병",
+    "드케르벵 건초염",
+    "드퀴르벵 협착성 건막염",
+    "De Quervain's tenosynovitis",
+    "De Quervain disease"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 236,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

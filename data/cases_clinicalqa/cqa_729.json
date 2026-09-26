@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=729) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "발작/간질",
+  "difficulty": "보통",
+  "teaching_point": "실신 시 뇌 허혈로 인해 짧은 경련성 떨림(convulsive syncope)이 수반될 수 있으나, 빠른 의식 회복과 정상 뇌파 소견으로 뇌전증 발작과 구별할 수 있습니다. 본 증례는 심전도상 2:1 방실 차단과 홀터 모니터링의 동정지 소견을 통해 서맥성 부정맥에 의한 심장성 실신으로 확진할 수 있습니다.",
+  "initial": "68세 남성. 주호소: 의식 소실",
+  "history": {
+    "발병|상황|경과|의식소실": "집에서 TV를 보다가 갑자기 의식을 잃고 쓰러졌어요. 와이프 말로는 갑자기 창백해지고 의식을 잃었는데, 10초 정도 팔다리가 가볍게 떨리다가 1분쯤 지나서 의식을 되찾았다고 해요.",
+    "과거력|동반증상|이전발작": "최근 3개월 동안 아침에 비슷한 증상이 2번 더 있었어요.",
+    "기저질환|약물|지병": "고혈압, 당뇨병, 관상동맥질환이 있어서 약을 먹고 있어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|체온": "혈압 110/70 mmHg, 맥박 48회/분, 호흡수 18회/분, 체온 36.5°C",
+    "심장청진|심잡음": "심잡음은 청진되지 않음",
+    "신경학검사|신경진찰": "신경학적 검사에서 특이 소견 없음"
+  },
+  "tests": {
+    "심전도|EKG|ECG": "표준 12-유도 심전도: 2:1 방실 차단(2:1 AV block)",
+    "심초음파|ECHO": "좌심실 구혈률(LVEF) 55% (정상)",
+    "뇌MRI|뇌파|EEG": "뇌 MRI: 정상, 뇌파검사(EEG): 정상",
+    "홀터|24시간심전도|Holter": "24시간 홀터 모니터링: 최장 3.5초의 동정지(sinus pause)가 여러 차례 기록됨"
+  },
+  "diagnosis": "심장성 실신",
+  "aliases": [
+    "cardiogenic syncope",
+    "심장실신",
+    "부정맥성 실신"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 729,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

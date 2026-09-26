@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=575) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "목덩이",
+  "difficulty": "쉬움",
+  "teaching_point": "전경부 중앙선(설골 근처)에 발생한 무통성 종괴가 혀를 내밀거나 침을 삼킬 때 위아래로 움직이는 특징적인 소견과 초음파상 명확한 단순 낭성 병변으로 갑상혀관낭을 진단할 수 있습니다.",
+  "initial": "8세 남성. 주호소: 목 중앙 부위의 덩이(3개월 전 발견)",
+  "history": {
+    "증상|경과|통증|symptom": "3개월 전쯤에 목 중앙에서 작은 덩이를 발견했는데 요즘 크기가 점차 커져서 왔어요. 아프다고 하지는 않아요.",
+    "감기|발열|과거력|fever|infection": "특별한 과거력은 없고, 최근에 감기를 걸렸다거나 열이 난 적도 없었어요."
+  },
+  "exam": {
+    "신체진찰|목진찰|종괴|시진|촉진|physical exam": "갑상연골과 설골 사이의 전경부 중앙선에 약 2cm 크기의 둥글고 부드러운 종괴가 관찰됨. 피부 유착 없음, 촉진 시 통증 없음.",
+    "움직임|삼킴|혀내밀기|swallowing|tongue protrusion": "혀를 내밀거나 삼킬 때 종괴가 위아래로 움직이는 양상이 관찰됨."
+  },
+  "tests": {
+    "초음파|US|ultrasound": "전경부 중앙선에 경계가 명확한 낭성 병변이 관찰됨. 내부에 격벽이나 고형 성분은 관찰되지 않음.",
+    "혈액검사|TFT|WBC|lab": "백혈구 7,200/μL, 갑상선 기능 검사 정상"
+  },
+  "diagnosis": "갑상혀관낭",
+  "aliases": [
+    "갑상혀관낭종",
+    "갑상설관낭",
+    "갑상설관낭종",
+    "thyroglossal duct cyst"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 575,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

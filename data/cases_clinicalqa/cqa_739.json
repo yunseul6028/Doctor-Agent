@@ -1,0 +1,36 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=739) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "배뇨곤란/배뇨통",
+  "difficulty": "쉬움",
+  "teaching_point": "고령 남성에서 약한 소변줄기, 야간뇨, 잔뇨감, 절박뇨 등의 하부요로증상과 함께 직장수지검사 및 초음파에서 전립선 비대(45cc)와 잔뇨량 증가가 확인되므로 양성 전립선 비대증으로 진단합니다. PSA 상승 소견이 있으나 비대증에서도 나타날 수 있으며, 소변검사상 세균 및 백혈구가 음성이므로 요로감염은 배제됩니다.",
+  "initial": "68세 남성. 주호소: 2개월 전부터 시작된 배뇨곤란",
+  "history": {
+    "증상|배뇨증상|요로증상|symptoms": "밤에 소변보려고 3~4번은 깨고요, 소변줄기가 약해지고 중간에 끊기기도 해요. 누고 나서도 잔뇨감이 남고, 최근엔 갑자기 오줌이 마려우면 참기가 힘들어요.",
+    "과거력|지병|고혈압|hypertension|HTN": "혈압이 높아서 약을 먹고 있어요.",
+    "흡연|담배|smoking": "20년간 하루에 1갑씩 피워왔습니다."
+  },
+  "exam": {
+    "복부|하복부|진찰|abdomen": "하복부 팽만이 관찰됨.",
+    "직장수지검사|DRE|전립선진찰": "전립선이 대칭적으로 비대되어 있으며 경도의 압통이 있음."
+  },
+  "tests": {
+    "혈액검사|CBC|PSA": "WBC 6,500/μL, Hb 14.2 g/dL, Platelet 240,000/μL, PSA 3.8 ng/mL",
+    "소변검사|요검사|urinalysis": "pH 6.0, RBC 0-1/HPF, WBC 2-3/HPF, 세균 (-)",
+    "초음파|전립선초음파|US": "전립선 크기 45cc, 방광 용적 550mL, 배뇨 후 잔뇨량 120mL"
+  },
+  "diagnosis": "양성 전립선 비대증",
+  "aliases": [
+    "양성전립선비대증",
+    "전립선 비대증",
+    "전립선비대증",
+    "BPH",
+    "Benign Prostatic Hyperplasia"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 739,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

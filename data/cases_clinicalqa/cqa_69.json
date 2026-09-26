@@ -1,0 +1,33 @@
+{
+  "_note": "Converted from snuh/ClinicalQA (question_id=69) by scripts/convert_clinicalqa.py. Source item was LLM-drafted and clinician-reviewed per the dataset card; this conversion is LLM-generated and not separately clinician-reviewed.",
+  "category": "가슴통증/가슴불쾌감",
+  "difficulty": "보통",
+  "teaching_point": "발열과 근육통 등 바이러스 감염 선행력 후 흡기 시 악화되는 날카로운 흉통, 흉막 마찰음, 소량의 흉수가 관찰되는 임상상으로 바이러스성 늑막염을 진단할 수 있습니다.",
+  "initial": "52세 남성. 주호소: 3일 전부터 시작된 좌측 가슴통증",
+  "history": {
+    "가슴통증|통증|양상|pleuritic pain": "통증이 날카롭고 찌르는 듯해요. 숨을 깊게 쉬거나 기침할 때 더 심해집니다.",
+    "동반증상|기침|호흡곤란|cough|dyspnea": "마른기침이 나오고 숨도 약간 차요.",
+    "선행증상|발열|근육통|감기|fever|myalgia": "일주일 전에 열이 나고 온몸이 쑤시고 아팠는데, 지금은 괜찮아졌어요.",
+    "과거력|지병|과거병력|past history": "특별히 앓던 병이나 치료받던 건 없어요."
+  },
+  "exam": {
+    "활력징후|혈압|맥박|체온|호흡수|vital signs": "혈압 125/75 mmHg, 맥박 88회/분, 호흡수 20회/분, 체온 37.2°C입니다.",
+    "청진|타진|흉부진찰|흉막마찰음|탁음|chest exam": "좌측 하부 흉부에서 흉막 마찰음(pleural friction rub)이 청진되며, 타진 시 해당 부위에 탁음이 있습니다."
+  },
+  "tests": {
+    "흉부 X선|흉부 엑스레이|CXR|chest X-ray": "좌측 하부 폐야에 소량의 흉수와 경미한 음영 증가 소견이 관찰됨."
+  },
+  "diagnosis": "바이러스성 늑막염",
+  "aliases": [
+    "바이러스성 흉막염",
+    "Viral pleurisy",
+    "Viral pleuritis"
+  ],
+  "must_check": [],
+  "source": {
+    "dataset": "snuh/ClinicalQA",
+    "id": 69,
+    "license": "Apache-2.0",
+    "url": "https://huggingface.co/datasets/snuh/ClinicalQA"
+  }
+}

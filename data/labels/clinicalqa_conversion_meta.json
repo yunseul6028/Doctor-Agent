@@ -8,7 +8,7 @@
   "temperature": 0.0,
   "reasoning_effort": "low",
   "max_tokens": 4096,
-  "date": "2026-09-25",
+  "date": "2026-09-26",
   "selected_ids": [
     1,
     6,
@@ -51,6 +51,63 @@
     1024,
     1029
   ],
+  "extra_ids": [
+    3,
+    14,
+    17,
+    28,
+    31,
+    45,
+    61,
+    69,
+    113,
+    118,
+    128,
+    227,
+    229,
+    231,
+    234,
+    236,
+    245,
+    330,
+    355,
+    360,
+    366,
+    371,
+    376,
+    381,
+    408,
+    417,
+    442,
+    446,
+    503,
+    510,
+    513,
+    514,
+    530,
+    533,
+    538,
+    549,
+    555,
+    575,
+    580,
+    622,
+    627,
+    629,
+    636,
+    664,
+    725,
+    726,
+    729,
+    739,
+    744,
+    771,
+    800,
+    848,
+    912,
+    928,
+    1025
+  ],
   "difficulty_override": {
     "181": "어려움",
     "238": "어려움",
@@ -77,6 +134,19 @@
       "warnings": [],
       "llm_difficulty": "보통"
     },
+    "3": {
+      "id": 3,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
     "6": {
       "id": 6,
       "attempts": [
@@ -89,8 +159,73 @@
       "warnings": [],
       "llm_difficulty": "보통"
     },
+    "14": {
+      "id": 14,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "17": {
+      "id": 17,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "28": {
+      "id": 28,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "31": {
+      "id": 31,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
     "42": {
       "id": 42,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "45": {
+      "id": 45,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -125,6 +260,45 @@
       "warnings": [],
       "llm_difficulty": "쉬움"
     },
+    "61": {
+      "id": 61,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "69": {
+      "id": 69,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "113": {
+      "id": 113,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
     "117": {
       "id": 117,
       "attempts": [
@@ -141,6 +315,19 @@
       ],
       "llm_difficulty": "쉬움"
     },
+    "118": {
+      "id": 118,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
     "121": {
       "id": 121,
       "attempts": [
@@ -152,6 +339,19 @@
       "status": "converted",
       "warnings": [],
       "llm_difficulty": "쉬움"
+    },
+    "128": {
+      "id": 128,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
     },
     "148": {
       "id": 148,
@@ -213,8 +413,73 @@
       "warnings": [],
       "llm_difficulty": "쉬움"
     },
+    "227": {
+      "id": 227,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "229": {
+      "id": 229,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "231": {
+      "id": 231,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
     "232": {
       "id": 232,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "234": {
+      "id": 234,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "236": {
+      "id": 236,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -236,6 +501,19 @@
       "status": "converted",
       "warnings": [],
       "llm_difficulty": "보통"
+    },
+    "245": {
+      "id": 245,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
     },
     "285": {
       "id": 285,
@@ -261,6 +539,23 @@
       "warnings": [],
       "llm_difficulty": "보통"
     },
+    "330": {
+      "id": 330,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "answer term '우울증' appears in history value (check it is a source fact)"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "answer term '우울증' appears in history value (check it is a source fact)"
+      ],
+      "llm_difficulty": "쉬움"
+    },
     "343": {
       "id": 343,
       "attempts": [
@@ -272,6 +567,84 @@
       "status": "converted",
       "warnings": [],
       "llm_difficulty": "보통"
+    },
+    "355": {
+      "id": 355,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "360": {
+      "id": 360,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "366": {
+      "id": 366,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "371": {
+      "id": 371,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "376": {
+      "id": 376,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "381": {
+      "id": 381,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
     },
     "383": {
       "id": 383,
@@ -309,8 +682,60 @@
       "warnings": [],
       "llm_difficulty": "쉬움"
     },
+    "408": {
+      "id": 408,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "417": {
+      "id": 417,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
     "437": {
       "id": 437,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "442": {
+      "id": 442,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "446": {
+      "id": 446,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -335,6 +760,58 @@
     },
     "466": {
       "id": 466,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "503": {
+      "id": 503,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "510": {
+      "id": 510,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "513": {
+      "id": 513,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "514": {
+      "id": 514,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -381,6 +858,68 @@
       "warnings": [],
       "llm_difficulty": "쉬움"
     },
+    "530": {
+      "id": 530,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "533": {
+      "id": 533,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "answer term 'highgradedysplasia' appears in tests value (check it is a source fact)",
+            "answer term 'barrettsesophagus' appears in tests value (check it is a source fact)",
+            "answer term '고도이형성' appears in tests value (check it is a source fact)",
+            "answer term '바렛식도' appears in tests value (check it is a source fact)"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "answer term 'highgradedysplasia' appears in tests value (check it is a source fact)",
+        "answer term 'barrettsesophagus' appears in tests value (check it is a source fact)",
+        "answer term '고도이형성' appears in tests value (check it is a source fact)",
+        "answer term '바렛식도' appears in tests value (check it is a source fact)"
+      ],
+      "llm_difficulty": "쉬움"
+    },
+    "538": {
+      "id": 538,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "549": {
+      "id": 549,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
     "550": {
       "id": 550,
       "attempts": [
@@ -397,8 +936,47 @@
       ],
       "llm_difficulty": "쉬움"
     },
+    "555": {
+      "id": 555,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "575": {
+      "id": 575,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
     "578": {
       "id": 578,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "580": {
+      "id": 580,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -421,6 +999,45 @@
       "warnings": [],
       "llm_difficulty": "보통"
     },
+    "622": {
+      "id": 622,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "627": {
+      "id": 627,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "629": {
+      "id": 629,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
     "630": {
       "id": 630,
       "attempts": [
@@ -431,6 +1048,23 @@
       ],
       "status": "converted",
       "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "636": {
+      "id": 636,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "answer term '45x' appears in tests value (check it is a source fact)"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "answer term '45x' appears in tests value (check it is a source fact)"
+      ],
       "llm_difficulty": "쉬움"
     },
     "660": {
@@ -445,8 +1079,77 @@
       "warnings": [],
       "llm_difficulty": "쉬움"
     },
+    "664": {
+      "id": 664,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "history/initial numbers not in source: ['0']"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "history/initial numbers not in source: ['0']"
+      ],
+      "llm_difficulty": "쉬움"
+    },
+    "725": {
+      "id": 725,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "726": {
+      "id": 726,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "729": {
+      "id": 729,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
     "734": {
       "id": 734,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "739": {
+      "id": 739,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -469,8 +1172,51 @@
       "warnings": [],
       "llm_difficulty": "쉬움"
     },
+    "744": {
+      "id": 744,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
     "762": {
       "id": 762,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "771": {
+      "id": 771,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": [
+            "answer term '크론병' appears in history value (check it is a source fact)"
+          ]
+        }
+      ],
+      "status": "converted",
+      "warnings": [
+        "answer term '크론병' appears in history value (check it is a source fact)"
+      ],
+      "llm_difficulty": "보통"
+    },
+    "800": {
+      "id": 800,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],
@@ -492,6 +1238,45 @@
       "status": "converted",
       "warnings": [],
       "llm_difficulty": "보통"
+    },
+    "848": {
+      "id": 848,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "912": {
+      "id": 912,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
+    },
+    "928": {
+      "id": 928,
+      "date": "2026-09-26",
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "쉬움"
     },
     "940": {
       "id": 940,
@@ -531,6 +1316,19 @@
     },
     "1024": {
       "id": 1024,
+      "attempts": [
+        {
+          "errors": [],
+          "warnings": []
+        }
+      ],
+      "status": "converted",
+      "warnings": [],
+      "llm_difficulty": "보통"
+    },
+    "1025": {
+      "id": 1025,
+      "date": "2026-09-26",
       "attempts": [
         {
           "errors": [],

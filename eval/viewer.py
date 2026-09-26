@@ -116,9 +116,15 @@ function render(i) {
   document.getElementById("cases").innerHTML = cases.length ? cases.map((c, idx) => {
     const s = c.scores || {};
     const pills = Object.entries(s).map(([k, v]) => `<span class="pill ${tone(v)}">${SCORE[k] || k} ${fmt(v)}</span>`).join("");
+    const reviewAt = {};
+    (c.reviews || []).forEach(r => { (reviewAt[r.turn] = reviewAt[r.turn] || []).push(r); });
+    const reviewHtml = n => (reviewAt[n + 1] || []).map(r =>
+      `<div class="why"><b>검토의</b> · ${r.verdict === "보류" ? "⏸ 보류" : "✅ 승인"} (제안 진단: ${esc(r.proposed)})` +
+      `${r.issues && r.issues.length ? " — " + r.issues.map(esc).join("; ") : ""}` +
+      `${r.final_diagnosis ? ` → 진단명 수정: ${esc(r.final_diagnosis)}` : ""}</div>`).join("");
     const turns = (c.turns || []).map((t, n) => `
       <div class="turn">
-        <div class="doctor"><div class="who">의사 · ${n + 1}턴 <span class="tag t-${t.type}">${LABEL[t.type] || t.type}</span></div>${esc(t.content)}${t.reason ? `<div class="why"><b>근거</b> · ${esc(t.reason)}</div>` : ""}${t.ddx && t.ddx.length ? `<div class="why"><b>감별 후보</b> · ${t.ddx.map(d => typeof d === "object" ? `${esc(d.dx)}${d.p != null ? ` ${Math.round(d.p * 100)}%` : ""}` : esc(d)).join(", ")}</div>` : ""}</div>
+        <div class="doctor"><div class="who">의사 · ${n + 1}턴 <span class="tag t-${t.type}">${LABEL[t.type] || t.type}</span></div>${esc(t.content)}${t.reason ? `<div class="why"><b>근거</b> · ${esc(t.reason)}</div>` : ""}${reviewHtml(n)}${t.ddx && t.ddx.length ? `<div class="why"><b>감별 후보</b> · ${t.ddx.map(d => typeof d === "object" ? `${esc(d.dx)}${d.p != null ? ` ${Math.round(d.p * 100)}%` : ""}` : esc(d)).join(", ")}</div>` : ""}</div>
         ${t.type === "DIAGNOSE" ? "" : `<div class="patient"><div class="who">${t.type === "ASK" ? "환자" : "결과"}</div>${esc(t.response)}</div>`}
       </div>`).join("");
     return `
@@ -131,6 +137,10 @@ function render(i) {
             <div><b>에이전트 진단</b>${esc(c.diagnosis || "없음")}</div>
             <div><b>정답</b>${esc(c.answer)}</div>
             ${c.judge ? `<div><b>채점 이유</b>${esc(c.judge.reason)}</div>` : ""}
+            ${c.findings && c.findings.length ? `<div><b>소견 장부</b>${["양성", "음성", "결과없음"].map(st => {
+                const g = c.findings.filter(f => f.status === st).map(f => esc(f.item) + (f.detail ? ` (${esc(f.detail)})` : ""));
+                return g.length ? `<span class="sub">${st}</span> ${g.join(", ")}` : "";
+              }).filter(Boolean).join(" · ")}</div>` : ""}
             ${c.missed_checks && c.missed_checks.length ? `<div><b>빠뜨린 확인</b>${c.missed_checks.map(esc).join(", ")}</div>` : ""}
             ${c.ddx && c.ddx.length ? `<div><b>감별 후보</b>${c.ddx.map(d => esc(typeof d === "object" ? `${d.dx}${d.p != null ? ` (${fmt(d.p)})` : ""}` : d)).join(", ")}</div>` : ""}
           </div>
