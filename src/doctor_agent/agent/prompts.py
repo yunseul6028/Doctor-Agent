@@ -43,6 +43,10 @@ JSON 한 줄로만 출력하세요:
 {"key_findings": [{"finding": "...", "status": "설명됨|설명 안 됨"}], "contradicting": ["..."], "confirmation": "...|없음", "unresolved_danger": ["..."], "next": {"type": "ASK|EXAM|TEST", "content": "...", "reason": "..."}, "final_diagnosis": "", "refine_evidence": ""}"""
 
 
+# runtime: added (with the hint list cut short) when the case time budget is running low
+LOW_TIME_HINT = "진료 시간이 얼마 남지 않았습니다. 꼭 필요한 확인만 하고 곧 진단하세요."
+
+
 def build_step_messages(view: str, turn: int, max_turns: int, hints: list[str]) -> list[dict]:
     user = f"{view}\n\n현재 턴: {turn + 1}/{max_turns}"
     if hints:
