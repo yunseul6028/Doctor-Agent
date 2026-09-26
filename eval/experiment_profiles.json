@@ -1,0 +1,36 @@
+{
+  "_doc": "Standard experiment profiles for eval/experiment.py. Case lists are committed files (paths relative to the repo root); regenerate them with `python eval/experiment.py --regen-case-lists` (deterministic, seed below).",
+  "case_list_seed": 2026,
+  "case_list_source": "data/cases_aug/*",
+  "profiles": {
+    "smoke": {
+      "description": "5 fixed cases (subset of dev, at least one per set), current code only. Wiring check before spending credits.",
+      "cases_file": "eval/case_lists/smoke.txt",
+      "size": 5,
+      "conditions": ["v6"],
+      "workers": 5
+    },
+    "dev": {
+      "description": "50 fixed cases stratified across sets; current code with and without KB hints.",
+      "cases_file": "eval/case_lists/dev.txt",
+      "size": 50,
+      "conditions": ["v6", "v6-no-kb"],
+      "workers": 8
+    },
+    "full": {
+      "description": "All augmented cases (data/cases_aug/*), current code only.",
+      "cases": ["data/cases_aug/*"],
+      "conditions": ["v6"],
+      "workers": 8
+    }
+  },
+  "conditions": {
+    "v6": {"description": "current checkout (HEAD), KB hints on", "env": {}},
+    "v6-no-kb": {"description": "current checkout, KB hints off", "env": {"AGENT_USE_KB": "0"}},
+    "v5-baseline": {
+      "description": "prompt v5-ko-ledger-review at the commit logged on 2026-09-26; run in a temporary git worktree with the current eval/ copied in, rescored with the current scorer",
+      "commit": "c3ddecd",
+      "env": {}
+    }
+  }
+}

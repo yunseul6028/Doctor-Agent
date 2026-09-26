@@ -17,6 +17,36 @@
 | 2026-09-26 | Findings ledger + DDx ledger + pre-diagnosis review | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (original) | standard | 0.90 | 0.89 | 0.85 | – | reviewer: 0 holds, 6 diagnosis names revised |
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
 
+## How to run on competition API day
+
+One command runs a standard profile, estimates cost first, compares conditions, and rebuilds the viewer + share page
+(`eval/experiment.py`; profiles in `eval/experiment_profiles.json`; fixed case lists in `eval/case_lists/`).
+
+1. Add the competition endpoint to `.env` (keys stay in `.env`; the script never prints them):
+   `COMPETITION_LLM_BASE_URL=…`, `COMPETITION_LLM_API_KEY=…` (optional `COMPETITION_LLM_MODEL`, default `openai/gpt-oss-20b`).
+   The existing `DOCTOR_LLM_*` lines also work. `--doctor-endpoint gemini` uses `GEMINI_LLM_*` or the shared `LLM_*`;
+   `local` uses `LOCAL_LLM_*` or Ollama `gpt-oss:20b`.
+2. Free wiring check: `python eval/experiment.py --profile smoke --doctor-endpoint dummy --no-view`
+3. Plan + cost only: `python eval/experiment.py --profile dev --doctor-endpoint competition --estimate-only`
+   (add `--price-in/--price-out` in KRW per 1M tokens, or `EXPERIMENT_PRICE_{IN,OUT}_PER_M`, to get a KRW figure).
+4. Smoke on the real model (5 cases, ~50 doctor calls): `python eval/experiment.py --profile smoke --doctor-endpoint competition`
+   → check `usage:` lines (real tokens/call) before anything bigger; later estimates use them automatically.
+5. Dev comparison (50 cases × v6 / v6-no-kb, ~900 calls, needs `--yes`):
+   `python eval/experiment.py --profile dev --doctor-endpoint competition --yes --log --note "first gpt-oss run"`
+   Optional: `--conditions v6,v5-baseline` (v5 runs in a temporary git worktree at `c3ddecd`, rescored with the current
+   scorer), `--env AGENT_CASE_TIME_BUDGET_S=240`, `--env DOCTOR_LLM_STRUCTURED_OUTPUT=guided_json`, `--compare-with FILE`.
+6. `full` (267 cases) only when a dev result justifies it.
+
+Defaults are the cheapest mode: keyword patient + no judge, so only the doctor spends competition credits
+(`--patient llm --judge llm` opt in; those use `PATIENT_LLM_*`/`JUDGE_LLM_*`, i.e. Gemini). Guard: `--yes` is required
+above `--max-calls` (300 doctor calls) or `--max-cost` (5,000 KRW, when prices are given). A billing error (402 /
+credits depleted) stops the running batch and skips the remaining conditions (exit code 3).
+Cost estimate = cases × doctor calls/case (mean of past result files, else 12) × tokens/call (from recorded usage of
+the same model, else any model, else 3,000 in / 1,000 out), all × margin 1.3. Doctor token usage is recorded per case
+(`usage` in each row) and per run by wrapping the SDK client in `eval/usage.py` (src untouched).
+`--log` appends one table row per condition above and a comparison section (overall, per set, flips, n/a rate) under
+"Auto-logged experiment runs" at the end. The share page path is printed (`eval/results/share_<time>.html` or `--share`).
+
 ## Open issues
 - The reviewer **never holds** (0/80) → the conservative check isn't working. It only revises names, with mixed effects (better subtypes vs. over-specific names like "상행결장암"/"밀가루 의존성")
 - Safety checks falsely triggered by protocol category detection (anaphylaxis→stroke checks, hypersensitivity pneumonitis→sepsis cultures) → category detection needs refinement
