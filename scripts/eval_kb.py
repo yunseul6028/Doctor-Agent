@@ -170,8 +170,30 @@ def bench_normalize(cases: list[dict]) -> dict:
     return out
 
 
+def build_links() -> dict:
+    """data/lexicon/kb_links.json: lexicon concept → KB term links (kb.concept_links; deterministic, no LLM)."""
+    from collections import Counter
+
+    from doctor_agent.nlp import LEXICON
+    links = kb.concept_links(kb.get_kb(), mode="all")
+    kinds = Counter(kind for lst in links.values() for _t, kind in lst)
+    return {"meta": {"builder": "scripts/eval_kb.py --build-links (knowledge.kb.concept_links, mode=all)",
+                     "lexicon_version": LEXICON.meta.get("version", ""), "concepts": len(links),
+                     "links": sum(kinds.values()), "by_kind": dict(sorted(kinds.items())),
+                     "note": "Derived from data/lexicon/concepts.json, data/kb/kb.json.gz and kb_curated.py tables; "
+                             "TF: test-result ids are left to kb_tests."},
+            "links": links}
+
+
+def links_json(data: dict) -> str:
+    """One concept per line (diff-friendly)."""
+    rows = ",\n".join(f"{json.dumps(c)}: {json.dumps(v)}" for c, v in data["links"].items())
+    return '{"meta": ' + json.dumps(data["meta"], ensure_ascii=False) + ',\n"links": {\n' + rows + "\n}}\n"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--build-links", action="store_true", help="write data/lexicon/kb_links.json and exit")
     ap.add_argument("--no-write", action="store_true")
     ap.add_argument("--show-misses", type=int, default=0)
     ap.add_argument("--split", default="dev", help="split to show misses from (dev/heldout)")
@@ -180,6 +202,11 @@ def main() -> None:
     ap.add_argument("--no-demo", action="store_true", help="do not pass sex/age")
     ap.add_argument("--prev-w", type=float, default=None, help="override the prevalence prior weight (0 = off)")
     args = ap.parse_args()
+    if args.build_links:
+        data = build_links()
+        kb.LINKS_PATH.write_text(links_json(data), encoding="utf-8")
+        print("wrote", kb.LINKS_PATH.relative_to(ROOT), data["meta"]["by_kind"])
+        return
     t0 = time.perf_counter()
     kbk = kb.get_kb()
     load_s = time.perf_counter() - t0

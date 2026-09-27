@@ -5,11 +5,22 @@ existing KB terms. Nothing here adds disease knowledge: these tables only say wh
 Keys are English term labels that already exist in data/kb/kb.json.gz (resolved at load time; unknown labels are
 skipped). Stdlib only.
 
-    SYNONYMS      extra Korean/English phrases for a term (matched at a word start, like the KB labels)
+Since the migration to the normalisation layer (doctor_agent.nlp, 2026-09-28) kb.py reads patient wording, negation
+and measured values through the lexicon. SYNONYMS / REGEX / lab_terms() are no longer used at runtime (switches
+KnowledgeBase.CURATED_SYN / LAB_VALUES="curated" bring them back for A/B runs); they stay as build-time sources:
+scripts/build_lexicon.py merges them into data/lexicon (provenance "curated"), and kb.concept_links() turns each
+phrase list into a concept → term link in data/lexicon/kb_links.json. Still read at runtime:
+
     STOP_TERMS    over-generic KB terms that must not be matched from free text ("observation", "increase", ...)
-    BAD_LABELS    ambiguous labels removed from one term only ("가슴 통증" is chest pain, not mastodynia)
+    BAD_LABELS    ambiguous labels removed from one term only ("가슴 통증" is chest pain, not mastodynia; "무릎의
+                  열감" is not fever)
     BLOCK_WORDS   words that contain a shorter label but mean something else ("수포음" = crackles, not vesicle)
-    lab_terms()   numeric vitals/lab values → abnormality terms ("WBC 14,200/μL" → leukocytosis)
+    NAME_SUBS / NAME_MODIFIERS   diagnosis-name normalisation
+Not read at runtime (build-time sources, A/B switches):
+    SYNONYMS      extra Korean/English phrases for a term
+    REGEX         flexible phrasings for a term
+    lab_terms()   numeric vitals/lab values → abnormality terms ("WBC 14,200/μL" → leukocytosis); replaced by the
+                  measured findings of nlp.parse (same analytes, reference ranges read)
 """
 from __future__ import annotations
 

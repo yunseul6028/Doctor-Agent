@@ -175,3 +175,44 @@ def test_benchmark_regression_dev_subset():
     assert top10 >= 35, top10
     assert top50 >= 38, top50
     assert max(r["ms"] for r in rows) < 500
+
+
+# --- normalisation-layer migration (doctor_agent.nlp) ---------------------------------------------
+
+def test_negation_and_subject_per_mention():
+    assert "cough" in _en("기침은 있으나 열은 없음") and "fever" not in _en("기침은 있으나 열은 없음")
+    k = kb.get_kb()
+    assert "fever" in {k.terms[t]["en"] for t in k.match_terms("기침은 있으나 열은 없음", allow_negated=True)}
+    assert not {"diabetes", "type-1 diabetes"} & _en("어머니가 당뇨가 있어요")  # a relative's finding
+    assert "abdominal pain" not in _en("배는 안 아파요")
+    assert "fever" in _en("체온 38.6℃") and "fever" not in _en("체온 36.5℃")
+
+
+def test_absent_finding_in_a_positive_text_is_a_negative():
+    k = kb.get_kb()
+    _groups, absent, _w = k._split_finding("기침과 가래가 있으나 발열은 없음")
+    assert "fever" in {k.terms[t]["en"] for t in absent}
+
+
+def test_links_file_is_fresh():
+    """data/lexicon/kb_links.json equals what the builder derives now (rerun `python scripts/eval_kb.py
+    --build-links` after changing data/lexicon, data/kb or kb_curated)."""
+    import json
+
+    from scripts import eval_kb as E
+    assert json.loads(kb.LINKS_PATH.read_text(encoding="utf-8"))["links"] == E.build_links()["links"]
+
+
+def test_lexicon_covers_the_retired_curated_synonyms():
+    """kb_curated.SYNONYMS is no longer scanned at runtime; the lexicon must still map (almost) every phrase to the
+    same KB term (7 of 689 are left out on purpose: single-syllable "멍", uncertain "기억이 안", ...)."""
+    k = kb.get_kb()
+    total = miss = 0
+    for en, syns in kb_curated.SYNONYMS.items():
+        tid = k.en_ix.get(en)
+        if not tid or tid in k.stop:
+            continue
+        for s in syns:
+            total += 1
+            miss += tid not in k._match(s)
+    assert total > 600 and miss <= 10, (miss, total)

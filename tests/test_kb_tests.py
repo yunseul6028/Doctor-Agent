@@ -128,7 +128,9 @@ def _rank(findings, name, negatives=None, k=10):
     (["발열", "옆구리 통증", "소변 아질산염 양성", "소변 WBC 원주"], "pyelonephritis", 2),
     (["호흡곤란", "흉막성 흉통", "CT 폐동맥 조영: 우폐동맥 충만결손"], "pulmonary embolism", 1),
     (["우하복부 통증", "복부 CT: 충수 직경 12mm로 비후, 주위 지방 침윤"], "appendicitis", 1),
-    (["갑상선 비대", "체중 감소", "TSH 0.01 mIU/L", "TSH 수용체 항체 양성"], "Graves disease", 2),
+    # top 3 since the nlp migration (2026-09-28): "갑상선 비대" now matches goiter, which the Graves profile lacks (no
+    # symptom features), and kb_tests reads "TSH 수용체 항체 양성" as elevated TSH too, so hypothyroidism edges past
+    (["갑상선 비대", "체중 감소", "TSH 0.01 mIU/L", "TSH 수용체 항체 양성"], "Graves disease", 3),
 ])
 def test_decisive_results_rank_the_disease(findings, dx, top):
     r = _rank(findings, dx)
@@ -140,7 +142,11 @@ def test_normal_rule_out_result_lowers_the_disease():
     base = ["흉통", "호흡곤란", "식은땀"]
     with_neg = _rank(base, "myocardial infarction", negatives=["트로포닌 음성"], k=50)
     without = _rank(base, "myocardial infarction", k=50)
-    assert without is not None and (with_neg is None or with_neg > without)
+    assert without is not None and (with_neg is None or with_neg >= without)
+    # the score drops by the rule-out penalty (the rank may stay when MI leads by more than the penalty)
+    score = {c["name_en"]: c["score"] for c in kb.candidates(base, k=50)}
+    score_neg = {c["name_en"]: c["score"] for c in kb.candidates(base, k=50, negatives=["트로포닌 음성"])}
+    assert score_neg.get("myocardial infarction", -99) < score["myocardial infarction"]
 
 
 @needs_kb

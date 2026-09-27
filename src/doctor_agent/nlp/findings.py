@@ -33,7 +33,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 
-from doctor_agent.nlp.lexicon import LEXICON, Lexicon, Mention, normalize
+from doctor_agent.nlp.lexicon import LEXICON, Concept, Lexicon, Mention, normalize
 
 SOURCES = ("patient", "exam", "test", "claim")
 
@@ -848,3 +848,51 @@ def match(claim_text: str, findings, *, lexicon: Lexicon | None = None, context:
             return False, ""
         spans.append(hit.span)
     return True, " / ".join(dict.fromkeys(spans))
+
+
+# ------------------------------------------------------------------------------------------------ other vocabularies
+_SPAN_ID = "SPAN:external"
+_SPAN_CONCEPT = Concept(_SPAN_ID, "SPAN", "", "")
+# LEXICON plus the stub concept: read-only static data built once at import (never modified afterwards)
+_SPAN_LEXICON = replace(LEXICON, concepts={**LEXICON.concepts, _SPAN_ID: _SPAN_CONCEPT})
+
+
+def _span_lexicon(lex: Lexicon) -> Lexicon:
+    if lex is LEXICON:
+        return _SPAN_LEXICON
+    return replace(lex, concepts={**lex.concepts, _SPAN_ID: _SPAN_CONCEPT})
+
+
+def assess_spans(text: str, spans, source: str = "claim", context: dict | None = None,
+                 lexicon: Lexicon | None = None) -> list[Finding | None]:
+    """Polarity / subject / hedge / hypothetical of arbitrary spans, read with the same rules as parse(), for callers
+    that find mentions with their own vocabulary (the KB term-label scan in knowledge/kb.py). spans: (start, end)
+    offsets in normalize(text). Returns one Finding (concept "SPAN:external") or None (span outside any sentence or
+    in a "result unavailable" sentence) per span, in order. Similes are not dropped (no figurative flag here)."""
+    lex = _span_lexicon(lexicon or LEXICON)
+    p = _Parser(text or "", source, context, lex)
+    sents = _sentences(p.t)
+    cache: dict[int, tuple] = {}
+    out: list[Finding | None] = []
+    for s, e in spans:
+        si = next((i for i, (a, b, _q) in enumerate(sents) if a <= s < b), None)
+        if si is None:
+            out.append(None)
+            continue
+        a, b, is_q = sents[si]
+        sent = p.t[a:b]
+        if _UNAVAILABLE.search(sent):
+            out.append(None)
+            continue
+        if si not in cache:
+            question = p.source == "patient" and (is_q or bool(_QUESTION_END.search(sent.strip())) and "?" in sent)
+            cache[si] = (_clauses(sent), [(m.start(), m.lastgroup) for m in _SUBJ.finditer(sent)], question)
+        clauses, subj_marks, question = cache[si]
+        ms, me = s - a, max(s - a + 1, min(e, b) - a)
+        c = next((c for c in clauses if c.start <= me - 1 < c.end), clauses[-1])
+        m = Mention(ms, me, _SPAN_ID, "med", True, sent[ms:me])
+        f = p._mention(m, sent, c, [m], "current", "", subj_marks, question)
+        if f is not None:
+            f.start, f.end = f.start + a, f.end + a
+        out.append(f)
+    return out

@@ -10,7 +10,8 @@ migration plan below.
 | Path | Role | Shipped |
 |---|---|---|
 | `src/doctor_agent/nlp/lexicon.py` | loads `data/lexicon/concepts.json` once at import (read-only); `scan()` finds mentions | yes |
-| `src/doctor_agent/nlp/findings.py` | `parse()`, `match()`, `concepts_in()`, `affirmed()`, `denied()` | yes |
+| `src/doctor_agent/nlp/findings.py` | `parse()`, `match()`, `concepts_in()`, `affirmed()`, `denied()`; `assess_spans()` (polarity/subject of spans found by another vocabulary) | yes |
+| `data/lexicon/kb_links.json` | concept → KB term ids with link kind (27 KB; `python scripts/eval_kb.py --build-links`) | yes |
 | `data/lexicon/concepts.json` | built lexicon (≈360 KB, 614 concepts, 6.5k surface forms, 149 regexes) | yes (**add `data/lexicon` to `scripts/package.py` INCLUDE**) |
 | `data/lexicon/seed.tsv` | hand-authored seed (long format `id<TAB>field<TAB>value`) | source only |
 | `scripts/build_lexicon.py` | merges seed + existing tables → `concepts.json` (`--check` for staleness) | no |
@@ -134,10 +135,10 @@ Principle: switch one module at a time behind its existing function signature, c
 | `agent/grounding.py:is_grounded`, `_ground`, `_parse_claim`, `Evidence` | 80 synonym groups, own polarity/number/clause code | `match(claim, parse(evidence))`; build evidence once per check with `parse(text, source)` per response. **Done** (2026-09-28): concept claims via `parse` + `findings._supports` with grounding-side guards (strict numbers, bare-item list negation, reference-range check of kb_tests values, same-response conflicts, site-narrowed absent parents, claim qualifier words, past/quit vs current); concept-free claims keep a literal-word reader (layer cues, `_LAB_RX` analyte names). `_GROUPS` stays only as `build_lexicon.py` input |
 | `agent/grounding.py:check_findings`, `_ground_qa` | yes/no by `_YES/_NO` regex | `parse(response, context={"question": q})` per ASK turn, then `match`; status 음성 → claim `"<item> 없음"`. **Done**: `apply()` parses each ASK answer with its question (parses cached on the case state); `_ground_qa` kept (same signature) for callers that pass (question, answer) pairs |
 | `agent/grounding.py:check_ddx_support`, `ungrounded_in_text`, `_item_ok` | `_REASON_SPLIT` + `_FINDING_MARK` | keep splitting; `finding_like` = `bool(parse(chunk, "claim"))`, then `match`. **Done** (`finding_like` = a non-kb_tests concept, a number or `_FINDING_MARK`: kb_tests reads disease names such as 대동맥 박리 as results) |
-| `knowledge/kb.py:KnowledgeBase._match_spans`, `match_terms`, `_groups` | KB labels + `kb_curated.SYNONYMS/REGEX/BLOCK_WORDS` | `parse(finding, "claim")` → `LEXICON.concept(cid).kb` term ids (+ ancestors for backoff); keep the KB-label scan only for terms without a lexicon concept |
-| `knowledge/kb.py:candidates` (`_NEG`, `_strip_neg`) | end-of-text negation regex | findings with polarity absent → `negatives`; subject ≠ patient dropped |
-| `knowledge/kb_curated.py:lab_terms` | vital/lab thresholds | measured findings of `parse(..., "test")` (same thresholds, reference ranges added); then retire `SYNONYMS`/`REGEX` (all merged, provenance `curated`) |
-| `knowledge/kb_tests.py:detect` | test-result engine | **keep**; nlp calls it for exam/test/claim text and maps `TF:` ids to `LAB:/IMG:/ECG:` concepts |
+| `knowledge/kb.py:KnowledgeBase._match_spans`, `match_terms`, `_groups` | KB labels + `kb_curated.SYNONYMS/REGEX/BLOCK_WORDS` | **done 2026-09-28** (`_analyze`): `parse(finding, "claim")` → concept → term ids from `data/lexicon/kb_links.json` (+ nearest linked ancestor at weight 0.4); the KB-label scan stays for **all** terms (the lexicon links only 294 concepts; limiting the scan to unlinked terms would drop KB-specific labels) and each label hit takes the polarity of the lexicon mention it overlaps, else `assess_spans()` |
+| `knowledge/kb.py:candidates` (`_NEG`, `_strip_neg`) | end-of-text negation regex | **done**: present → query terms; absent (also inside a positive-list finding) → negatives; uncertain / hypothetical / a relative's → nothing; a negative-list finding that states nothing absent negates what it names. `_NEG`, `_NEG_TAIL`, `_strip_neg` removed |
+| `knowledge/kb_curated.py:lab_terms` | vital/lab thresholds | **done**: measured findings of `parse` (`LAB_VALUES="curated"` switch keeps the old one; dev MRR −0.01 with it). `SYNONYMS`/`REGEX` no longer read at runtime (682/689 phrases map to the same term through the lexicon; test `test_lexicon_covers_the_retired_curated_synonyms`) but stay in the file: `scripts/build_lexicon.py` and the links builder read them |
+| `knowledge/kb_tests.py:detect` | test-result engine | **kept, called directly** by `kb.test_findings`: via `parse` (per clause, `TF:` → concept → `TF:`) measured dev MRR 0.5630 vs 0.5652 direct, and `parse` has no "reported absent" context (`detect(f, -1)`) for the negative list |
 | `knowledge/clinical_rules.py:negated`, `contains_affirmed` | **done 2026-09-27** | `keyword_statuses(text, kw)`: each keyword occurrence takes the reading of the layer finding it overlaps (POS / UNC / NEG / OTHER); no finding, or a keyword with its own negation ("의식이 없", "지혈되지") → legacy window rule + relative-before check. Layer list negations are trusted only when the negation ends the sentence ("통증 없는 질 출혈" is not one). Lines are parsed separately (normalize() folds newlines). `ReadText` = text + lazily parsed findings (parse once per case text). Proxy speaker "(남편) … 아내가" → subject not trusted. Uncertain = affirmed for triggers, never denied |
 | `knowledge/clinical_rules.py:detect_categories` (`CATEGORY_KEYWORDS`) | **done 2026-09-27** | keywords stay primary; a category is dropped when every keyword hit is denied by the layer ("열은 없고 기침만"); layer concepts add 11 categories whose `category:` links name exactly that complaint (`_LAYER_CATEGORIES`; "심와부 통증" → abdominal_pain) and focal-deficit concepts ("걸음걸이가 비틀"); not from the layer: rash/edema/neuro-vision/joint/allergy/bleeding/psychiatric links (broader than the protocol) |
 | `safety/protocols.py:Check.applies` (`_TRIG_*` via `contains_affirmed`) | **done 2026-09-27** | through `contains_affirmed` (keyword tuples kept; each occurrence read by the layer); `must_checks_for` passes one `ReadText` to every check |
@@ -150,6 +151,26 @@ Principle: switch one module at a time behind its existing function signature, c
 | `agent/ledger.py:FindingsLedger.update` | `similarity()` ≥ 0.6 dedupe | optional: key items by `LEXICON.lookup(item)` concept id so "열"/"발열" merge |
 | `scripts/package.py:INCLUDE` | ships `data/kb` | add `data/lexicon` (compliance-release); `LEXICON` is an import-time constant, so the cross-case check needs no allowlist entry |
 
+KB migration numbers (`scripts/eval_kb.py`, dev = sample + clinicalqa tuned, held-out = agentclinic + diagnosisarena
+report only; before = commit 8a9e049, after = `data/labels/kb_eval_2026-09-28_nlp.json`):
+
+| | top-1 | top-3 | top-10 | top-50 | MRR |
+|---|---|---|---|---|---|
+| dev before → after | 52 → 52 | 70 → 70 | 81 → 81 | 88 → 87 | 0.559 → 0.565 |
+| held-out before → after | 17 → 23 | 31 → 33 | 42 → 46 | 58 → 62 | 0.165 → 0.197 |
+| hx+exam only, dev | 13 → 20 | 24 → 30 | 42 → 49 | 61 → 62 | 0.198 → 0.259 |
+| hx+exam only, held-out | 11 → 10 | 20 → 20 | 30 → 35 | 46 → 50 | 0.112 → 0.113 |
+
+Per set (top-1 / top-10 / MRR): sample 11/14/.766 → 11/15/.797, clinicalqa 41/67/.524 → 41/66/.526, agentclinic
+16/35/.213 → 20/37/.238, diagnosisarena 1/7/.061 → 3/9/.107. `candidates()` mean 11.2 → 26.0 ms (p95 14.7 → 32.4 ms,
+two `parse` passes per finding); KB load 0.8–1.0 s either way. Dev choices: link weights (lexicon 1.0 > 0.6; ancestor
+0 ≈ 0.4 > 1.0), `LINK_MODE` all > primary/fallback, nlp values > `lab_terms`. Re-adding the curated tables on top
+(`CURATED_SYN=True`) gives dev +1 top-1 / +1 top-10 / +3 top-50 but held-out −2 top-1 / −1 top-10 / MRR −0.009, and its dev wins come from
+loose regexes ("변형 적혈구" → hematochezia); not taken. Changed test expectations: Graves top-2 → top-3 ("갑상선 비대"
+now matches goiter, absent from the Graves profile, and kb_tests reads "TSH 수용체 항체 양성" as elevated TSH too);
+troponin-negative test checks the score drop (MI now leads by more than the penalty).
+
 Maintenance: edit `data/lexicon/seed.tsv` (or the source tables), run `python scripts/build_lexicon.py`, then
-`python scripts/label_findings.py metrics` and `pytest tests/test_nlp_findings.py`. `docs/architecture.md` should get
+`python scripts/label_findings.py metrics`, `python scripts/eval_kb.py --build-links` (KB links; `pytest
+tests/test_kb_matching.py` fails when they are stale) and `pytest tests/test_nlp_findings.py`. `docs/architecture.md` should get
 a pointer to this layer when the first module switches (no interface changed yet).
