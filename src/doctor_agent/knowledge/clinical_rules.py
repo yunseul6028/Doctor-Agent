@@ -375,6 +375,45 @@ def _dizzy_stroke_risk(t: str, context: str) -> bool:
     return not bppv_like
 
 
+# Chief-complaint category -> lexicon concepts (data/lexicon protocol links "category:<name>"). Only categories whose
+# linked concepts name exactly that complaint add categories from the layer (colloquial forms the keyword lists
+# miss); the keyword lists stay the primary detector. Not from the layer: categories whose links or concepts are
+# broader than the protocol population (rash <- "반점" floaters, edema <- local swelling, neuro <- visual symptoms,
+# joint <- leg edema / surgery, allergy <- facial edema, bleeding <- any bleeding, psychiatric <- "불안" as a
+# feeling, pruritus / menstrual / cognitive with their own rules) and heartburn for chest pain.
+_LAYER_CATEGORIES = ("chest_pain", "dyspnea", "headache", "fever", "abdominal_pain", "syncope", "palpitations",
+                     "hemoptysis_cough", "jaundice", "back_pain", "hearing_loss")
+_CATEGORY_CONCEPT_SKIP = {"chest_pain": {"SYM:heartburn"}}
+# neuro concepts that are not a focal deficit for the stroke protocol (monocular "시력 저하" and drowsiness were never
+# keywords; a stroke history is not a current deficit, and "뇌졸중" in the complaint is already a keyword)
+_NON_FOCAL_NEURO = {"SYM:seizure", "SYM:altered_mental_status", "SYM:vision_loss", "SYM:somnolence", "HX:stroke"}
+
+
+def _category_concepts() -> dict[str, frozenset[str]]:
+    from doctor_agent.nlp import LEXICON
+    out = {}
+    for c in (*_LAYER_CATEGORIES, "neuro"):  # neuro: only for the focal-deficit concept set below
+        ids = set(LEXICON.by_protocol(f"category:{c}")) - _CATEGORY_CONCEPT_SKIP.get(c, set())
+        for i in list(ids):
+            ids.update(LEXICON.descendants(i))
+        if ids:
+            out[c] = frozenset(ids)
+    return out
+
+
+def _layer_concepts(rt: ReadText) -> set[str]:
+    """Concepts affirmed (present, hedged or uncertain) for the patient in the text."""
+    return {f.concept for _s, _e, f in rt.parsed()[1] if f.subject == "patient" and f.polarity != "absent"}
+
+
+def _all_denied(rt: ReadText, kws: tuple[str, ...]) -> bool:
+    """Every keyword occurrence of this category is denied by the layer ("열은 없고 기침만 해요": not a fever complaint).
+    Occurrences the layer has no finding for count as not denied (a keyword window rule is too weak to drop a
+    category: "지혈되지 않는 출혈")."""
+    st = [x for k in kws if k in rt for x in keyword_statuses(rt, k, detail=True)]
+    return bool(st) and all(x == NEG and layer for x, layer in st)
+
+
 def detect_categories(text: str, context: str = "") -> list[str]:
     """Categories of a chief complaint, in CATEGORY_KEYWORDS order.
 
@@ -394,8 +433,12 @@ def detect_categories(text: str, context: str = "") -> list[str]:
       transient/recurrent altered consciousness without focal signs or seizure is syncope, not stroke.
     """
     t = _mask((text or "").lower())
-    found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws)}
-    focal = any(k in t for k in _NEURO_FOCAL) or _neuro_cooccurrence(t, "chest_pain" in found)
+    rt = ReadText(t)
+    found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws) and not _all_denied(rt, kws)}
+    layer = _layer_concepts(rt)
+    found |= {c for c in _LAYER_CATEGORIES if layer & _CATEGORY_CONCEPTS.get(c, frozenset())}
+    focal = any(k in t for k in _NEURO_FOCAL) or _neuro_cooccurrence(t, "chest_pain" in found) \
+        or bool(layer & _FOCAL_CONCEPTS)
     if focal:
         found.add("neuro")
     elif "allergy" in found:
@@ -476,7 +519,7 @@ _CLAUSE_BREAKS: tuple[str, ...] = (".", "?", "!", "\n", ",", ";", "고 ", "며 "
 # Keywords read by the legacy rule even where the layer has a finding: the keyword carries its own negation
 # ("의식이 없", "수동적 움직임에는 제한이 없") or is itself about relatives ("대동맥 박리 가족력").
 _KW_OWN_NEGATION = re.compile(r"없|않|아니|(?<![가-힣])안\s|못\s|음성|정상|\(-\)|\bno\b|\bnot\b|without|denie|negative"
-                              r"|absent")
+                              r"|absent|(?<=[가-힣])지$|멈$|멎$")  # "지혈되지", "피가 안 멈": the negation that follows is part of the phrase
 _KW_ABOUT_RELATIVES = re.compile(r"가족|family")
 # Fallback subject rule for keywords the layer has no finding for: the latest person word before the keyword in its
 # sentence is a relative (with a particle: "어머니가", "형은", "가족 중", "가족력") and no self word follows it.
@@ -1786,3 +1829,8 @@ def score(rule_id: str, answers: dict) -> ScoreResult:
         missing=missing, secondary_label=f"{sec.label}({sec.meaning})" if sec else "", citation=rule.cite,
         positives=positives,
     )
+
+
+# Read-only, derived from the import-time lexicon (never modified): category concept sets for detect_categories()
+_CATEGORY_CONCEPTS: dict[str, frozenset[str]] = _category_concepts()
+_FOCAL_CONCEPTS: frozenset[str] = _CATEGORY_CONCEPTS.get("neuro", frozenset()) - _NON_FOCAL_NEURO
