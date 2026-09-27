@@ -297,6 +297,70 @@ def test_ungrounded_in_reason(ev):
     assert not any("대동맥" in b for b in bad)
 
 
+# --- normalisation-layer guards (precision first) ---------------------------------------------------------------
+def test_ambiguous_report_list_grounds_neither_way():
+    ev = g.Evidence.build("복부 부드러움, 장음 항진, 반발통 및 근육 강직 없음")
+    assert not grounded("장음 항진", ev) and not grounded("장음 항진 없음", ev)
+    assert grounded("반발통 없음", ev)
+
+
+def test_list_item_with_severity_is_stated():
+    ev = g.Evidence.build("명치 부위 경미한 압통, 반발통 없음, 간비종대 없음")
+    assert grounded("명치 부위 경미한 압통", ev)
+    assert not grounded("명치 압통 없음", ev)
+
+
+def test_test_value_against_printed_reference_range():
+    ev = g.Evidence.build("고감도 트로포닌 I 1240 ng/L (참고치 <34)")
+    assert not grounded("트로포닌 I 음성", ev)
+    assert grounded("트로포닌 1240", ev)
+
+
+def test_site_narrowed_negation_does_not_cover_other_sites():
+    ev = g.Evidence.build("흉벽 압통 없음, 촉진으로 통증 재현되지 않음")
+    assert not grounded("맥버니 점 압통 없음", ev)
+
+
+def test_claim_qualifier_must_be_in_the_evidence():
+    ev = g.Evidence.build("우하복부 압통(맥버니 점), 반발통 있음")
+    assert grounded("복부 압통", ev)  # a present child grounds its parent
+    assert not grounded("하복부 전반의 압통", ev)
+    ev = g.Evidence.build("구강 점막 약간 건조, 피부 긴장도 정상, 모세혈관 재충혈 2초 이내")
+    assert not grounded("피부 긴장도 저하", ev)
+
+
+def test_past_or_quit_does_not_ground_current():
+    ev = g.Evidence.build("담배는 10년 전에 끊었어요")
+    assert not grounded("하루 반 갑 피워요", ev)
+    assert grounded("흡연력", ev)
+
+
+def test_when_clause_is_not_a_symptom():
+    ev = g.Evidence.build("기침할 때 심해지지도 않아요")
+    assert not grounded("마른기침", ev) and not grounded("기침", ev)
+
+
+def test_literal_reader_edge_cases():
+    ev = g.Evidence.build("좌심실비대 소견과 V5–V6 비특이적 ST분절 하강, ST분절 상승 없음")
+    assert not grounded("그 외 특이 소견 없음", ev)  # "비특이적" is not "특이"
+    assert not grounded("오른쪽은 괜찮아요", g.Evidence.build("오른쪽 팔다리에 힘이 없다고 했어요"))
+
+
+def test_family_question_answer_is_not_the_patients_finding():
+    state = make_state([(ActionType.ASK, "가족 중에 당뇨 있는 분 계세요?", "네, 어머니가 당뇨가 있으세요.")])
+    state.findings.update([{"item": "당뇨", "status": "양성"}], 1)
+    g.apply(state)
+    assert state.findings.items[0].verified is False
+
+
+def test_parse_cache_lives_on_the_case_state():
+    s1, s2 = make_state(), make_state(QA[:2])
+    g.apply(s1)
+    assert s1._grounding_cache and not hasattr(s2, "_grounding_cache")
+    g.apply(s2)
+    assert s2._grounding_cache is not s1._grounding_cache
+
+
 # --- performance ------------------------------------------------------------------------------------------------
 def test_performance_40_turn_case():
     rows = (QA * 3)[:40]
