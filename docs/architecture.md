@@ -74,7 +74,9 @@ Remaining turns ≤ 1 → final-diagnosis prompt. Otherwise the hints are built 
    *and* a usable non-DIAGNOSE `next` action; an unparseable review never blocks. On hold the reviewer's action is
    returned (or, if already done, the loop retries with the issues as a hint). On approval a renaming is accepted only
    if its cited evidence is grounded in this case's text; added location qualifiers, unsupported cause/trigger
-   qualifiers and manifestation-on-cause names are refused. A KB sex-restriction warning is appended to the review view.
+   qualifiers and manifestation-on-cause names are refused. A KB sex-restriction warning is appended to the review view,
+   and so is the criteria check of the proposed diagnosis (`diagnostic_criteria.render_for_review`), whose subtype
+   decision can accept or refuse a subtype renaming.
 
 All attempts used → final-diagnosis prompt.
 
@@ -109,6 +111,26 @@ learned later (triggers, predicates).
   `Rule.applicability` states which population sentence of the original abstract each condition comes from.
 - Coverage on the 267 `data/cases_aug` cases (initial info only): 198 match a category, 173 have ≥ 1 applicable
   non-treatment check, 53 have an applicable rule.
+
+### Diagnostic / classification criteria (`knowledge/diagnostic_criteria.py`, 2026-09-27)
+
+- 15 sets: 2019 EULAR/ACR SLE, 2010 ACR/EULAR RA, 2022 ACR/EULAR Takayasu and GCA, AHA 2017 Kawasaki, 2023
+  Duke-ISCVID IE, KDIGO 2012 AKI staging, 2024 DKA/HHS consensus, Light's criteria, Sepsis-3, 2015 Jones, 2017
+  McDonald, ICHD-3 migraine vs tension-type, bipolar I vs II (DSM-5-TR content), 2015 ACR/EULAR gout. Each has a
+  PubMed/Crossref-checked citation, `verification` (primary 8 / secondary 3 / unverified 4) and our own Korean wording.
+- API: `criteria_for(dx_name)` (Korean/English names, synonyms, subtype names; `related` cross-checks such as an
+  arterial stenosis → Takayasu; `exclude` e.g. 가성통풍, 알코올성 케톤산증), `evaluate(id, findings_text)` →
+  `CriteriaResult` (per-item met / not_met / unknown, band, `decision` = diagnosis or subtype only when explicitly
+  satisfied), `render_for_review(dx_name, findings_text)` (≤ 500 chars).
+- Extraction is conservative: affirmed keyword (clause negation, `- 음성:` ledger lines) or a labelled number with the
+  right unit; doctor questions and `- 결과없음:` lines are ignored. Headache/gout features are read only from
+  sentences about the head/joints unless that is the chief complaint; secondary-headache red flags block a
+  migraine/tension-type decision.
+- Used only in the pre-diagnosis review: `_review` appends `render_for_review(proposed, initial info + responses +
+  findings ledger)` to the reviewer's view; `_refinement_problem` first asks `_criteria_refinement`, which accepts a
+  renaming to the subtype the criteria selected (no quoted evidence needed) and refuses a renaming to a different
+  subtype of the same set (e.g. II형 when the findings show admission for mania). Otherwise the usual evidence checks.
+- KDCA 법정감염병 진단·신고 기준 not implemented: KOGL type 4 (no modification).
 
 ## Knowledge base (CPU, stdlib only)
 

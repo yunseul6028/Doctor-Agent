@@ -6,7 +6,7 @@ from doctor_agent.agent.state import CaseState
 from doctor_agent.config import AgentConfig
 from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.llm.client import LLMClient
-from doctor_agent.knowledge import clinical_rules
+from doctor_agent.knowledge import clinical_rules, diagnostic_criteria
 from doctor_agent.safety import protocols
 
 MAX_RULES_IN_PROMPT = 2  # keep prompts short for the small fixed LLM
@@ -83,6 +83,8 @@ class Policy:
         view = state.view()
         if self.cfg.use_kb and (warn := kb_hints.normalize_hint(action.content, state.initial_info).get("warning")):
             view += "\n\n[지식베이스 경고] " + warn
+        if criteria := diagnostic_criteria.render_for_review(action.content, _case_findings(state)):
+            view += "\n\n" + criteria
         raw = self.llm.chat(prompts.build_review_messages(view, action.content, action.reason,
                                                           state.turn_count, self.cfg.max_turns))
         objs = _json_objects(raw or "")
@@ -213,11 +215,41 @@ def _grounded(text: str, case_text: str) -> bool:
     return bool(words) and hits * 2 >= len(words)
 
 
+def _case_findings(state: CaseState) -> str:
+    """Case facts for the criteria checkers: initial info, patient/test responses and the findings ledger (the doctor's
+    own questions are left out so that "입원한 적 있나요?" is not read as a finding)."""
+    return "\n".join([state.initial_info] + [t.response for t in state.turns] + [state.findings.render()])
+
+
+def _criteria_refinement(proposed: str, refined: str, case_text: str) -> str | None:
+    """Published criteria decide a subtype refinement when the findings explicitly satisfy one (knowledge/
+    diagnostic_criteria.py): "" = accept, a reason = refuse, None = no criteria opinion (the usual checks apply).
+    Only for a set that also covers the proposed name (same disease family or a listed cross-check such as arterial
+    stenosis → Takayasu), and never when the new name adds a location qualifier."""
+    if set(_LOCATION.findall(refined)) - set(_LOCATION.findall(proposed)):
+        return None
+    family = {c.id for c in diagnostic_criteria.criteria_for(proposed)}
+    for c in diagnostic_criteria.criteria_for(refined, related=False):
+        if c.id not in family:
+            continue
+        result = diagnostic_criteria.evaluate(c.id, case_text)
+        if not result.decision:
+            continue
+        if other := diagnostic_criteria.conflicting_subtype(c, result.decision, refined):
+            return f"진단 기준({c.short})상 {result.decision}에 해당 ({other} 아님)"
+        if diagnostic_criteria.decision_matches(c, result.decision, refined):
+            return ""
+    return None
+
+
 def _refinement_problem(proposed: str, refined: str, evidence: str, case_text: str) -> str:
     """Why the reviewer's renaming must be refused ("" = accept). A renaming is kept only when it is backed by a cited
     finding of this case. Location qualifiers are always refused (the standard disease name is preferred); a cause or
     trigger qualifier is refused unless the qualifier itself is in the case findings and in the cited evidence; adding a
-    manifestation to a cause diagnosis ("B12 결핍" → "B12 결핍에 의한 인지장애") is refused."""
+    manifestation to a cause diagnosis ("B12 결핍" → "B12 결핍에 의한 인지장애") is refused. A published criteria set
+    whose subtype rule is explicitly met (or contradicted) by the findings overrides these checks."""
+    if (by_criteria := _criteria_refinement(proposed, refined, case_text)) is not None:
+        return by_criteria
     if not _meaningful(evidence):
         return "근거 인용 없음"
     if not _grounded(evidence, case_text):
