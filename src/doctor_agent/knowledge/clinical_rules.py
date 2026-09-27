@@ -32,6 +32,10 @@ Adult-only rules (min_age >= 15) are skipped for child words. detect_categories(
 Not encoded: Ranson / Glasgow-Imrie (48-h scores; BISAP covers early severity), NIHSS (15-item exam scale,
 too long for the prompt), CHA2DS2-VASc (not diagnostic), Rochester / Step-by-Step (criteria not verifiable
 in accessible abstracts; PECARN febrile infant rule used instead).
+
+2026-09-27 (later): negated() / contains_affirmed() read each keyword occurrence through the clinical-finding
+normalisation layer (doctor_agent.nlp; keyword_statuses(), ReadText); detect_categories() drops a category whose
+keywords are all denied by the layer and adds categories from curated layer concepts. See docs/nlp.md (migration).
 """
 from __future__ import annotations
 
