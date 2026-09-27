@@ -23,7 +23,7 @@ def test_committed_profiles_resolve():
     smoke = ex.resolve_profile(cfg, "smoke")
     dev = ex.resolve_profile(cfg, "dev")
     assert len(smoke["cases"]) == 5 and [c["name"] for c in smoke["conditions"]] == ["v6"]
-    assert len(dev["cases"]) == 50 and [c["name"] for c in dev["conditions"]] == ["v6", "v6-no-kb"]
+    assert len(dev["cases"]) == 50 and [c["name"] for c in dev["conditions"]] == ["v6", "v6-no-kb", "v6-no-safety"]
     assert dev["conditions"][1]["env"] == {"AGENT_USE_KB": "0"}
     # smoke is a subset of dev and covers every set
     dev_paths = {p.resolve() for _, p in dev["cases"]}

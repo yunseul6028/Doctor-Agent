@@ -24,6 +24,9 @@ class CaseState:
     ddx_ledger: DdxLedger = field(default_factory=DdxLedger)
     reviews: list[dict] = field(default_factory=list)  # pre-diagnosis reviews: {turn, proposed, verdict, issues}
     safety_pushback: bool = False  # already asked once to finish safety checks before diagnosing
+    gate_turns: int = 0  # actions forced by the can't-miss rule-out gate in this case
+    confirmed_other_shown: bool = False  # the gate's "another can't-miss diagnosis is confirmed" hint was shown
+    safety_log: list[dict] = field(default_factory=list)  # grounding / gate / precondition events (for the viewer)
     view_max_chars: int = 0  # prompt-length cap for view(); set from AgentConfig.max_view_chars by the loop
 
     @property

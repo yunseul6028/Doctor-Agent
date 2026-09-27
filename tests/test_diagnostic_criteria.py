@@ -221,7 +221,9 @@ def _run(state, *outputs):
     from doctor_agent.agent.policy import Policy
 
     llm = _Scripted(*outputs)
-    return Policy(llm, Config().agent).next_action(state), llm
+    cfg = Config().agent
+    cfg.use_danger_gate = cfg.use_preconditions = False  # isolate the review/criteria logic under test
+    return Policy(llm, cfg).next_action(state), llm
 
 
 def test_review_input_includes_matching_criteria():

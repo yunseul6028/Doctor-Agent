@@ -1,13 +1,13 @@
 import re
 
-from doctor_agent.agent import kb_hints, prompts
+from doctor_agent.agent import grounding, kb_hints, prompts
 from doctor_agent.agent.parser import _json_objects, extract_action_json, parse_action
 from doctor_agent.agent.state import CaseState
 from doctor_agent.config import AgentConfig
 from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.llm.client import LLMClient
 from doctor_agent.knowledge import clinical_rules, diagnostic_criteria
-from doctor_agent.safety import protocols
+from doctor_agent.safety import danger_gate, preconditions, protocols
 
 MAX_RULES_IN_PROMPT = 2  # keep prompts short for the small fixed LLM
 MAX_ATTEMPTS = 4
@@ -55,6 +55,7 @@ class Policy:
             state.findings.update(obj.get("findings"), state.turn_count)
             state.ddx_ledger.update(ddx)
             state.ddx, state.confidence = state.ddx_ledger.as_list(), conf
+            self._ground(state)
             if action.type != ActionType.DIAGNOSE and state.asked(action):
                 hints = hints + [f"'{action.content}'은(는) 이미 했습니다. 다른 행동을 고르세요."]
                 continue
@@ -66,14 +67,96 @@ class Policy:
                     hints = hints + ["진단 전에 아직 안 한 필수 안전 확인이 있습니다: " + ", ".join(c.name for c in pending)
                                      + ". 이 중 하나를 먼저 하세요. 정말 불필요하면 reason에 그 이유를 쓰고 진단하세요."]
                     continue
+            if action.type == ActionType.DIAGNOSE and not self.degraded:
+                gated, hint = self._gate(state, action, remaining)
+                if gated is not None:
+                    return self._safe(state, gated)
+                if hint:
+                    hints = hints + [hint]
+                    continue
             if action.type == ActionType.DIAGNOSE and len(state.reviews) < MAX_REVIEWS and remaining > 3 and not self.degraded:
                 reviewed = self._review(state, action)
                 if reviewed.type != ActionType.DIAGNOSE and state.asked(reviewed):
                     hints = hints + ["검토의 지적: " + "; ".join(state.reviews[-1]["issues"]) + ". 이를 해결할 다른 행동을 고르세요."]
                     continue
-                return reviewed
+                return self._safe(state, reviewed)
+            if action.type != ActionType.DIAGNOSE:
+                safe = self._safe(state, action)
+                if safe is None:  # blocked with no safe alternative: ask the model for a different action
+                    hints = hints + [state.safety_log[-1]["why"] + " 다른 행동을 고르세요."]
+                    continue
+                return safe
             return action
         return self._final_diagnosis(state)
+
+    # ---- safety layers (each guarded: a bug here must never stop a case) ----
+    def _ground(self, state: CaseState) -> None:
+        """Mark findings / DDx evidence the environment never said as unverified (grounding.apply)."""
+        if not self.cfg.use_grounding:
+            return
+        try:
+            report = grounding.apply(state)
+        except Exception as e:  # noqa: BLE001
+            state.safety_log.append({"turn": state.turn_count + 1, "layer": "grounding", "error": str(e)[:200]})
+            return
+        if report.get("findings_unverified") or report.get("ddx_removed") or report.get("reason_ungrounded"):
+            state.safety_log.append({"turn": state.turn_count + 1, "layer": "grounding", **report})
+
+    def _gate(self, state: CaseState, action: Action, remaining: int) -> tuple[Action | None, str | None]:
+        """Can't-miss rule-out gate before a diagnosis. Returns (forced action, None), (None, one-time hint) or
+        (None, None) when the diagnosis may proceed."""
+        if not self.cfg.use_danger_gate:
+            return None, None
+        try:
+            g = danger_gate.gate(state, action.content, remaining, max_gate_turns=self.cfg.max_gate_turns,
+                                 gate_turns_used=state.gate_turns)
+        except Exception as e:  # noqa: BLE001
+            state.safety_log.append({"turn": state.turn_count + 1, "layer": "danger_gate", "error": str(e)[:200]})
+            return None, None
+        if not g.get("allow") and g.get("action"):
+            typ, content, reason = g["action"]
+            forced = normalize_type(Action(ActionType(getattr(typ, "value", typ)), content,
+                                           f"위험 질환 배제({g.get('danger')}): {reason or g.get('why', '')}"))
+            if not state.asked(forced):
+                state.gate_turns += 1
+                state.safety_log.append({"turn": state.turn_count + 1, "layer": "danger_gate", "kind": "rule_out",
+                                         "proposed": action.content, "danger": g.get("danger"), "why": g.get("why"),
+                                         "action": forced.to_dict()})
+                return forced, None
+        if g.get("kind") == "confirmed_other" and not state.confirmed_other_shown:
+            state.confirmed_other_shown = True
+            state.safety_log.append({"turn": state.turn_count + 1, "layer": "danger_gate", "kind": "confirmed_other",
+                                     "proposed": action.content, "danger": g.get("danger"), "why": g.get("why")})
+            return None, f"참고: {g.get('why')} 제안한 진단이 이 소견을 설명하는지 확인하고 진단하세요."
+        return None, None
+
+    def _safe(self, state: CaseState, action: Action) -> Action | None:
+        """Pre-test precondition check for TEST/EXAM: swap in the prerequisite, annotate warnings, or return None when
+        the action is contraindicated with no alternative."""
+        if not self.cfg.use_preconditions or action.type not in (ActionType.TEST, ActionType.EXAM):
+            return action
+        try:
+            res = preconditions.check(action.type, action.content, state)
+        except Exception as e:  # noqa: BLE001
+            state.safety_log.append({"turn": state.turn_count + 1, "layer": "preconditions", "error": str(e)[:200]})
+            return action
+        if res.get("ok", True) and res.get("severity") != "warn":
+            return action
+        cite = f" ({res['citation']})" if res.get("citation") else ""
+        entry = {"turn": state.turn_count + 1, "layer": "preconditions", "severity": res.get("severity"),
+                 "rule": res.get("rule"), "requested": action.content, "why": f"{res.get('why', '')}{cite}"}
+        state.safety_log.append(entry)
+        if res.get("severity") == "warn":
+            return Action(action.type, action.content, f"{action.reason} [주의: {res.get('why', '')}]".strip())
+        pre = res.get("prerequisite")
+        if pre:
+            typ, content = pre
+            first = normalize_type(Action(ActionType(getattr(typ, "value", typ)), content,
+                                          f"검사 전 안전 확인: {res.get('why', '')}{cite}"))
+            if not state.asked(first):
+                entry["replaced_with"] = first.to_dict()
+                return first
+        return None
 
     def _review(self, state: CaseState, action: Action) -> Action:
         """Pre-diagnosis review by the same LLM in a reviewer role. The reviewer only fills structured fields
@@ -111,7 +194,7 @@ class Policy:
         refined = str(obj.get("final_diagnosis") or "").strip()
         if refined and _norm(refined) != _norm(action.content):
             evidence = str(obj.get("refine_evidence") or obj.get("근거") or "").strip()
-            why_not = _refinement_problem(action.content, refined, evidence, state.transcript() + "\n" + state.findings.render())
+            why_not = _refinement_problem(action.content, refined, evidence, state.transcript() + "\n" + state.findings.render(exclude_unverified=True))
             record["refinement"] = {"name": refined, "evidence": evidence, "accepted": not why_not, "rejected": why_not}
             if not why_not:
                 record["final_diagnosis"] = refined
@@ -218,7 +301,7 @@ def _grounded(text: str, case_text: str) -> bool:
 def _case_findings(state: CaseState) -> str:
     """Case facts for the criteria checkers: initial info, patient/test responses and the findings ledger (the doctor's
     own questions are left out so that "입원한 적 있나요?" is not read as a finding)."""
-    return "\n".join([state.initial_info] + [t.response for t in state.turns] + [state.findings.render()])
+    return "\n".join([state.initial_info] + [t.response for t in state.turns] + [state.findings.render(exclude_unverified=True)])
 
 
 def _criteria_refinement(proposed: str, refined: str, case_text: str) -> str | None:

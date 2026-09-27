@@ -170,9 +170,19 @@ function renderCases(all, run) {
       `<div class="why"><b>검토의</b> · ${r.verdict === "보류" ? "⏸ 보류" : "✅ 승인"} (제안 진단: ${esc(r.proposed)})` +
       `${r.issues && r.issues.length ? " — " + r.issues.map(esc).join("; ") : ""}` +
       `${r.final_diagnosis ? ` → 진단명 수정: ${esc(r.final_diagnosis)}` : ""}</div>`).join("");
+    const safetyAt = {};
+    (c.safety_log || []).forEach(e => { (safetyAt[e.turn] = safetyAt[e.turn] || []).push(e); });
+    const LAYER = { grounding: "사실 확인", danger_gate: "위험 질환 관문", preconditions: "검사 전 확인" };
+    const safetyHtml = n => (safetyAt[n + 1] || []).map(e => {
+      let msg = e.error ? "오류: " + e.error
+        : e.layer === "grounding" ? `미확인 소견 ${e.findings_unverified || 0}개` + (e.unverified_examples && e.unverified_examples.length ? ` (${e.unverified_examples.join(", ")})` : "") + (e.ddx_removed ? `, 근거에서 뺀 항목 ${e.ddx_removed}개` : "")
+        : e.layer === "danger_gate" ? (e.kind === "rule_out" ? `진단(${e.proposed}) 보류 → ${e.danger} 배제 먼저: ${e.why || ""}` : `참고: ${e.why || ""}`)
+        : `${e.severity === "block" ? "차단" : "경고"}: ${e.requested} — ${e.why || ""}` + (e.replaced_with ? ` → ${e.replaced_with.content}` : "");
+      return `<div class="why"><b>${LAYER[e.layer] || e.layer}</b> · ${esc(msg)}</div>`;
+    }).join("");
     const turns = (c.turns || []).map((t, n) => `
       <div class="turn">
-        <div class="doctor"><div class="who">의사 · ${n + 1}턴 <span class="tag t-${t.type}">${LABEL[t.type] || t.type}</span></div>${esc(t.content)}${t.reason ? `<div class="why"><b>근거</b> · ${esc(t.reason)}</div>` : ""}${reviewHtml(n)}${t.ddx && t.ddx.length ? `<div class="why"><b>감별 후보</b> · ${t.ddx.map(d => typeof d === "object" ? `${esc(d.dx)}${d.p != null ? ` ${Math.round(d.p * 100)}%` : ""}` : esc(d)).join(", ")}</div>` : ""}</div>
+        <div class="doctor"><div class="who">의사 · ${n + 1}턴 <span class="tag t-${t.type}">${LABEL[t.type] || t.type}</span></div>${esc(t.content)}${t.reason ? `<div class="why"><b>근거</b> · ${esc(t.reason)}</div>` : ""}${reviewHtml(n)}${safetyHtml(n)}${t.ddx && t.ddx.length ? `<div class="why"><b>감별 후보</b> · ${t.ddx.map(d => typeof d === "object" ? `${esc(d.dx)}${d.p != null ? ` ${Math.round(d.p * 100)}%` : ""}` : esc(d)).join(", ")}</div>` : ""}</div>
         ${t.type === "DIAGNOSE" ? "" : `<div class="patient"><div class="who">${t.type === "ASK" ? "환자" : "결과"}</div>${esc(t.response)}</div>`}
       </div>`).join("");
     return `

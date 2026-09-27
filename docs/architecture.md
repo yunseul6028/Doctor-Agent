@@ -214,3 +214,10 @@ guard), `eval/compare.py`, `eval/viewer.py` (viewer + share page), `eval/play.py
 ## Open interfaces (confirm after the participant guide is published)
 - Action/response format, diagnosis format (free text vs. code such as ICD/KCD), per-case time limit, LLM endpoint.
 - `env/interface.py` is an assumption; add only an adapter in `env/official.py` (and adapt `run.py` output if needed).
+
+## Safety layers wired into the policy (2026-09-27)
+Order inside `Policy.next_action` for each proposed action:
+1. parse → normalize type → merge ledgers → **grounding** (`agent/grounding.apply`: findings / DDx evidence never said by the environment are marked unverified; unverified findings are excluded from renaming/criteria evidence) → dedupe.
+2. DIAGNOSE only: protocol safety pushback (once) → **can't-miss gate** (`safety/danger_gate.gate`: forces the next rule-out action for an unresolved can't-miss diagnosis, ≤ `max_gate_turns`=3 per case, never when ≤2 turns remain; a confirmed *other* danger only yields a one-time hint) → pre-diagnosis review (with diagnostic criteria).
+3. TEST/EXAM (incl. gate/review follow-ups): **pre-test preconditions** (`safety/preconditions.check`: block → swap in the prerequisite, e.g. brain CT before LP, β-hCG before abdominal CT; block without alternative → ask the model for another action; warn → annotate the reason).
+All three are guarded (exceptions are logged, never raised), recorded in `result["safety_log"]` (shown per turn in the viewer), and switchable for ablations: `AGENT_USE_GROUNDING`, `AGENT_USE_DANGER_GATE`, `AGENT_USE_PRECONDITIONS` (experiment condition `v6-no-safety`).

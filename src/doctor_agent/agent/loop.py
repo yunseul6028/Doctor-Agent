@@ -148,6 +148,7 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
         "ddx": state.ddx,
         "findings": state.findings.as_list(),
         "reviews": state.reviews,
+        "safety_log": state.safety_log,
         "llm_calls": llm.call_count - calls_before,
         # record only: the submitted diagnosis above is not changed
         "diagnosis_normalized": normalized,

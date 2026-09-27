@@ -62,6 +62,11 @@ class AgentConfig:
     ddx_size: int = 5
     # knowledge-base hints (candidates, discriminators, diagnosis normalisation); AGENT_USE_KB=0 turns them off
     use_kb: bool = field(default_factory=lambda: _flag("AGENT_USE_KB", "1"))
+    # safety layers (see docs/architecture.md): each can be switched off for ablation experiments
+    use_grounding: bool = field(default_factory=lambda: _flag("AGENT_USE_GROUNDING", "1"))
+    use_danger_gate: bool = field(default_factory=lambda: _flag("AGENT_USE_DANGER_GATE", "1"))
+    use_preconditions: bool = field(default_factory=lambda: _flag("AGENT_USE_PRECONDITIONS", "1"))
+    max_gate_turns: int = 3  # actions the can't-miss gate may force per case
 
     # --- runtime robustness (see docs/architecture.md "Runtime") ---
     # submission mode: never raise out of run_case (log instead); dev mode: fail loudly (≥1 LLM call rule, billing)
