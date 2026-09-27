@@ -102,3 +102,26 @@ def test_single_test_result_match_is_enough(monkeypatch):
             entries = []
     hint = kb_hints.candidate_hint(S(), set())
     assert hint and "급성 췌장염" in hint and "위염" not in hint
+
+
+def test_candidate_hint_passes_sex_and_age(monkeypatch):
+    from doctor_agent.agent import kb_hints
+    from doctor_agent.knowledge import kb
+
+    seen = {}
+
+    def fake(*a, **k):
+        seen.update(k)
+        return []
+    monkeypatch.setattr(kb, "candidates", fake)
+    monkeypatch.setattr(kb, "available", lambda: True)
+    monkeypatch.setattr(kb_hints, "_positives", lambda state: ["a", "b", "c"])
+    monkeypatch.setattr(kb_hints, "_negatives", lambda state: [])
+
+    class S:
+        initial_info = "28세 여성. 주호소: 복통"
+
+        class ddx_ledger:
+            entries = []
+    kb_hints.candidate_hint(S(), set())
+    assert seen.get("sex") == "여성" and seen.get("age") == 28

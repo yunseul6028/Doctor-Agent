@@ -55,7 +55,8 @@ def candidate_hint(state, seen: set) -> str | None:
         names = [e.dx for e in state.ddx_ledger.entries]
         ids = {p["id"] for p in (kb.lookup(n) for n in names) if p}
         rows = []
-        for c in kb.candidates(pos, k=12, negatives=_negatives(state)):
+        sex, age = kb.patient_profile(getattr(state, "initial_info", "") or "")
+        for c in kb.candidates(pos, k=12, negatives=_negatives(state), sex=sex or None, age=age):
             # one match is enough when it is a test/lab result link (decisive findings like 리파아제 상승)
             by_test = any(str(m.get("id", "")).startswith("TF:") for m in c["matched"])
             if (len(c["matched"]) < 2 and not by_test) or _in_ledger(c["name_ko"], c["id"], ids, names):
