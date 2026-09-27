@@ -15,8 +15,11 @@ API
     render_for_prompt(findings, dx)  -> short Korean text with source tags (<= ~800 chars) for the small LLM
     patient_profile(text)            -> (sex "남성"/"여성"/"", age or None) parsed from "35세 여성" style text
 
-Finding → term matching uses the KB labels plus the curated tables in kb_curated.py (Korean synonyms, generic-term
-stop list, vitals/lab value parsing). Test/lab/imaging results ("리파아제 1,250 U/L", "AMA 양성", "CT: 충수 비후") are
+Finding → term matching reads each finding with the clinical-finding normalisation layer (doctor_agent.nlp: lexicon
+concepts, per-mention negation, subject, measured vitals/labs; concept → KB term ids from data/lexicon/kb_links.json)
+plus a scan of the KB's own term labels (kb_curated.py keeps the generic-term stop list, ambiguous labels and block
+words); a term reported absent counts as a negative, one about a relative or hypothetical counts for nothing.
+Test/lab/imaging results ("리파아제 1,250 U/L", "AMA 양성", "CT: 충수 비후") are
 detected by kb_tests.detect() and scored through the curated profile field findings_from_tests (weight 3 = decisive);
 a normal result of a rule-out test ("트로포닌 음성") penalises the linked disease. Orphanet phenotypes count by frequency
 class (profile field orpha_freq; "Excluded (0%)" findings penalise), and a mild Korean prevalence prior (HIRA patients
@@ -34,6 +37,9 @@ from collections import defaultdict
 from pathlib import Path
 
 from doctor_agent.knowledge import kb_curated, kb_tests
+from doctor_agent.nlp.findings import assess_spans
+from doctor_agent.nlp.findings import parse as nlp_parse
+from doctor_agent.nlp.lexicon import LEXICON, LEXICON_PATH, compact_key, normalize
 
 KB_DIR = Path(__file__).resolve().parents[3] / "data" / "kb"
 SRC_SHORT = {"DDXPlus": "DDXPlus", "DO": "DO", "WD": "Wikidata", "KCD": "KCD", "MedlinePlus": "MedlinePlus",
@@ -44,9 +50,6 @@ _NON = re.compile(r"[^0-9a-z가-힣]")
 _EN_SPACE = re.compile(r"[^0-9a-z가-힣]+")
 _PAREN = re.compile(r"\([^)]*\)|\[[^\]]*\]")
 _CODE = re.compile(r"\b([A-Z])\s?(\d{2})(?:\.?(\d{1,2}))?\b")
-# negated finding: Korean negation at the end ("발열 없음", "기침은 부인") or English negation words
-_NEG = re.compile(r"((없음|없다|없어요?|없습니다|음성|부인|부인함|아님|아니요|정상|않음|않다|않아요)[.\s]*$)"
-                  r"|\(\s*-\s*\)|\b(no|not|denies|denied|negative|absent)\b")
 _HANGUL = re.compile(r"[가-힣]")
 # KCD qualifiers stripped for an extra name key ("달리 분류되지 않은 세균성 수막염" → "세균성 수막염")
 _QUAL = re.compile(r"^(달리 분류되지 않은|상세불명의|상세불명 병원체의|기타)\s*|\s*(NOS|NEC)$")
@@ -64,8 +67,6 @@ _PEDIATRIC = re.compile(r"소아|영아|신생아|유아기|childhood|infantile|
 _ELDERLY = re.compile(r"노인성|노년|senile")
 _KO_PREFIX = ("우측", "좌측", "양측", "우하", "좌하", "우상", "좌상", "급성", "만성", "마른", "심한", "전신", "간헐적",
               "지속적", "반복적", "우", "좌", "양", "상", "하", "잔")
-_NEG_TAIL = re.compile(r"\s*(은|는|이|가|도)?\s*(없음|없다|없어요?|없고|없습니다|없었(?:어요|음|다)?|음성|부인함?|아님|아니요|"
-                       r"않음|않다|않아요|안 함|none|absent|negative)[.\s]*$", re.I)
 _SEX_RE = re.compile(r"(남성|남자|남아|소년|여성|여자|여아|소녀|임신부|임산부)|\d+\s*(?:세|살)\s*(남|여)|\b(male|female|man|woman|boy|girl)\b",
                      re.I)
 _AGE_RE = re.compile(r"(\d{1,3})\s*(세|살|개월|months?|years?)", re.I)
@@ -80,9 +81,108 @@ _CONTEXT = re.compile(r"임신|분만|산후|산욕|신생아|태아|소아|영�
                       r"infant|due|with|without")
 
 
-def _strip_neg(s: str) -> str:
-    """"발열 없음" → "발열" (for matching the negative findings list)."""
-    return _NEG_TAIL.sub("", s or "").strip()
+_POL_RANK = {"other": 0, "absent": 1, "present": 2}
+_NO_LINK = {"SYM:pain", "HX:pmh"}  # generic concepts: no KB term (the label scan's _GENERIC / stop list)
+_VALUE_CUES = ("value", "value+ref", "normal-word", "urine")
+LINKS_PATH = Path(__file__).resolve().parents[3] / "data" / "lexicon" / "kb_links.json"
+
+
+def _status(f) -> str:
+    """present / absent for a finding about the patient that is not hypothetical, else other."""
+    if f.subject != "patient" or f.hypothetical or f.polarity not in ("present", "absent"):
+        return "other"
+    return f.polarity
+
+
+def concept_links(kbase: "KnowledgeBase", lex=None, mode: str = "all") -> dict[str, list[list[str]]]:
+    """Lexicon concept id → [[KB term id, link kind], ...], deterministic (the offline builder of
+    data/lexicon/kb_links.json; also the fallback when that file is missing). Kinds, in order:
+    curated   the KB term a kb_curated phrase list named goes to every concept owning one of those phrases (the
+              lexicon merged them with provenance "curated"), so retiring the runtime tables loses no link;
+    label     a lexicon link (scripts/build_lexicon.py) whose term label equals the concept's own ko/en label;
+    lexicon   the other lexicon links (term label = one of the concept's synonyms; mode "primary": none, mode
+              "fallback": only for concepts without a curated/label link);
+    form      for a concept still unlinked: KB terms whose label equals one of its Korean/English surface forms;
+    ancestor  the curated/label/form links of the nearest linked ancestor (no groups, no generic pain): query-side
+              backoff, "우측 옆구리 둔통" also counts as flank pain.
+    Test-result terms (TF:) are left out (kb_tests detects them), as are stop terms, generic labels and the
+    kb_curated.BAD_LABELS pairs."""
+    lex = lex or LEXICON
+    terms, stop = kbase.terms, kbase.stop
+    out: dict[str, list[list[str]]] = {}
+    bad = {(kbase.en_ix[en], compact_key(lab)) for en, labs in kb_curated.BAD_LABELS.items() if en in kbase.en_ix
+           for lab in labs}
+    forms = _concept_forms()
+
+    def ok(cid: str, tid: str | None, kind: str) -> bool:
+        if cid in _NO_LINK or (lex.concepts[cid].group and kind != "curated") or not tid or tid not in terms \
+                or tid in stop or tid.startswith("TF:"):
+            return False
+        t = terms[tid]
+        if t["en"].strip().lower() in _GENERIC or compact_key(t["ko"]) in _GENERIC:
+            return False
+        # a link found by label equality through an ambiguous label ("어지러움" is not hypotension)
+        return kind not in ("lexicon", "form") or not any((tid, k) in bad for k in forms.get(cid, ()))
+
+    def add(cid: str, tid: str | None, kind: str) -> None:
+        if ok(cid, tid, kind) and tid not in [x[0] for x in out.get(cid, ())]:
+            out.setdefault(cid, []).append([tid, kind])
+    targets: dict[str, list[str]] = {}
+    for en, syns in kb_curated.SYNONYMS.items():
+        targets.setdefault(en, []).extend(syns)
+    for _pat, en in kb_curated.REGEX:
+        targets.setdefault(en, [])
+    for en in sorted(targets):  # every concept owning one of the phrases gets the term, as the old table did
+        for form in [en] + targets[en]:
+            for cid in lex.lookup(form):
+                if lex.concept(cid) and "kb_tests" not in lex.concept(cid).flags:
+                    add(cid, kbase.en_ix.get(en), "curated")
+    for cid in sorted(lex.concepts):
+        c = lex.concepts[cid]
+        if "kb_tests" in c.flags:
+            continue
+        own = {compact_key(c.en), compact_key(c.ko)} - {""}
+        for tid in c.kb:
+            if tid in terms and {compact_key(terms[tid]["en"]), compact_key(terms[tid]["ko"])} & own:
+                add(cid, tid, "label")
+        if mode == "all" or (mode == "fallback" and cid not in out):
+            for tid in c.kb:
+                add(cid, tid, "lexicon")
+    unlinked = [cid for cid in sorted(lex.concepts) if cid not in out and "kb_tests" not in lex.concepts[cid].flags
+                and not lex.concepts[cid].group and cid not in _NO_LINK]
+    lab_ix: dict[str, list[str]] = {}
+    for tid in sorted(terms):
+        t = terms[tid]
+        for s in [t["en"], t["ko"], *t["syn"]]:
+            k = compact_key(s)
+            if len(k) >= 2:
+                lab_ix.setdefault(k, []).append(tid)
+    for cid in unlinked:
+        for k in forms.get(cid, ()):
+            for tid in lab_ix.get(k, ())[:4]:
+                add(cid, tid, "form")
+    strong = {cid: [x[0] for x in v if x[1] in ("curated", "label", "form")] for cid, v in out.items()}
+    for cid in sorted(lex.concepts):
+        if "kb_tests" in lex.concepts[cid].flags or lex.concepts[cid].group or cid in _NO_LINK:
+            continue
+        for anc in lex.ancestors(cid):
+            if strong.get(anc) and anc not in _NO_LINK and not lex.concepts[anc].group:
+                for tid in strong[anc]:
+                    add(cid, tid, "ancestor")
+                break
+    return {cid: out[cid] for cid in sorted(out)}
+
+
+def _concept_forms() -> dict[str, list[str]]:
+    """Compact keys of each concept's labels and non-absence surface forms (from data/lexicon/concepts.json)."""
+    out: dict[str, list[str]] = {}
+    with open(LEXICON_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    for c in data["concepts"]:
+        keys = [compact_key(c.get("ko", "")), compact_key(c.get("en", ""))]
+        keys += [compact_key(fm[0]) for fm in c.get("forms", ()) if fm[1] in ("med", "en", "lay", "abbr")]
+        out[c["id"]] = [k for k in dict.fromkeys(keys) if len(k) >= 2]
+    return out
 
 
 def patient_profile(text: str) -> tuple[str, float | None]:
@@ -141,6 +241,17 @@ class KnowledgeBase:
     FUZZY_MIN = 0.6  # minimum char-bigram Dice for a fuzzy name match (Korean) ...
     FUZZY_SURE = 0.7  # ... below which the first two characters must agree
     FUZZY_MIN_LATIN = 0.75
+    # finding → term matching (see _analyze): the normalisation layer (doctor_agent.nlp) reads concepts, negation,
+    # subject and measured values; the KB-label scan adds terms by their own labels. Dev sweeps (scripts/eval_kb.py,
+    # 2026-09-28) in docs/nlp.md; the switches keep the pre-migration tables for A/B runs.
+    CURATED_SYN = False   # also scan kb_curated.SYNONYMS / REGEX (superseded by the lexicon, provenance "curated")
+    LAB_VALUES = "nlp"    # "nlp": measured findings of nlp.parse; "curated": kb_curated.lab_terms() (dev MRR -0.01)
+    LINK_MODE = "all"     # links derived without the file: "all" | "fallback" | "primary" (fewer lexicon links)
+    # query weight of a concept → term link by kind (see concept_links); 0 drops the kind (dev: lexicon 1.0 > 0.6,
+    # ancestor 0 ≈ 0.4 > 1.0)
+    LINK_W = {"curated": 1.0, "label": 1.0, "lexicon": 1.0, "form": 1.0, "ancestor": 0.4}
+    LINKS_FILE = True     # read the frozen links (data/lexicon/kb_links.json) when present
+    POS_NEG = True        # terms a positive-list finding states absent count as negatives
 
     def __init__(self, kb_dir: Path = KB_DIR):
         with gzip.open(kb_dir / "kb.json.gz", "rt", encoding="utf-8") as f:
@@ -162,7 +273,7 @@ class KnowledgeBase:
                     for extra in (_n(name.split(",")[0]) if "," in name else "", _n(_QUAL.sub("", name))):
                         if len(extra) >= 2 and extra != key:
                             self.names[extra].append((i, False))
-        # ---- finding → term labels: KB labels + curated synonyms (kb_curated.py), minus generic/ambiguous ones
+        # ---- finding → term labels: KB labels minus generic/ambiguous ones (lay wording comes from the lexicon)
         en_ix: dict[str, str] = {}
         for tid, t in self.terms.items():
             en_ix.setdefault(t["en"].strip().lower(), tid)
@@ -173,11 +284,12 @@ class KnowledgeBase:
         self.en_ix = en_ix
         self.stop = {en_ix[x] for x in kb_curated.STOP_TERMS if x in en_ix}
         bad = {(en_ix[en], _n(lab)) for en, labs in kb_curated.BAD_LABELS.items() if en in en_ix for lab in labs}
+        self.bad = bad
         raw: list[tuple[str, str]] = []
         for tid, t in self.terms.items():
             if tid not in self.stop and not tid.startswith("TF:"):  # test findings are detected by kb_tests
                 raw += [(lab, tid) for lab in dict.fromkeys([t["en"], t["ko"], *t["syn"]])]
-        for en, syns in kb_curated.SYNONYMS.items():
+        for en, syns in kb_curated.SYNONYMS.items() if self.CURATED_SYN else ():
             tid = en_ix.get(en)
             if tid and tid not in self.stop:
                 raw += [(x, tid) for x in syns]
@@ -210,6 +322,8 @@ class KnowledgeBase:
                 self._en_first[lab.split()[0]].append((lab, tid))
             else:
                 self._ko_ix[lab[:2]].append((lab, tid))
+        # ---- lexicon concept → KB term ids (data/lexicon/kb_links.json, built offline; see concept_links())
+        self.cmap: dict[str, dict[str, float]] = self._load_concept_links()
 
         # ---- term backoff: a specific term implies the general terms named inside its label
         # ("sudden numbness or weakness of the face" → weakness; "우하복부 통증" → 하복부 통증). Derived from labels.
@@ -220,7 +334,7 @@ class KnowledgeBase:
             t = self.terms[tid]
             if "history" in t["en"].lower():  # "family history of asthma" does not imply asthma
                 continue
-            for g in set(self._match(t["ko"])) | set(self._match(t["en"])):
+            for g in set(self._label_terms(t["ko"])) | set(self._label_terms(t["en"])):
                 if g != tid and g in used and g not in generic:
                     self.implies[tid].add(g)
         self._build_postings()
@@ -242,6 +356,22 @@ class KnowledgeBase:
         d = self.diseases[i]
         return (2.0 * bool(d["symptoms"]) + min(len(d["symptoms"]), 20) / 10 + bool(d["names_ko"])
                 + bool(d["codes"].get("kcd")) + 0.5 * bool(d.get("summary_ko")))
+
+    def _load_concept_links(self) -> dict[str, dict[str, float]]:
+        """Concept id → {term id: query weight by link kind (LINK_W)} from data/lexicon/kb_links.json (built offline
+        by `python scripts/eval_kb.py --build-links`); derived the same way when the file is missing."""
+        if self.LINKS_FILE and LINKS_PATH.exists():
+            with open(LINKS_PATH, encoding="utf-8") as f:
+                links = json.load(f)["links"]
+        else:
+            links = concept_links(self, mode=self.LINK_MODE)
+        out: dict[str, dict[str, float]] = {}
+        for cid, lst in links.items():
+            for tid, kind in lst:
+                w = self.LINK_W.get(kind, 0.0)
+                if w > 0 and tid in self.terms and tid not in self.stop:
+                    out.setdefault(cid, {})[tid] = w
+        return out
 
     def term(self, tid: str) -> dict:
         t = self.terms[tid]
@@ -602,15 +732,70 @@ class KnowledgeBase:
         return {t: lab for t, (lab, _span) in self._match_spans(text).items()}
 
     def _match_spans(self, text: str) -> dict[str, tuple[str, tuple]]:
-        """tid → (matched label, span). Spans let candidates() treat terms matched on the same words as one concept
-        ("안절부절못함" → restlessness, agitation, psychomotor agitation counts once)."""
-        low = (text or "").lower()
+        """tid → (matched label, span), whatever the polarity. Spans (offsets in nlp.normalize(text)) let candidates()
+        treat terms matched on the same words as one concept ("안절부절못함" → restlessness, agitation, psychomotor
+        agitation counts once); values ("체온 38.6℃" → fever) get the span ("#", concept)."""
+        return {t: (lab, span) for t, (lab, span, *_x) in self._analyze(text).items()}
+
+    def _analyze(self, text: str) -> dict[str, tuple[str, tuple, str, float]]:
+        """tid → (label, span, status, query weight) for one finding text. status: "present" / "absent" (about the
+        patient, not hypothetical) or "other" (uncertain, hypothetical, a relative's). Concepts, negation, subject and
+        measured values come from the normalisation layer (nlp.parse → concept → KB term ids via self.cmap); the
+        KB-label scan adds terms by their own labels and takes the polarity of the lexicon mention it overlaps, else
+        that of its own span read with the same rules (nlp.assess_spans). Test-result concepts are left to kb_tests
+        (test_findings). Weight: 1 for a label hit, else that of the concept link kind (LINK_W; ancestor backoff < 1)."""
+        t = normalize(text or "")
+        hits: dict[str, tuple[str, tuple, str, float]] = {}
+        if not t:
+            return hits
+
+        def take(lab: str, tid: str, span: tuple, pol: str, w: float = 1.0) -> None:
+            old = hits.get(tid)
+            if old is None or (_POL_RANK[pol], w, len(lab)) > (_POL_RANK[old[2]], old[3], len(old[0])):
+                hits[tid] = (lab, span, pol, w)
+        cspans: list[tuple[int, int, str]] = []
+        for f in nlp_parse(text, "claim"):
+            c = LEXICON.concept(f.concept)
+            if c is None or "kb_tests" in c.flags:
+                continue
+            pol = _status(f)
+            if f.value is not None or f.cue in _VALUE_CUES:
+                if self.LAB_VALUES == "nlp":
+                    for tid, w in self.cmap.get(f.concept, {}).items():
+                        take("#" + f.concept, tid, ("#", f.concept), pol, w)
+                continue
+            key = _n(f.span)
+            for tid, w in self.cmap.get(f.concept, {}).items():
+                if (tid, key) not in self.bad:  # "무릎의 열감" is not fever (kb_curated.BAD_LABELS)
+                    take("~" + f.span, tid, ("k", f.start, f.end), pol, w)
+            cspans.append((f.start, f.end, pol))
+        todo: list[tuple[str, str, tuple]] = []
+        for tid, (lab, span) in self._scan_labels(t).items():
+            if span[0] == "#":
+                take(lab, tid, span, "present")
+                continue
+            over = [p for s, e, p in cspans if s < span[2] and span[1] < e]
+            if over:
+                take(lab, tid, span, max(over, key=_POL_RANK.get))
+            else:
+                todo.append((tid, lab, span))
+        if todo:
+            for (tid, lab, span), f in zip(todo, assess_spans(text, [(s[1], s[2]) for _t, _l, s in todo], "claim")):
+                take(lab, tid, span, _status(f) if f is not None else "other")
+        return hits
+
+    def _label_terms(self, label: str) -> dict[str, tuple[str, tuple]]:
+        """Terms named inside a KB label (for the term backoff): the label scan only, no parsing."""
+        return self._scan_labels(normalize(label))
+
+    def _scan_labels(self, low: str) -> dict[str, tuple[str, tuple]]:
+        """KB term labels in normalised text: tid → (label, ("k", start, end)); stop terms removed."""
         hits: dict[str, tuple[str, tuple]] = {}
 
         def take(lab: str, tid: str, span: tuple) -> None:
             if len(lab) > len(hits.get(tid, ("", ()))[0]):
                 hits[tid] = (lab, span)
-        for pat, en in kb_curated.REGEX_C:  # flexible phrasings; the span is consumed
+        for pat, en in kb_curated.REGEX_C if self.CURATED_SYN else ():  # legacy flexible phrasings (span consumed)
             m = pat.search(low)
             if m and en in self.en_ix:
                 take("~" + m.group(0), self.en_ix[en], ("k", m.start(), m.end()))
@@ -646,23 +831,38 @@ class KnowledgeBase:
             for lab, tid in self._ko_ix.get(fk[:2], ()):
                 if len(lab) == len(fk) + 1 and lab.startswith(fk):
                     take(lab, tid, ("k", where[0], where[-1] + 1))
-        fs = _spaced(low)
+        # English labels over the space-separated words; spans mapped back to `low`
+        fs_chars, fmap = [" "], [-1]
+        for x, ch in enumerate(low):
+            if "가" <= ch <= "힣" or "a" <= ch <= "z" or "0" <= ch <= "9":
+                fs_chars.append(ch)
+                fmap.append(x)
+            elif fs_chars[-1] != " ":
+                fs_chars.append(" ")
+                fmap.append(x)
+        if fs_chars[-1] != " ":
+            fs_chars.append(" ")
+            fmap.append(len(low))
+        fs = "".join(fs_chars)
         for wd in set(fs.split()):
             for lab, tid in self._en_first.get(wd, ()):
                 x = fs.find(lab)
                 if x >= 0:
-                    take(lab, tid, ("e", x, x + len(lab)))
-        for en in kb_curated.lab_terms(low):
-            tid = self.en_ix.get(en)
-            if tid:
-                take("#" + en, tid, ("#", en))
+                    take(lab, tid, ("k", fmap[x + 1], fmap[x + len(lab) - 2] + 1))
+        if self.LAB_VALUES != "nlp":
+            for en in kb_curated.lab_terms(low):
+                tid = self.en_ix.get(en)
+                if tid:
+                    take("#" + en, tid, ("#", en))
         for tid in [t for t in hits if t in self.stop]:
             del hits[tid]
         return hits
 
     def _groups(self, text: str) -> list[list[str]]:
         """Matched terms of one finding grouped into concepts (terms whose matched spans overlap)."""
-        hits = self._match_spans(text)
+        return self._group_hits(self._match_spans(text))
+
+    def _group_hits(self, hits: dict[str, tuple]) -> list[list[str]]:
         items = sorted(((span, t) for t, (_lab, span) in hits.items() if t in self.post),
                        key=lambda x: (x[0][0], x[0][1:]))
         groups: list[list[str]] = []
@@ -677,12 +877,28 @@ class KnowledgeBase:
         return groups
 
     def match_terms(self, finding: str, allow_negated: bool = False) -> list[str]:
-        """Term ids mentioned in one finding text (negated findings match nothing unless allow_negated)."""
-        if not finding or (not allow_negated and _NEG.search(finding.lower())):
+        """Term ids mentioned in one finding text as present for the patient (all mentioned terms if allow_negated)."""
+        if not finding:
             return []
-        out = list(self._match(finding))
-        out += ["TF:" + fid for fid in kb_tests.detect(finding) if "TF:" + fid in self.tpost]
+        out = [t for t, (_lab, _span, pol, _w) in self._analyze(finding).items() if allow_negated or pol == "present"]
+        out += ["TF:" + fid for fid, (pol, _v) in kb_tests.detect(finding).items()
+                if "TF:" + fid in self.tpost and (allow_negated or pol > 0)]
         return out
+
+    def _split_finding(self, f: str) -> tuple[list[list[str]], set[str], dict[str, float]]:
+        """(concept groups of the terms reported present, terms reported absent, query weight of the present terms)
+        of one positive-list finding. An absent concept does not negate its ancestors' terms (weight < 1)."""
+        hits = self._analyze(f)
+        pos = {t: (x[0], x[1]) for t, x in hits.items() if x[2] == "present"}
+        neg = {t for t, x in hits.items() if x[2] == "absent" and x[3] >= 1.0 and not x[0].startswith("#")}
+        return self._group_hits(pos), neg, {t: hits[t][3] for t in pos}
+
+    def _negated_terms(self, f: str) -> set[str]:
+        """Terms of one negative-list finding: those it states absent; all it names when it states none absent (the
+        caller already marked the finding negative: "발열"). Values ("#fever" from 36.5℃) never negate."""
+        hits = {t: x for t, x in self._analyze(f).items() if not x[0].startswith("#") and x[3] >= 1.0}
+        absent = {t for t, x in hits.items() if x[2] == "absent"}
+        return absent or {t for t, x in hits.items() if x[2] != "other"}
 
     def candidates(self, findings: list[str], k: int = 10, negatives: list[str] | None = None,
                    sex: str | None = None, age: float | None = None) -> list[dict]:
@@ -694,10 +910,13 @@ class KnowledgeBase:
         qw: dict[str, float] = {}
         concepts: list[list[str]] = []  # one entry per concept: its terms (+ implied general terms)
         q_found: set[str] = set()  # findings that matched something (coverage denominator)
+        neg_in_pos: set[str] = set()  # terms a positive-list finding states absent ("기침은 있으나 열은 없음")
         for f in findings or []:
-            if not f or _NEG.search(f.lower()):
+            if not f:
                 continue
-            groups = self._groups(f)
+            groups, absent, gw = self._split_finding(f)
+            if self.POS_NEG:
+                neg_in_pos |= absent
             if groups:
                 q_found.add(f)
             for grp in groups:
@@ -709,7 +928,7 @@ class KnowledgeBase:
                 concept = list(grp)
                 for t in grp:
                     matched[t].append(f)
-                    qw[t] = 1.0
+                    qw[t] = gw.get(t, 1.0)
                 for t in grp if self.QX > 0 else ():  # query-side backoff: "우하복부 통증" also counts as 하복부 통증
                     for g in self.implies.get(t, ()):
                         if g in self.post and g not in qw:
@@ -717,8 +936,7 @@ class KnowledgeBase:
                             qw[g] = self.QX
                             concept.append(g)
                 concepts.append(concept)
-        neg = {t for f in negatives or [] for t, lab in self._match(_strip_neg(f)).items()
-               if not lab.startswith("#")} - set(qw)  # values ("#fever" from 36.5℃) never negate
+        neg = ({t for f in negatives or [] if f for t in self._negated_terms(f)} | neg_in_pos) - set(qw)
         # test/lab/imaging results (all findings, whatever their wording: detect() handles "음성"/"정상"/values)
         tpos, tneg = self.test_findings(findings, negatives)
         n_q = len(q_found | {f for fs in tpos.values() for f in fs})
