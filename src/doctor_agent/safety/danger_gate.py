@@ -1042,7 +1042,7 @@ def _sah_out(c: _Ctx):
 
 def _applies_checks(check_ids: tuple[str, ...], c: _Ctx) -> bool:
     """True when one of these protocols.py checks applies to the chief complaint (+ learned facts)."""
-    text = f"{c.cc}. {c.facts}"
+    text = ReadText(f"{c.cc}. {c.facts}")  # parsed once for all checks
     return any(ch.id in check_ids and ch.applies(text, cc=c.cc) for p in protocols_for(c.cc) for ch in p.checks)
 
 

@@ -557,8 +557,14 @@ def _usable(norm: str, end: int, f) -> bool:
     return len(rest) <= 8 and " " not in rest
 
 
-def _legacy_status(t: str, idx: int, kw: str, family_kw: bool) -> str:
-    if not family_kw and _relative_before(t, idx):
+# A relative or partner speaks for the patient ("(남편) 오늘 아침부터 아내가 헛소리를 해요"): person words then name the
+# patient, so subject attribution is not trusted (conservative: the finding counts as the patient's).
+_RE_PROXY = re.compile(r"\((?:남편|아내|부인|배우자|보호자|엄마|아빠|어머니|아버지|딸|아들|며느리|사위|가족|동생|형|언니|누나|오빠)"
+                       r"(?:\s?[가-힣]{0,4})?\)|보호자\s?(?::|진술|에 따르면|가 대신|분이 대신)|대신\s?(?:대답|말씀|설명)")
+
+
+def _legacy_status(t: str, idx: int, kw: str, family_kw: bool, proxy: bool = False) -> str:
+    if not family_kw and not proxy and _relative_before(t, idx):
         return OTHER
     return NEG if _legacy_negated_at(t, idx, kw) else POS
 
@@ -577,6 +583,7 @@ def keyword_statuses(text, keyword: str, source: str = "patient", detail: bool =
         return []
     norm, findings = rt.parsed()
     fam_kw = bool(_KW_ABOUT_RELATIVES.search(kw))
+    proxy = bool(_RE_PROXY.search(norm))
     out: list = []
 
     def add(st: str, layer: bool) -> None:
@@ -585,17 +592,20 @@ def keyword_statuses(text, keyword: str, source: str = "patient", detail: bool =
     if kw not in norm:  # normalisation changed the keyword's surface: legacy reading on the raw text
         raw = str(rt).lower()
         for m in re.finditer(re.escape(kw), raw):
-            add(_legacy_status(raw, m.start(), kw, fam_kw), False)
+            add(_legacy_status(raw, m.start(), kw, fam_kw, proxy), False)
         return out
     own = fam_kw or bool(_KW_OWN_NEGATION.search(kw))
     for m in re.finditer(re.escape(kw), norm):
         s, e = m.start(), m.end()
         hits = [] if own else [f for fs, fe, f in findings if fs < e and s < fe and _usable(norm, fe, f)]
         if not hits:
-            add(_legacy_status(norm, s, kw, fam_kw), False)
+            add(_legacy_status(norm, s, kw, fam_kw, proxy), False)
             continue
         # "가족력: 고혈압" (a family-history heading without a subject particle) is not the patient's
-        mine = [] if _relative_before(norm, s, _RE_FAMILY_HISTORY) else [f for f in hits if f.subject == "patient"]
+        if _relative_before(norm, s, _RE_FAMILY_HISTORY):
+            mine = []
+        else:
+            mine = [f for f in hits if f.subject == "patient" or proxy]
         if any(f.polarity == "present" and not f.hypothetical for f in mine):
             add(POS, True)
         elif any(f.polarity == "uncertain" or f.hypothetical for f in mine):

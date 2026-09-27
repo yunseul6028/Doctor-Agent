@@ -28,6 +28,7 @@ from doctor_agent.knowledge.clinical_rules import (
     C_ALVARADO,
     CATEGORY_NAMES,
     Citation,
+    ReadText,
     age_days,
     age_years,
     contains_affirmed,
@@ -456,12 +457,28 @@ _RE_HR = re.compile(r"(?:맥박|심박수?|heart rate|pulse|hr)\s*:?\s*(\d{2,3})
 _RE_RR = re.compile(r"(?:호흡수|respiratory rate|rr)\s*:?\s*(\d{1,2})")
 
 
+# measured findings of the normalisation layer whose value is the vital sign (the value, not the layer's own
+# threshold, is compared with the qSOFA / HR cut-offs below)
+_MEASURED_VITAL = {"SIGN:hypotension": "sbp", "SIGN:elevated_bp": "sbp", "SIGN:tachycardia": "hr",
+                   "SIGN:bradycardia": "hr", "SIGN:tachypnea": "rr", "SIGN:bradypnea": "rr"}
+
+
 def _numeric_instability(t: str, need: int = 1) -> bool:
-    """At least `need` of: SBP <= 100, RR >= 22 (qSOFA, Seymour 2016), HR > 100, when numbers appear in the text."""
-    sbp = [int(g) for m in _RE_SBP.finditer(t) for g in m.groups() if g]
-    hr = [int(m.group(1)) for m in _RE_HR.finditer(t)]
-    rr = [int(m.group(1)) for m in _RE_RR.finditer(t)]
-    n = any(x <= 100 for x in sbp) + any(x > 100 for x in hr) + any(x >= 22 for x in rr)
+    """At least `need` of: SBP <= 100, RR >= 22 (qSOFA, Seymour 2016), HR > 100, when numbers appear in the text.
+    Values: the normalisation layer's measured vital signs ("맥박수 120회/분", "혈압 우측 팔 85/50") pooled with this
+    module's own regexes (either reader may find a number the other misses; more values can only add instability)."""
+    t = t if isinstance(t, ReadText) else ReadText(t or "")
+    low = t.lower()
+    vals: dict[str, list[float]] = {
+        "sbp": [float(g) for m in _RE_SBP.finditer(low) for g in m.groups() if g],
+        "hr": [float(m.group(1)) for m in _RE_HR.finditer(low)],
+        "rr": [float(m.group(1)) for m in _RE_RR.finditer(low)],
+    }
+    for _s, _e, f in t.parsed()[1]:
+        name = _MEASURED_VITAL.get(f.concept)
+        if name and f.value is not None and f.subject == "patient":
+            vals[name].append(f.value)
+    n = any(x <= 100 for x in vals["sbp"]) + any(x > 100 for x in vals["hr"]) + any(x >= 22 for x in vals["rr"])
     return n >= need
 
 
@@ -469,12 +486,13 @@ def _sepsis_suspected(cc: str, text: str) -> bool:
     """Blood cultures / lactate apply to fever with acute systemic illness, not to weeks-long febrile illness
     without instability (e.g. hypersensitivity pneumonitis, TB). Our operationalisation of SSC 2021's
     'suspected sepsis'."""
-    t = (text or "").lower()
+    t = text if isinstance(text, ReadText) else ReadText(text or "")  # parsed once for every lookup below
     # weeks-long febrile illness: one borderline vital sign (e.g. RR 22 in hypersensitivity pneumonitis) is not enough
     need = 2 if duration_level(cc) >= 1 else 1
     if contains_affirmed(t, _TRIG_SEPSIS_INSTABILITY) or _numeric_instability(t, need):
         return True
-    return duration_level(cc) == 0 and (contains_affirmed(t, _TRIG_SEPSIS_ACUTE) or bool(_RE_HIGH_TEMP.search(t)))
+    return duration_level(cc) == 0 and (contains_affirmed(t, _TRIG_SEPSIS_ACUTE)
+                                        or bool(_RE_HIGH_TEMP.search(t.lower())))
 
 
 # Infective-endocarditis risk clues (negation-aware): fever + any of these → blood cultures, any duration
@@ -579,8 +597,7 @@ def _current_pregnancy(cc: str, text: str) -> bool:
     age = age_years(cc)
     if age is not None and age < 10:
         return False
-    t = (text or "").lower()
-    return contains_affirmed(t, _TRIG_CURRENT_PREGNANCY) or bool(_RE_CURRENT_PREG_WEEKS.search(t))
+    return contains_affirmed(text, _TRIG_CURRENT_PREGNANCY) or bool(_RE_CURRENT_PREG_WEEKS.search((text or "").lower()))
 
 
 def _pregnancy_test_abdominal(cc: str, text: str) -> bool:
@@ -1284,7 +1301,8 @@ def must_checks_for(text: str, context: str = "") -> list[Check]:
     `text` + `context` (facts learned later, e.g. pregnancy or a thunderclap onset); a trigger inside a negated
     clause ("등이 찢어지는 느낌은 아니에요") does not count. Acute-only checks use the duration of `text` only.
     """
-    trigger_text = f"{text}. {context}"  # sentence break so a negation in context can't reach back into text
+    # sentence break so a negation in context can't reach back into text; ReadText: parsed once for all checks
+    trigger_text = ReadText(f"{text}. {context}")
     out: dict[str, Check] = {}
     for p in protocols_for(text, context):
         for c in p.checks:
