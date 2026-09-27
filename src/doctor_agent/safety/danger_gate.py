@@ -33,10 +33,15 @@ from doctor_agent.knowledge.clinical_rules import (
     C_ADD_RS,
     C_PERC,
     C_WELLS_PE,
+    OTHER,
+    POS,
+    UNC,
     Citation,
+    ReadText,
     age_years,
     contains_affirmed,
     duration_level,
+    keyword_statuses,
 )
 from doctor_agent.safety.protocols import (
     G_AAA,
@@ -179,12 +184,25 @@ def _affirmed_at(t: str, idx: int, kw: str, near: bool = True) -> bool:
 
 
 def polarity(text: str, kw: str) -> str | None:
-    """'pos' if any occurrence of kw is affirmed, 'neg' if all are negated, None if absent. Text is normalised."""
+    """'pos' if any occurrence of kw is affirmed, 'neg' if all are negated, None if absent (or only about relatives).
+    Text is normalised.
+
+    2026-09-27: each occurrence is also read by the normalisation layer (clinical_rules.keyword_statuses). The
+    reading stays conservative for a rule-out gate: an occurrence is affirmed when either reader affirms it (the
+    layer adds hedged / uncertain / persisting findings: "열이 안 떨어져요", "경련했는지 모르겠어요"), negated only when
+    both negate it, and dropped when the layer attributes it to a relative ("어머니가 폐색전증")."""
     t, k = _norm(text), kw.lower()
     idxs = [m.start() for m in re.finditer(re.escape(k), t)]
     if not idxs:
         return None
-    return "pos" if any(_affirmed_at(t, i, k) for i in idxs) else "neg"
+    # occurrences the layer has no finding for keep this module's own reading only
+    layer = [st if by_layer or st == OTHER else None for st, by_layer in keyword_statuses(t, k, detail=True)]
+    if len(layer) != len(idxs):  # normalisation changed the occurrences: legacy reading only
+        layer = [None] * len(idxs)
+    res = [_affirmed_at(t, i, k) or s in (POS, UNC) for i, s in zip(idxs, layer) if s != OTHER]
+    if not res:
+        return None
+    return "pos" if any(res) else "neg"
 
 
 _GENERIC_NORMAL = re.compile(
@@ -231,6 +249,12 @@ _RE_ONSET = (
     (re.compile(r"(\d+)\s*(?:개월|달)\s*(?:전|째|간|동안)"), 720.0),
     (re.compile(r"(\d+)\s*년\s*(?:전|째|간|동안)"), 8760.0),
 )
+# measured findings of the normalisation layer -> vital sign (the finding's value is the measured number)
+_VITAL_OF = {"SIGN:hypotension": "sbp", "SIGN:elevated_bp": "sbp", "SIGN:tachycardia": "hr", "SIGN:bradycardia": "hr",
+             "SIGN:tachypnea": "rr", "SIGN:bradypnea": "rr", "SIGN:hypoxemia": "spo2", "SYM:fever": "temp",
+             "SYM:high_fever": "temp", "SIGN:hypothermia": "temp"}
+_RE_SPO2_LABEL = re.compile(r"산소|spo2|sao2|sp02|o2")
+_WORST = {"sbp": min, "spo2": min, "hr": max, "rr": max}
 _ONSET_Q = ("언제", "시작", "몇 시", "발병", "처음", "얼마나 됐", "얼마나 되", "onset", "when")
 _KO_HOURS = (("한 시간", 1), ("두 시간", 2), ("세 시간", 3), ("네 시간", 4), ("다섯 시간", 5), ("반나절", 6),
              ("그저께", 48), ("어제", 24), ("어젯밤", 12), ("며칠", 72), ("지난주", 168))
@@ -246,35 +270,59 @@ class _Ctx:
         for i, t in enumerate(state.turns, 1):
             typ = getattr(t.action.type, "value", str(t.action.type))
             self.turns.append(_Turn(i, typ, _norm(t.action.content), _norm(t.response), t.action.content))
-        self.facts = ". ".join(t.text for t in self.turns)  # environment text only (no doctor questions)
+        # environment text only (no doctor questions); parsed once by the normalisation layer for all lookups
+        self.facts = ReadText(". ".join(t.text for t in self.turns))
         self.age = age_years(self.cc)
         self._probe_cache: dict[str, _Outcome] = {}
-        self.sbp = self._latest(_RE_SBP, int)
-        self.hr = self._latest(_RE_HR, int)
-        self.rr = self._latest(_RE_RR, int)
-        self.spo2 = self._latest(_RE_SPO2, int)
+        self._measured_cache: dict[int, dict[str, list[float]]] = {}
+        self.sbp = self._latest(_RE_SBP, int, "sbp")
+        self.hr = self._latest(_RE_HR, int, "hr")
+        self.rr = self._latest(_RE_RR, int, "rr")
+        self.spo2 = self._latest(_RE_SPO2, int, "spo2")
         self.temp = self._latest_temp()
         self.onset_h = self._onset_hours()
 
     # -- readers ----------------------------------------------------------------------------
-    def _latest(self, rx: re.Pattern, cast) -> float | None:
+    def _measured(self, t: _Turn) -> dict[str, list[float]]:
+        """Vital-sign values the normalisation layer measured in one response."""
+        if t.i not in self._measured_cache:
+            from doctor_agent.nlp import parse
+            out: dict[str, list[float]] = {}
+            for f in parse(t.text, "patient"):
+                name = _VITAL_OF.get(f.concept)
+                if name and f.value is not None and f.subject == "patient":
+                    if name == "spo2" and not _RE_SPO2_LABEL.search(f.span):
+                        continue  # "폐동맥 포화도 66%" (cardiac catheterisation) is not the arterial SpO2
+                    out.setdefault(name, []).append(f.value)
+            self._measured_cache[t.i] = out
+        return self._measured_cache[t.i]
+
+    def _latest(self, rx: re.Pattern, cast, name: str = "") -> float | None:
+        """Value from the latest response that has one. Within a response, the layer's measured values and this
+        module's regex values are pooled and the worst one is kept (_WORST: lowest SBP/SpO2, highest HR/RR/T), so
+        "누운 자세 128/78, 기립 후 108/68" reads 108 (conservative for shock, qSOFA, PERC and ADD-RS)."""
         val = None
         for t in self.turns:
-            for m in rx.finditer(t.text):
-                val = cast(m.group(1))
+            vs = list(self._measured(t).get(name, [])) if name else []
+            vs += [float(m.group(1)) for m in rx.finditer(t.text)]
+            if vs:
+                val = cast(_WORST.get(name, lambda x: x[-1])(vs))
         return val
 
     def _latest_temp(self) -> float | None:
         val = None
         for t in self.turns:
+            vs = list(self._measured(t).get("temp", []))
             for m in _RE_TEMP.finditer(t.text):
-                v, unit = float(m.group(1)), m.group(2).replace(" ", "")
+                x, unit = float(m.group(1)), m.group(2).replace(" ", "")
                 if unit == "도" and not re.search(r"(체온|열|temp|bt)", t.text[max(0, m.start() - 12):m.start()]):
                     continue
                 if unit in ("°f", "℉"):
-                    v = (v - 32) * 5 / 9
-                if 34 <= v <= 43:
-                    val = v
+                    x = (x - 32) * 5 / 9
+                if 34 <= x <= 43:
+                    vs.append(x)
+            if vs:
+                val = max(vs)
         return val
 
     def _onset_hours(self) -> float | None:
