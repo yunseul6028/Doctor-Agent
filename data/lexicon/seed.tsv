@@ -23,10 +23,15 @@ GRP:systemic	syn	constitutional symptoms|systemic symptoms|b symptoms
 GRP:systemic	flags	group
 GRP:respiratory	ko	호흡기 증상
 GRP:respiratory	en	respiratory symptoms
-GRP:respiratory	lay	감기 증상|감기 기운|감기 같은 증상|감기 걸린 것 같은 증상
 GRP:respiratory	med	호흡기 증상|호흡기계 증상|상기도 증상
-GRP:respiratory	syn	respiratory symptoms|uri symptoms
+GRP:respiratory	syn	respiratory symptoms
 GRP:respiratory	flags	group
+SYM:uri_symptoms	ko	감기 증상
+SYM:uri_symptoms	en	cold symptoms
+SYM:uri_symptoms	lay	감기 증상|감기 기운|감기 같은 증상|감기 걸린 것 같은 증상|감기 기가|감기에 걸린 것 같|감기 걸린 것 같|몸살감기
+SYM:uri_symptoms	med	상기도 감염 증상|감기 증상
+SYM:uri_symptoms	syn	uri symptoms|cold symptoms|common cold symptoms|upper respiratory symptoms
+SYM:uri_symptoms	parents	GRP:respiratory
 GRP:gi	ko	소화기 증상
 GRP:gi	en	gastrointestinal symptoms
 GRP:gi	lay	속 불편한 증상|배 증상
@@ -224,7 +229,7 @@ SYM:panic	syn	panic attack|panic
 SYM:altered_mental_status	ko	의식 변화
 SYM:altered_mental_status	en	altered mental status
 SYM:altered_mental_status	lay	지남력이 떨어|깨우기 어려|잘 깨지 않|정신이 오락가락|횡설수설|헛소리|엉뚱한 소리|앞뒤가 안 맞|앞뒤가 맞지 않|사람을 못 알아|사람을 알아보지 못|말귀를 못 알아|깨워도 잘 안 깨|깨워도 안 깨|축 처져|축 늘어|반응이 없|반응이 느리|의식이 흐|의식이 없|의식이 떨어|의식이 흐려|정신이 흐려|멍하게 있|멍하니|정신이 없어 보|평소와 다르게 멍|정신이 이상|의식이 평소와 다르|엉뚱한 말
-SYM:altered_mental_status	med	의식 저하|의식저하|의식 변화|의식변화|의식 혼탁|의식혼탁|혼돈|착란|섬망|지남력 저하|지남력 장애|지남력 상실|혼미|혼수|의식 장애|의식장애|의식 수준 저하|명료하지 않|혼동
+SYM:altered_mental_status	med	기면|기면 상태|의식 저하|의식저하|의식 변화|의식변화|의식 혼탁|의식혼탁|혼돈|착란|섬망|지남력 저하|지남력 장애|지남력 상실|혼미|혼수|의식 장애|의식장애|의식 수준 저하|명료하지 않|혼동
 SYM:altered_mental_status	syn	drowsy|lethargic|decreased consciousness|decreased level of consciousness|comatose|confusion|altered mental status|altered mentation|delirium|disorientation|obtundation|stupor|coma|disoriented|confused
 SYM:altered_mental_status	abbr	ams
 SYM:altered_mental_status	re	(?:통증|자극)에 대한 반응(?:이|은)? ?(?:저하|감소|없|둔)
@@ -233,7 +238,7 @@ SYM:altered_mental_status	negre	의식.{0,12}(명료|청명|정상|또렷)
 SYM:somnolence	ko	졸림
 SYM:somnolence	en	somnolence
 SYM:somnolence	lay	졸려|졸림|자꾸 졸|잠만 자|하루 종일 자|계속 자려고|잠에 취해|늘어져서 자
-SYM:somnolence	med	기면|과다 수면|과다수면|주간 졸림|주간 과다 졸림
+SYM:somnolence	med	과다 수면|과다수면|주간 졸림|주간 과다 졸림
 SYM:somnolence	syn	somnolence|drowsiness|sleepiness|lethargic|hypersomnia
 SYM:memory_loss	ko	기억력 저하
 SYM:memory_loss	en	memory loss
@@ -332,9 +337,14 @@ SIGN:neck_stiffness	re	(?<![가-힣])(?:뒷목|목 ?뒤|목덜미|목)[이은도
 SIGN:neck_stiffness	neg	경부 유연|목은 부드럽|목이 부드럽|neck supple
 SIGN:kernig	ko	케르니그 징후
 SIGN:kernig	en	kernig sign
-SIGN:kernig	med	케르니그 징후|케르니히 징후|케르니그|케르니히|브루진스키 징후|브루진스키|브루친스키
-SIGN:kernig	syn	kernig sign|kernig|brudzinski sign|brudzinski
+SIGN:kernig	med	케르니그 징후|케르니히 징후|케르니그|케르니히|커니그 징후|커니히 징후|커니히
+SIGN:kernig	syn	kernig sign|kernig|kernig's sign
 SIGN:kernig	parents	SIGN:neck_stiffness
+SIGN:brudzinski	ko	브루진스키 징후
+SIGN:brudzinski	en	brudzinski sign
+SIGN:brudzinski	med	브루진스키 징후|브루진스키|브루친스키|부르진스키
+SIGN:brudzinski	syn	brudzinski sign|brudzinski|brudzinski's sign
+SIGN:brudzinski	parents	SIGN:neck_stiffness
 SYM:gait_disturbance	ko	보행 장애
 SYM:gait_disturbance	en	gait disturbance
 SYM:gait_disturbance	re	걸음걸이[가도이는]? ?(?:점점 |좀 |많이 )?(?:불안|이상|비틀|어색|느려)
@@ -390,9 +400,14 @@ SYM:depressed_mood	med	우울감|우울|의욕 저하|흥미 상실|무쾌감|�
 SYM:depressed_mood	syn	depressed mood|depression|anhedonia|sadness|low mood
 SYM:suicidal_ideation	ko	자살 사고
 SYM:suicidal_ideation	en	suicidal ideation
-SYM:suicidal_ideation	lay	죽고 싶|죽고싶|자살하고 싶|살고 싶지 않|사라지고 싶|죽을 생각|목숨을 끊|손목을 긋
-SYM:suicidal_ideation	med	자살 사고|자살 생각|자살 충동|자해|자살 시도|자해 행동
-SYM:suicidal_ideation	syn	suicidal ideation|self-harm|suicide attempt|suicidal
+SYM:suicidal_ideation	lay	죽고 싶|죽고싶|자살하고 싶|살고 싶지 않|사라지고 싶|죽을 생각|목숨을 끊
+SYM:suicidal_ideation	med	자살 사고|자살 생각|자살 충동|자살 시도|자살 계획|자살 위험
+SYM:suicidal_ideation	syn	suicidal ideation|suicide attempt|suicidal
+SYM:self_harm	ko	자해
+SYM:self_harm	en	self-harm
+SYM:self_harm	lay	손목을 긋|손목을 그었|몸에 상처를 내|자해를 하|자해했|자해한
+SYM:self_harm	med	자해|자해 행동|자해 시도|자상 행위|비자살성 자해
+SYM:self_harm	syn	self-harm|self harm|self-injury|self-inflicted injury|non-suicidal self-injury|nssi
 SYM:hallucination	ko	환각
 SYM:hallucination	en	hallucination
 SYM:hallucination	lay	헛것이 보|헛것이|헛소리가 들|없는 소리가 들|누가 말하는 소리가|목소리가 들려|벌레가 기어다니는 게 보
@@ -1326,7 +1341,8 @@ SYM:gum_bleeding	syn	gum bleeding|gingival bleeding|bleeding gums
 SYM:gum_bleeding	parents	GRP:bleeding
 SYM:prolonged_bleeding	ko	지혈 곤란
 SYM:prolonged_bleeding	en	prolonged bleeding
-SYM:prolonged_bleeding	lay	피가 잘 안 멈|피가 안 멈|지혈이 안|지혈이 잘 안|피가 멈추지 않|피가 오래|피가 계속 나|지혈되지|피가 멎지 않|출혈이 멈추지
+SYM:prolonged_bleeding	lay	피가 잘 안 멈|피가 안 멈|지혈이 안|지혈이 잘 안|피가 멈추지 않|피가 오래|피가 계속 나|지혈되지 않|지혈이 되지 않|피가 멎지 않|출혈이 멈추지
+SYM:prolonged_bleeding	neg	잘 지혈되|잘 지혈돼|지혈이 잘 되|지혈이 잘 돼|금방 지혈|피가 금방 멈|피가 금방 멎|피가 잘 멈|피가 잘 멎
 SYM:prolonged_bleeding	med	지혈 곤란|출혈 시간 연장|지혈 장애|지연 출혈
 SYM:prolonged_bleeding	syn	prolonged bleeding|bleeding tendency|delayed hemostasis
 SYM:prolonged_bleeding	parents	GRP:bleeding
@@ -1650,8 +1666,18 @@ HX:prior_vte	abbr	dvt
 HX:trauma	ko	외상
 HX:trauma	en	trauma
 HX:trauma	lay	머리를 다친|상처를 입|상처가 났|찔렸|찔리|베였|다쳤|다친|넘어졌|넘어져|넘어진|넘어지면서|부딪혔|부딪쳤|부딪힌|교통사고|사고를|삐었|접질|미끄러져|추락|굴러떨어|낙상|얻어맞
-HX:trauma	med	부상|외상|타박상|낙상|교통사고|염좌|골절|탈구|열상|찰과상|둔상|관통상
-HX:trauma	syn	trauma|injury|fall|mva|motor vehicle accident|fracture|sprain|contusion|laceration
+HX:trauma	med	부상|외상|타박상|낙상|교통사고|염좌|열상|찰과상|둔상|관통상
+HX:trauma	syn	trauma|injury|fall|mva|motor vehicle accident|sprain|contusion|laceration
+SIGN:fracture	ko	골절
+SIGN:fracture	en	fracture
+SIGN:fracture	lay	뼈가 부러|뼈에 금이|금이 갔|뼈가 부서
+SIGN:fracture	med	골절|골절상|골절선|골절 소견|분쇄 골절|압박 골절|병적 골절|피로 골절|전위 골절|비전위 골절
+SIGN:fracture	syn	fracture|fractures|broken bone
+SIGN:dislocation	ko	탈구
+SIGN:dislocation	en	dislocation
+SIGN:dislocation	lay	어깨가 빠지|어깨가 빠졌|관절이 빠지|관절이 빠졌|뼈가 빠지|뼈가 빠졌
+SIGN:dislocation	med	탈구|아탈구|탈골|관절 탈구
+SIGN:dislocation	syn	dislocation|subluxation|luxation
 HX:head_trauma	ko	두부 외상
 HX:head_trauma	en	head trauma
 HX:head_trauma	re	머리(?:를|가)? ?(?:심하게 |세게 |크게 |바닥에 )?(?:부딪|다쳤|다친|박았|박은|찧|맞았)
@@ -2030,10 +2056,11 @@ HX:obstetric_history	re	임신(?:은|을)? ?[0-9]+ ?(?:번|회)
 HX:obstetric_history	re	(?<![a-z])g[0-9]p[0-9]
 HX:pmh	ko	과거 병력
 HX:pmh	en	past medical history
-HX:pmh	lay	지병|앓던 병|앓던 질환|앓은 병|앓은 질환|앓았던 병|아팠던 적|아픈 적|아팠거나|큰 병|병원에 다닌 적|치료받던 병|치료받은 병|다니는 병원|진단받은 병
+HX:pmh	lay	지병|앓던 병|앓던 질환|앓은 병|앓은 질환|앓았던 병|큰 병|병원에 다닌 적|치료받던 병|치료받은 병|다니는 병원|진단받은 병
 HX:pmh	med	특별한 질환|다른 질환|앓던 질환|심각한 질환|큰 질환|진단받은 질환|앓은 질환|과거력|과거 병력|기저질환|기저 질환|병력|기왕력|과거 질환|내과적 질환|기저 병력
 HX:pmh	syn	past medical history|pmh|medical history|comorbidities|underlying disease
 HX:pmh	flags	cue
+HX:pmh	re	(?:특별히|크게|따로|별로|어디가? ?(?:크게|특별히)?|몸이 ?(?:크게|특별히)?) ?(?:아팠던|아픈|아파 ?본|아팠었던) ?적
 
 # ---------------------------------------------------------------- concepts named by safety keyword tuples
 SIGN:peripheral_emboli	ko	심내막염 말초 징후

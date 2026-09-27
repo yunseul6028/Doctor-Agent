@@ -33,7 +33,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 
-from doctor_agent.nlp.lexicon import LEXICON, Concept, Lexicon, Mention, normalize
+from doctor_agent.nlp.lexicon import LEXICON, Concept, Lexicon, Mention, compact, normalize
 
 SOURCES = ("patient", "exam", "test", "claim")
 
@@ -61,12 +61,16 @@ class Finding:
     end: int = 0
     clause: str = ""
     cue: str = ""  # what decided the polarity (debugging / evaluation)
+    # further mentions of the same concept with the same polarity and subject in the same clause, merged into this
+    # finding ("뇌출혈, 뇌경색 소견 없음"): (start, end) offsets in normalize(text); see spans_of()
+    extra_spans: tuple[tuple[int, int], ...] = ()
 
     def key(self) -> tuple[str, str]:
         return self.concept, self.polarity
 
     def as_dict(self) -> dict:
-        d = {k: v for k, v in self.__dict__.items() if v not in ("", None, False) or k in ("concept", "polarity")}
+        d = {k: v for k, v in self.__dict__.items()
+             if v not in ("", None, False, ()) or k in ("concept", "polarity")}
         d.pop("clause", None)
         return d
 
@@ -78,7 +82,7 @@ _UNAVAILABLE = re.compile(r"제공\s?되지\s?않|제공하지\s?않|제공\s?�
 # clause boundaries: Korean connective endings followed by a space (the auxiliaries of ~고 있다, ~고 나서, ~고 싶다 do not
 # end a clause)
 _CLAUSE = re.compile(
-    r"(?:(?<=[가-힣])고(?!\s?(?:있|계시|계세|계셨|계신|싶|나서|나면|나니|나도|난\s|난뒤|난후|말았|지내|다니|가서|보니|보면|해서|해도"
+    r"(?:(?<=[가-힣])(?<![사경광창최])고(?!\s?(?:있|계시|계세|계셨|계신|싶|나서|나면|나니|나도|난\s|난뒤|난후|말았|지내|다니|가서|보니|보면|해서|해도"
     r"|했|한다|하셨|하던|하는|했던))"
     r"|(?<=[가-힣])데(?:도)?|지만|으나|되나|면서|으며|(?<=[가-힣])(?<![이])며"
     r"|(?<=[가-힣])(?<!에)(?<!부터)서|니까|다가)"
@@ -99,10 +103,13 @@ _IDIOM_NOT_NEG = re.compile(r"(?:할|걸을|잘|먹을|참을|견딜|설|앉을|
                             r"|이유\s?없이|원인\s?없이|까닭\s?없이|예고\s?없이|뿐(?:만)?\s?아니라|아니라\s?[가-힣]+(?:도|까지)"
                             r"|정신이\s?없|뭐라\s?할\s?수\s?없|할\s?수밖에\s?없|(?:별\s?|아무\s?)?문제\s?없이|탈\s?없이|문제없이"
                             r"|(?:기간|동안|중에?)\s?[^,]{0,10}(?:문제|이상|합병증)[는은가이]?\s?없")
-_PERSIST = re.compile(r"(?:낫|좋아지|호전되|멎|멈추|그치|사라지|가라앉|떨어지|나아지|빠지|내리|줄어들|안\s?낫)(?:지|질)\s?(?:않|못|안)"
+_PERSIST = re.compile(r"(?:낫|좋아지|호전되|멎|멈추|그치|사라지|가라앉|떨어지|나아지|빠지|내리|줄어들|안\s?낫|지혈(?:이\s?)?(?:잘\s?)?되)(?:지|질)\s?(?:않|못|안)|지혈이\s?(?:잘\s?)?안\s?(?:되|돼)"
                       r"|(?:안|못)\s?(?:나아|낫|멈|멎|그치|빠지|빠져|내려|떨어|좋아지|가라앉)|계속\s?(?:돼|되|있|나|해)|여전히"
                       r"|(?<![가-힣])외(?:에|에는|에도)?\s")
-_DOUBLE_NEG = re.compile(r"(?:없|않|아니)[가-힣]{0,2}\s?(?:지는|진|지도|는\s?건|는\s?것은|는\s?게|은\s?건|은\s?게|다고는|다고\s?할\s?수는)\s?(?:않|아니|안\s)")
+_DOUBLE_NEG = re.compile(r"(?:없|않|아니)[가-힣]{0,2}\s?(?:지는|진|지도|는\s?건|는\s?것은|는\s?게|은\s?건|은\s?게|다고는|다고\s?할\s?수는)\s?(?:않|아니|안\s)"
+                         r"|(?:않|없)(?:은|는)\s?(?:곳|데|때|날|부위)(?:이|가|은|도)?\s?(?:하나도\s?|거의\s?|별로\s?)?없")
+# "안 아픈 데가 없어요": a pre-negated mention whose phrase is negated again
+_NEG_NOUN_NEG = re.compile(r"^\s?[가-힣]{0,1}\s?(?:곳|데|때|날|부위)(?:이|가|은|도)?\s?(?:하나도\s?|거의\s?|별로\s?)?없")
 _POS_THEN_NEG = re.compile(r"있(?:지|진|지는|지도|지를|기는|는\s?건|는\s?것은)\s?(?:않|안\s|아니)|있지\s?않|있진\s?않|있지는\s?않"
                            r"|있(?:는|었던|던|으신|으셨던)\s?(?:사람|분|경우|분들|사람들|이)[은는이가도]?\s?(?:없|아무도|한\s?명도|전혀\s?없)")
 _PRE_NEG_EN = re.compile(r"\b(?:no|denies|denied|without|negative for|absence of|not|free of)\b[^,;]{0,25}$")
@@ -114,6 +121,11 @@ _HYPO = re.compile(r"(?:일|할|인|있을|생길|될|걸릴|올|아닐|것일)�
                    r"|배제|확인하고\s?싶|알고\s?싶|보고\s?싶|검사(?:를)?\s?(?:해|받아)\s?(?:보|봐)|진단받을까|되면\s?어떡|아니길"
                    r"|rule out|r/o")
 _METAPHOR = re.compile(r"^\s?(?:인|한|하는|난|나는|된|되는|오는|온|이|가)?\s?(?:것|거)?\s?(?:처럼|마냥|같이(?!\s?(?:있|살|오|와|먹|가|사는|지내|일)))")
+_NOT_SEIZURE_ATTACK = re.compile(r"(?:증상|통증|공황|불안|천식|기침|호흡\s?곤란|심계\s?항진|두근거림|부정맥|빈맥|서맥|심방\s?세동"
+                                 r"|쌕쌕거림|분노|울음|웃음|재채기|딸꾹질|수면|과호흡|협심증|가슴\s?통증|복통|두통|편두통)\s?$")
+# change verbs after a when-clause ("기침할 때 심해지지도 않아요" does not say the patient coughs)
+_WHEN_CHANGE = re.compile(r"^\s?(?:[가-힣]+(?:이|가|은|는|도)\s)?(?:더\s?|덜\s?|좀\s?|많이\s?|특별히\s?)?"
+                          r"(?:심해|심하|악화|아프|아파|아픈|나빠|편해|편하|괜찮|좋아|완화|줄어|달라|변하|변화|통증)")
 _WHEN = re.compile(r"(?:을|를)?\s?(?:하|할|해|볼|쉴|뱉을|먹을|삼킬|누를|누울)?\s?(?:때|때마다|하면서)(?![가-힣])")
 _RESOLVED = re.compile(r"(?:지금은|이제는|현재는)?\s?(?:괜찮아졌|나았|좋아졌|사라졌|없어졌|멎었|멈췄|가라앉았|회복)")
 _QUESTION_END = re.compile(r"(?:나요|까요|가요|인가|습니까|ㄹ까|을까|를까|걸까|건가요|거죠|죠|지요|는지)\s?\??$")
@@ -131,6 +143,43 @@ _SELF = (r"(?:(?<![가-힣])저(?:는|도|만|의)|(?<![가-힣])제가|(?<![가
          r"|patient|i\s)")
 _SUBJ = re.compile(f"(?P<family>{_FAMILY})|(?P<other>{_OTHER})|(?P<self>{_SELF})")
 _FAMILY_CTX = re.compile(r"가족력|가족\s?중|가족분|가족\s?(?:병력|질환)|집안에|부모님|family history|형제\s?중")
+# a family-history heading without a subject particle ("가족력: 고혈압", "가족력상 당뇨", "family history of ...") makes
+# the rest of its sentence the family's; "가족력은 없어요" / "가족력이 있어요" are statements, not headings
+_FAMILY_HEAD = re.compile(r"(?:가족력|가족\s?병력|family history)\s?(?::|-|상|에서|으로는?)?\s?"
+                          r"(?![은는이가도을를의과와](?:\s|$|[,.]))(?=[가-힣a-z])")
+# proxy speaker tag at the start of a text: "(남편) ...", "(보호자) ...", "보호자: ..."
+_PROXY_TAG = re.compile(r"^\s?[(\[]\s?(남편|아내|부인|와이프|배우자|보호자|엄마|아빠|어머니|어머님|아버지|아버님|부모님?|딸|아들"
+                        r"|며느리|사위|손자|손녀|가족|동생|형|언니|누나|오빠)(?:\s?[가-힣]{0,6})?\s?[)\]]"
+                        r"|^\s?(보호자)\s?(?::|진술)")
+_PROXY_PATIENT = {
+    "남편": r"아내|부인|와이프|집사람|처(?=[가는도])",
+    "아내": r"남편|신랑|바깥\s?양반", "부인": r"남편|신랑", "와이프": r"남편|신랑", "배우자": r"남편|아내|부인|와이프",
+    "엄마": r"아이|아기|애|아들|딸", "아빠": r"아이|아기|애|아들|딸", "어머니": r"아이|아기|애|아들|딸",
+    "어머님": r"아이|아기|애|아들|딸", "아버지": r"아이|아기|애|아들|딸", "아버님": r"아이|아기|애|아들|딸",
+    "부모": r"아이|아기|애|아들|딸", "부모님": r"아이|아기|애|아들|딸",
+    "딸": r"(?:시|친정\s?)?(?:어머니|어머님|엄마|아버지|아버님|아빠)|할머니|할아버지",
+    "아들": r"(?:시|친정\s?)?(?:어머니|어머님|엄마|아버지|아버님|아빠)|할머니|할아버지",
+    "며느리": r"시?(?:어머니|어머님|아버지|아버님)", "사위": r"장모|장인|(?:어머니|어머님|아버지|아버님)",
+    "손자": r"할머니|할아버지", "손녀": r"할머니|할아버지",
+    "동생": r"형|누나|언니|오빠", "형": r"동생", "언니": r"동생", "누나": r"동생", "오빠": r"동생",
+}
+_FIRST_PERSON = re.compile(r"(?:저|제가|전\s|나는|나도|내가)")
+
+
+def _proxy_patient(t: str) -> re.Pattern | None:
+    """For a text spoken by a proxy ("(남편) ..."): a regex matching the person word that names the patient, else
+    None. A generic proxy ("(보호자)", "(가족)") names the patient with the first person word of the text."""
+    m = _PROXY_TAG.match(t)
+    if not m:
+        return None
+    tag = m.group(1) or m.group(2)
+    pat = _PROXY_PATIENT.get(tag)
+    if pat is None:  # 보호자 / 가족: the first relative or partner mentioned is the patient
+        first = next((s for s in _SUBJ.finditer(t, m.end()) if s.lastgroup in ("family", "other")), None)
+        if first is None:
+            return re.compile(r"(?!x)x")
+        pat = re.escape(re.sub(r"(?:께서|님|분|들|이|가|은|는|도|의|에게|쪽|중|,|\s)+$", "", first.group()))
+    return re.compile(f"(?:{pat})")
 
 # temporality / onset
 _PAST = re.compile(r"예전에|옛날에|과거에|어렸을\s?때|어릴\s?때|젊었을\s?때|학생\s?때|전에\s?한\s?번|한\s?번\s?(?:있었|앓|했었)"
@@ -178,9 +227,57 @@ _TEMP = re.compile(r"(?:체온|(?<![a-z])bt|temp(?:erature)?|열(?:이|은|도)?
 _TEMP_BARE = re.compile(r"(?<![\d.])(3[4-9]\.\d|4[0-3]\.\d|3[5-9]|4[0-2])\s*(°\s?c|℃|도)(?!\s?(?:각도|각|방향|기울))")
 _TEMP_F = re.compile(r"(?<![\d.])(9[5-9](?:\.\d)?|10[0-8](?:\.\d)?)\s*(°\s?f|℉)")
 _HR = re.compile(r"(?:맥박(?:수)?|심박(?:수)?(?!동기)|(?<![a-z])(?:hr|pr)(?![a-z])|pulse|heart rate)\s*(?:은|는|이|:|=)?\s*(?:분당\s?)?(?:약\s?)?(\d{2,3})\s*(회|bpm|/분|/min)?")
+# an unlabelled rate right after a rhythm word ("동성빈맥(118회/분)", "정상 동율동 78회/분"); the unit is required
+_HR_RHYTHM = re.compile(r"(?:동성\s?|동\s?)?(?:빈맥|서맥|율동|리듬|조율|동율|동률)\s*[(,:]?\s*(?:심박수\s?)?(\d{2,3})\s*(회\s?/\s?분|회|bpm|/분|/min)")
+# Children's heart / respiratory rate by age: Fleming S, Thompson M, Stevens R, et al. Normal ranges of heart rate and
+# respiratory rate in children from birth to 18 years of age: a systematic review of observational studies. Lancet
+# 2011;377:1011-8; PMID 21411136; doi:10.1016/S0140-6736(10)62226-X; Web Tables 4-5 (1st/10th/90th/99th centiles).
+# Rows: (upper age bound in years, exclusive), p1, p10, p90, p99. The first HR row is the "birth" row (first week).
+_PEDS_HR = [(7 / 365.25, 90, 107, 148, 164), (0.25, 107, 123, 164, 181), (0.5, 104, 120, 159, 175),
+            (0.75, 98, 114, 152, 168), (1, 93, 109, 145, 161), (1.5, 88, 103, 140, 156), (2, 82, 98, 135, 149),
+            (3, 76, 92, 128, 142), (4, 70, 86, 123, 136), (6, 65, 81, 117, 131), (8, 59, 74, 111, 123),
+            (12, 52, 67, 103, 115), (15, 47, 62, 96, 108), (18, 43, 58, 92, 104)]
+_PEDS_RR = [(0.25, 25, 34, 57, 66), (0.5, 24, 33, 55, 64), (0.75, 23, 31, 52, 61), (1, 22, 30, 50, 58),
+            (1.5, 21, 28, 46, 53), (2, 19, 25, 40, 46), (3, 18, 22, 34, 38), (4, 17, 21, 29, 33), (6, 17, 20, 27, 29),
+            (8, 16, 18, 24, 27), (12, 14, 16, 22, 25), (15, 12, 15, 21, 23), (18, 11, 13, 19, 22)]
+
+
+def _peds_row(table: list[tuple], age: float | None) -> tuple | None:
+    """(p1, p10, p90, p99) for a child's age in years; None for adults (>= 18) or an unknown age."""
+    if age is None or age < 0:
+        return None
+    return next((row[1:] for row in table if age < row[0]), None)
+
+
+_AGE_PERSON = r"(?:남아|여아|남자\s?아이|여자\s?아이|아기|아이|영아|유아|신생아|소년|소녀|어린이|학생|환아|남성|여성|남자|여자|환자|남|여)"
+_AGE_RX = [
+    (re.compile(r"생후\s?(\d{1,3})\s?(일|주|개월|달)"), None),
+    (re.compile(r"(\d{1,3})\s?(일|주|개월|달)\s?(?:된|째인?|짜리)?\s?" + _AGE_PERSON), None),
+    (re.compile(r"(?:^|[\s(])(\d{1,3})\s?(세|살)\s?" + _AGE_PERSON), None),
+    (re.compile(r"^\s?(\d{1,3})\s?(세|살)(?![가-힣])"), None),
+    (re.compile(r"(\d{1,3})[- ](day|week|month|year)s?[- ]old"), None),
+]
+_AGE_UNIT = {"일": 1 / 365.25, "day": 1 / 365.25, "주": 7 / 365.25, "week": 7 / 365.25, "개월": 1 / 12, "달": 1 / 12,
+             "month": 1 / 12, "세": 1.0, "살": 1.0, "year": 1.0}
+
+
+def age_from_text(text: str) -> float | None:
+    """The patient's age in years when the text states it ("생후 10일 된 남아", "3개월 여아", "7세 여아. 주호소: …",
+    "35세 여성", "a 2-month-old"); None otherwise. Ages of other people ("아버지가 55살에") are not read: the number must
+    start the text or be followed by a person word."""
+    t = normalize(text)
+    for rx, _ in _AGE_RX:
+        m = rx.search(t)
+        if m:
+            return int(m.group(1)) * _AGE_UNIT[m.group(2)]
+    return None
+
+
 _RR = re.compile(r"(?:호흡수|호흡\s?횟수|(?<![a-z])rr(?![a-z])|respiratory rate|호흡)\s*(?:은|는|이|:|=)?\s*(?:분당\s?)?(\d{1,2})\s*(회|/분|/min|breaths|bpm)")
 _BP = re.compile(r"(?:혈압|(?<![a-z])bp(?![a-z])|blood pressure)[^\d\n]{0,14}(\d{2,3})\s*/\s*(\d{2,3})")
 _SPO2 = re.compile(r"(?:산소\s?포화도|(?<![a-z])spo2|sao2|o2\s?sat\w*|포화도)[^\d%\n]{0,20}(\d{2,3})\s*%")
+_SAT_SITE = re.compile(r"(?:폐동맥|우심방|우심실|좌심방|좌심실|상대정맥|하대정맥|대정맥|정맥혈?|혼합\s?정맥혈?|대동맥|동맥관|중심\s?정맥"
+                       r"|트랜스페린|철|transferrin|iron|svo2|scvo2|mixed venous|venous)\s?(?:의|내|에서)?\s?$")
 
 # labs read here (kb_tests covers the rest): key, analyte regex, high concept, high threshold, low concept, low threshold
 _LABS: list[tuple[str, str, str | None, float | None, str | None, float | None]] = [
@@ -283,6 +380,80 @@ def _is_bare(text: str, spans: list[tuple[int, int]], offset: int) -> bool:
     return len(re.sub(r"[^가-힣a-z0-9]", "", rest)) <= 1 and not _CUE.search(text)
 
 
+_PAREN_TXT = re.compile(r"\([^()]*\)")
+_COORD = re.compile(r"^\s*(?:이나|거나|나|과|와|이랑|랑|하고)(?=\s)|(?:^|\s)(?:및|또는|혹은|그리고|and|or)(?=\s)")
+# words that make a list item a complete finding of its own: a severity or a qualifier ("경미한 압통", "비특이적 ST분절
+# 하강", "새로 생긴 좌각차단") - such an item keeps its own (present) reading instead of the list's negation
+_STATED_WORD = re.compile(r"경미|경한|약간의|심한|심함|중등도|미약|현저|비특이|새로운|새로\s?생긴|소량의?|미량의?|다량의?"
+                          r"|mild|moderate|severe|marked|nonspecific|new(?:ly)?\b")
+
+
+def _bare_item(sent: str, part: tuple[int, int], m: Mention, cms: list[Mention], report: bool = True) -> bool:
+    """Is the mention a bare list item that may take the predicate of the parts after it ("기침이나 가래, 열은
+    없어요", "동성빈맥(118회/분)", "양측 수포음")? Not when its comma part has words of its own after the mention
+    ("임신 32주") or a severity / qualifier ("명치 부위 경미한 압통", "비특이적 ST분절 하강")."""
+    a, b = part
+    if report and _STATED_WORD.search(sent[a:b]):  # reports only: "심한 두통이나 구토는 없어요" is one negated list
+        return False
+    chars = list(sent[m.end:b])
+    for mm in cms:
+        for i in range(max(mm.start, m.end), min(mm.end, b)):
+            chars[i - m.end] = " "
+    rest = _PAREN_TXT.sub(" ", "".join(chars))
+    # words after a coordinator belong to the next list item ("두통이나 호흡기, 소화기 증상도 없어요", "열이나 현저한
+    # 체중 감소, 야간 발한은 없습니다"), not to this mention
+    co = _COORD.search(rest)
+    if co:
+        rest = rest[:co.start()]
+    if re.search(r"[가-힣](?:이나|거나)$", m.text) and sent[m.end:m.end + 1] in (" ", ","):
+        rest = ""  # "열이나 현저한 체중 감소": the form "열이 나" read across the coordinator "이나"
+    rest = _BARE_FILLER.sub(" ", _SITE.sub(" ", _LAT.sub(" ", rest)))
+    return len(re.sub(r"[^가-힣a-z0-9]", "", rest)) <= 1
+
+
+def _digit_outside(sent: str, a: int, b: int, cms: list[Mention]) -> bool:
+    """A digit in sent[a:b] that is not part of a concept mention ("s4" is a mention, "150/90" is a value)."""
+    for mm in re.finditer(r"\d", sent[a:b]):
+        p = a + mm.start()
+        if not any(x.start <= p < x.end for x in cms):
+            return True
+    return False
+
+
+# words that may follow a list-closing cue in its part: the cue is still the predicate of the whole list
+# ("기침, 가래 없는 상태", "수포음, 천명음 없다고 함", "없어 보임")
+_LIGHT_AFTER_CUE = re.compile(r"^(?:상태\S*|소견\S*|편\S*|모습\S*|양상\S*|것\S*|거\S*|듯\S*|보임|보이\S*|보여\S*|보입\S*|함|합니다|해요|했\S*"
+                              r"|하였\S*|하심|하셨\S*|확인\S*|관찰\S*|임|입니다|이다|요|확실\S*|분명\S*|명확\S*)$")
+_STATE_TAIL = re.compile(r"(?:하강|상승|증가|감소|항진|저하|확장|비대|위축|연장|단축)$")
+
+
+def _list_predicate(sent: str, part: tuple[int, int], m: Mention) -> bool:
+    """Does the cue closing a list sit at the end of its part, i.e. is it the predicate of the list? Not an
+    attributive negation before another noun ("임신 32주, 통증 없는 질 출혈") nor a normal-attribute noun phrase
+    ("동성빈맥(118회/분), 정상 축"). An adverbial "없이" ("수포음이나 천명음 없이 양호한 호흡음") is a list predicate.
+    Also not when the closing part repeats the item's head with another state word ("ST분절 하강, ST분절 상승 없음")."""
+    a, b = part
+    seg = sent[a:b]
+    cm = _CUE.search(_IDIOM_NOT_NEG.sub(lambda x: "·" * len(x.group()), seg))
+    if not cm:
+        return True  # a predicate ending without a cue ("~해요"): the default reading anyway
+    st = _STATE_TAIL.search(m.text.strip())
+    if st:
+        head = compact(m.text.strip()[:st.start()])[0]
+        if len(head) >= 2 and head in compact(seg)[0]:
+            return False
+    if re.match(r"없이", seg[cm.start():]):
+        return True
+    after = seg[cm.end():]
+    words = after.split()
+    if not words:
+        return True
+    # the rest of the cue's own word is an ending ("없음", "않았어요"); further words must be light ones
+    first_glued = not after[:1].isspace()
+    rest_words = words[1:] if first_glued else words
+    return all(_LIGHT_AFTER_CUE.match(w) for w in rest_words)
+
+
 def _num_close(a: float, b: float) -> bool:
     small, big = sorted((abs(a), abs(b)))
     if abs(a - b) <= (0.002 * big if big >= 1000 else max(0.051, 0.03 * big)):
@@ -327,6 +498,29 @@ class _Parser:
         family_key = primary in ("가족력", "가족", "family history") and not re.search(r"사회력|과거력|접촉력|흡연", key)
         self.default_subject = self.ctx.get("subject") or ("family" if family_key or _FAMILY_CTX.search(normalize(q))
                                                             else "patient")
+        # the patient's age (years) for children's vital-sign ranges: context["age_years"] (the caller read it from
+        # the initial information of the same case) or an age stated in this text ("생후 3개월 남아. 맥박 150회/분")
+        age = self.ctx.get("age_years")
+        self.age = float(age) if isinstance(age, (int, float)) else age_from_text(self.t)
+        # a relative or partner speaking for the patient ("(남편) 아내가 헛소리를 해요"): the person word for the patient
+        # is the patient, the speaker's "저" is someone else
+        self.proxy_patient = _proxy_patient(self.t)
+
+    def _subject_marks(self, sent: str) -> list[tuple[int, str]]:
+        """(position, "family"|"other"|"self") of the person words in a sentence, plus family-history headings without
+        a subject particle ("가족력: 고혈압, 당뇨"), with the proxy-speaker reading applied."""
+        marks = []
+        for m in _SUBJ.finditer(sent):
+            g = m.lastgroup
+            if self.proxy_patient is not None:
+                if g in ("family", "other") and self.proxy_patient.match(m.group()):
+                    g = "self"
+                elif g == "self" and _FIRST_PERSON.match(m.group()):
+                    g = "other"
+            marks.append((m.start(), g))
+        marks += [(h.start(), "family") for h in _FAMILY_HEAD.finditer(sent)]
+        marks.sort()
+        return marks
 
     # -------------------------------------------------------------- per text
     def run(self) -> list[Finding]:
@@ -338,7 +532,7 @@ class _Parser:
             out += self._sentence(sent, a, is_q)
         if self.ctx.get("question") and self.source == "patient":
             out += self._yes_no(out)
-        return _dedupe(out, self.lex)
+        return _dedupe(out, self.lex, self.source)
 
     # -------------------------------------------------------------- per sentence
     def _sentence(self, sent: str, off: int, is_q: bool) -> list[Finding]:
@@ -346,7 +540,7 @@ class _Parser:
         bounds = [c.start for c in clauses[1:]]
         mentions = self.lex.scan(sent, barriers=bounds)
         question = self.source == "patient" and (is_q or bool(_QUESTION_END.search(sent.strip())) and "?" in sent)
-        subj_marks = [(m.start(), m.lastgroup) for m in _SUBJ.finditer(sent)]
+        subj_marks = self._subject_marks(sent)
         found: list[Finding] = []
         carry_t, carry_onset = "", ""
         for ci, c in enumerate(clauses):
@@ -413,20 +607,29 @@ class _Parser:
         unit_end = c.parts[pi][1]
         inherited = False
         j = pi
-        while j + 1 < len(c.parts):
-            a, b = c.parts[j]
-            seg = sent[max(a, m.end) if j == pi else a:b]
-            if _CUE.search(seg) or _PRED_END.search(sent[a:b]) or (j > pi and len(sent[a:b].strip()) > 30):
-                break
-            if re.search(r"\d", sent[c.parts[j + 1][0]:c.parts[j + 1][1]]):
-                break
-            j += 1
-            unit_end = c.parts[j][1]
-            inherited = True
+        # only a bare item inherits: a part with words of its own ("비특이적 ST분절 하강", "임신 32주", "명치 부위 경미한
+        # 압통") keeps its own reading
+        if _bare_item(sent, c.parts[pi], m, cms, self.source != "patient"):
+            while j + 1 < len(c.parts):
+                a, b = c.parts[j]
+                seg = sent[max(a, m.end) if j == pi else a:b]
+                if _CUE.search(seg) or _PRED_END.search(sent[a:b]) or (j > pi and len(sent[a:b].strip()) > 30):
+                    break
+                na, nb = c.parts[j + 1]
+                if _digit_outside(sent, na, nb, cms):  # a measurement part ("두통, 혈압 150/90") ends the list
+                    break
+                j += 1
+                unit_end = c.parts[j][1]
+                inherited = True
+            if inherited and not _list_predicate(sent, c.parts[j], m):
+                j, unit_end, inherited = pi, c.parts[pi][1], False
         tail = sent[m.end:unit_end]
         head = sent[c.parts[pi][0]:m.start]
         after = sent[m.end:c.end]
 
+        if m.cid == "SYM:seizure" and _NOT_SEIZURE_ATTACK.search(sent[max(0, m.start - 10):m.start]) \
+                and re.match(r"발작", m.text):
+            return None  # "증상 발작 시", "호흡곤란 발작", "공황 발작": an attack of something else
         # figurative use ("발작처럼 몸이 떨려요"): dropped, except figurative-by-design forms and pain / quality concepts
         if not m.fig and _METAPHOR.match(sent[m.end:m.end + 16]) and concept.cat not in ("QUAL",) \
                 and "SYM:pain" not in self.lex.ancestors(m.cid) and m.cid != "SYM:pain":
@@ -442,9 +645,17 @@ class _Parser:
             if m.kind == "re" and _NEG_INSIDE.search(m.text):
                 polarity, cue, conf = "absent", "neg-inside:" + m.text, 0.85
             elif _PRE_NEG_EN.search(head) or _PRE_NEG_KO.search(head):
-                polarity, cue, conf = "absent", "pre-neg", 0.85
-            elif _WHEN.match(sent[m.end:m.end + 12]):
-                polarity, cue, conf = "present", "when-clause", 0.75  # "기침할 때 가래는 안 나와요": the cough is there
+                if _NEG_NOUN_NEG.match(tail):  # "안 아픈 데가 없어요"
+                    polarity, cue, conf = "present", "double-neg:" + tail.strip()[:12], 0.8
+                else:
+                    polarity, cue, conf = "absent", "pre-neg", 0.85
+            elif (w := _WHEN.match(sent[m.end:m.end + 12])):
+                rest = sent[m.end + w.end():c.end]
+                if _WHEN_CHANGE.match(rest) and _first_cue(rest)[0] == "neg":
+                    # "기침할 때 심해지지도 않아요": a condition, it does not say the patient coughs
+                    polarity, cue, conf = "uncertain", "when-condition", 0.5
+                else:
+                    polarity, cue, conf = "present", "when-clause", 0.75  # "기침할 때 가래는 안 나와요": the cough is there
             else:
                 kind, ctext = _first_cue(tail)
                 if kind == "neg":
@@ -520,25 +731,44 @@ class _Parser:
                 if v < 35.0:
                     out.append(self._mk("SIGN:hypothermia", m.group().strip(), coff + m.start(), "present", v, "°C", "low", "value", clause))
                 seen_temp = True
-        for m in _HR.finditer(ctext):
-            v = float(m.group(1))
-            if not 20 <= v <= 250:
-                continue
-            span = m.group().strip()
-            if v >= 60:
-                out.append(self._mk("SIGN:tachycardia", span, coff + m.start(), "present" if v > 100 else "absent", v,
-                                    "/min", "high" if v > 100 else "normal", "value", clause))
-            if v <= 100:
-                out.append(self._mk("SIGN:bradycardia", span, coff + m.start(), "present" if v < 60 else "absent", v,
-                                    "/min", "low" if v < 60 else "normal", "value", clause))
+        hr_seen: set[int] = set()
+        for rx in (_HR, _HR_RHYTHM):
+            for m in rx.finditer(ctext):
+                v = float(m.group(1))
+                if not 20 <= v <= 300 or m.start(1) in hr_seen:
+                    continue
+                hr_seen.add(m.start(1))
+                span = m.group().strip()
+                band = _peds_row(_PEDS_HR, self.age)
+                if band:  # child: Fleming 2011 centiles (> 99th / < 1st present, 90th-99th / 1st-10th uncertain)
+                    p1, p10, p90, p99 = band
+                    tachy = "present" if v > p99 else "uncertain" if v > p90 else "absent"
+                    brady = "present" if v < p1 else "uncertain" if v < p10 else "absent"
+                else:
+                    tachy = "present" if v > 100 else "absent"
+                    brady = "present" if v < 60 else "absent"
+                if brady == "absent":
+                    out.append(self._mk("SIGN:tachycardia", span, coff + m.start(), tachy, v, "/min",
+                                        "normal" if tachy == "absent" else "high", "value", clause))
+                if tachy == "absent":
+                    out.append(self._mk("SIGN:bradycardia", span, coff + m.start(), brady, v, "/min",
+                                        "normal" if brady == "absent" else "low", "value", clause))
         for m in _RR.finditer(ctext):
             v = float(m.group(1))
-            if not 4 <= v <= 80:
+            if not 4 <= v <= 100:
                 continue
             span = m.group().strip()
-            out.append(self._mk("SIGN:tachypnea", span, coff + m.start(), "present" if v > 20 else "absent", v, "/min",
-                                "high" if v > 20 else "normal", "value", clause))
-            if v < 10:
+            band = _peds_row(_PEDS_RR, self.age)
+            if band:
+                p1, _p10, p90, p99 = band
+                tachy = "present" if v > p99 else "uncertain" if v > p90 else "absent"
+                slow = v < p1
+            else:
+                tachy = "present" if v > 20 else "absent"
+                slow = v < 10
+            out.append(self._mk("SIGN:tachypnea", span, coff + m.start(), tachy, v, "/min",
+                                "normal" if tachy == "absent" else "high", "value", clause))
+            if slow:
                 out.append(self._mk("SIGN:bradypnea", span, coff + m.start(), "present", v, "/min", "low", "value", clause))
         for m in _BP.finditer(ctext):
             sbp, dbp = float(m.group(1)), float(m.group(2))
@@ -557,6 +787,8 @@ class _Parser:
             v = float(m.group(1))
             if not 40 <= v <= 100:
                 continue
+            if _SAT_SITE.search(sent[max(0, coff + m.start() - 14):coff + m.start()]):
+                continue  # "폐동맥 포화도 66%" (catheterisation), "혼합정맥혈 산소포화도": not the arterial SpO2
             pol = "present" if v < 92 else "absent" if v >= 95 else "uncertain"
             out.append(self._mk("SIGN:hypoxemia", m.group().strip(), coff + m.start(), pol, v, "%",
                                 "low" if v < 95 else "normal", "value", clause))
@@ -712,27 +944,96 @@ class _Parser:
         return out
 
 
-def _dedupe(found: list[Finding], lex: Lexicon) -> list[Finding]:
-    """One finding per (concept, clause, subject): measured values are merged into the mention of the same concept;
-    an explicit cue beats the default; a generic parent (SYM:pain, GRP:...) is dropped when a child with the same
-    polarity is in the same clause."""
-    by_key: dict[tuple, Finding] = {}
+def _is_value(f: Finding) -> bool:
+    return f.value is not None and f.cue.startswith("value")
+
+
+def _merge_same_clause(found: list[Finding]) -> list[Finding]:
+    """Findings of one concept, subject and clause: a measured value is merged into the mention of the same concept
+    and decides its polarity ("심박수 108회/분, 빈맥 소견 없음" -> tachycardia present); two different measured values
+    stay two findings ("혈압 150/90, 재측정 혈압 90/60"); two mentions with the same polarity become one finding with
+    both spans (spans_of); mentions with opposite explicit polarities stay apart ("승모근 압통 있음, 측두동맥 압통
+    없음"); a mention without a cue yields to an explicit one."""
+    groups: dict[tuple, list[Finding]] = {}
     order: list[tuple] = []
     for f in found:
         k = (f.concept, f.clause, f.subject)
-        g = by_key.get(k)
-        if g is None:
-            by_key[k] = f
+        if k not in groups:
+            groups[k] = []
             order.append(k)
-            continue
-        if f.value is not None and g.value is None:
-            if g.cue == "default" or g.polarity == f.polarity:
-                by_key[k] = replace(f, span=g.span if g.cue != "default" else f.span)
-            else:
-                g.value, g.unit, g.direction = f.value, f.unit, f.direction
-        elif g.cue == "default" and f.cue != "default":
-            by_key[k] = f
-    out = [by_key[k] for k in order]
+        lst = groups[k]
+        done = False
+        for i, g in enumerate(lst):
+            if f.cue.startswith("kb_tests") != g.cue.startswith("kb_tests"):
+                # a lexicon mention and knowledge/kb_tests' reading of the same clause: the mention's reading stands
+                # (kb_tests reads whole clauses: "ST 하강·T파 역전 없음" as present)
+                if g.cue.startswith("kb_tests"):
+                    lst[i] = f
+                done = True
+            elif f.value is not None and g.value is None:
+                if _is_value(f) or g.cue == "default" or g.polarity == f.polarity:
+                    cue = f.cue if g.polarity == f.polarity or g.cue == "default" else f"{f.cue}>{g.cue}"
+                    lst[i] = replace(f, span=g.span if g.cue != "default" else f.span, cue=cue,
+                                     extra_spans=g.extra_spans + ((g.start, g.end),))
+                else:  # a urine count against a dipstick word ("잠혈 (3+) ... RBC 0-2/HPF"): the word stays
+                    lst[i] = replace(g, value=f.value, unit=f.unit, direction=f.direction)
+                done = True
+            elif f.value is not None and g.value is not None:
+                # two measurements with the same reading are one finding (AST and ALT normal); different readings
+                # stay apart ("혈압 150/90, 재측정 혈압 90/60")
+                done = f.polarity == g.polarity
+                if done:
+                    lst[i] = replace(g, extra_spans=g.extra_spans + ((f.start, f.end),))
+            elif f.value is None and g.value is not None:
+                done = f.polarity == g.polarity or f.cue == "default"
+                if done and f.polarity == g.polarity:
+                    lst[i] = replace(g, extra_spans=g.extra_spans + ((f.start, f.end),))
+            elif f.polarity == g.polarity:
+                if g.cue == "default" and f.cue != "default":
+                    lst[i] = replace(f, extra_spans=f.extra_spans + ((g.start, g.end),) + g.extra_spans)
+                else:
+                    lst[i] = replace(g, extra_spans=g.extra_spans + ((f.start, f.end),))
+                done = True
+            elif g.cue == "default" and f.cue != "default":
+                lst[i] = f  # "기침, 기침 없음": the explicit reading wins
+                done = True
+            elif f.cue == "default" and g.cue != "default":
+                done = True
+            if done:
+                break
+        if not done:
+            lst.append(f)
+    return [f for k in order for f in groups[k]]
+
+
+def _value_wins(found: list[Finding], source: str) -> list[Finding]:
+    """A measured value beats a contradicting verdict on the same concept in a report ("맥박 108회/분. 빈맥은 없음"
+    -> tachycardia present): every present/absent mention of a concept whose measured values all agree takes their
+    polarity. Patient speech keeps its words outside the clause of the value (a remembered fever vs today's 36.5)."""
+    if source == "patient":
+        return found
+    vals: dict[tuple, set] = {}
+    for f in found:
+        if _is_value(f) and f.polarity in ("present", "absent"):
+            vals.setdefault((f.concept, f.subject), set()).add(f.polarity)
+    if not vals:
+        return found
+    out = []
+    for f in found:
+        v = vals.get((f.concept, f.subject))
+        if v and len(v) == 1 and not _is_value(f) and f.polarity in ("present", "absent") and not f.hypothetical \
+                and f.temporality not in ("past",) and not f.cue.startswith("kb_tests"):
+            (p,) = v
+            if p != f.polarity:
+                f = replace(f, polarity=p, cue="value-wins:" + f.cue, confidence=min(f.confidence, 0.8))
+        out.append(f)
+    return out
+
+
+def _dedupe(found: list[Finding], lex: Lexicon, source: str = "patient") -> list[Finding]:
+    """Merge findings per (concept, clause, subject) (see _merge_same_clause), let measured values beat contradicting
+    verdicts in reports (_value_wins), and drop a generic parent (SYM:pain, HX:pmh) repeated by a specific child."""
+    out = _value_wins(_merge_same_clause(found), source)
     keep = []
     for f in out:
         if f.concept == "HX:pmh" and f.polarity == "present" and any(
@@ -757,6 +1058,12 @@ def parse(text: str, source: str = "patient", context: dict | None = None, lexic
     context (optional): {"question": the doctor's question this text answers, "key": case-file key such as
     "가족력|family history", "subject": default subject}. Only the question/key of the same case are ever used."""
     return _Parser(text or "", source, context, lexicon or LEXICON).run()
+
+
+def spans_of(f: Finding) -> tuple[tuple[int, int], ...]:
+    """Every (start, end) offset in normalize(text) where the finding was stated: its own span plus the further
+    mentions merged into it (same concept, polarity, subject and clause: "뇌출혈, 뇌경색 소견 없음" -> HX:stroke twice)."""
+    return ((f.start, f.end),) + tuple(f.extra_spans)
 
 
 def _expand_up(cid: str, lex: Lexicon) -> tuple[str, ...]:
@@ -886,7 +1193,7 @@ def assess_spans(text: str, spans, source: str = "claim", context: dict | None =
             continue
         if si not in cache:
             question = p.source == "patient" and (is_q or bool(_QUESTION_END.search(sent.strip())) and "?" in sent)
-            cache[si] = (_clauses(sent), [(m.start(), m.lastgroup) for m in _SUBJ.finditer(sent)], question)
+            cache[si] = (_clauses(sent), p._subject_marks(sent), question)
         clauses, subj_marks, question = cache[si]
         ms, me = s - a, max(s - a + 1, min(e, b) - a)
         c = next((c for c in clauses if c.start <= me - 1 < c.end), clauses[-1])
@@ -896,3 +1203,27 @@ def assess_spans(text: str, spans, source: str = "claim", context: dict | None =
             f.start, f.end = f.start + a, f.end + a
         out.append(f)
     return out
+
+
+# ------------------------------------------------------------------------------------------------ stable public names
+# Helpers other modules reuse (agent/grounding.py reads evidence with the layer's own cue rules instead of copying
+# them). These names are the supported interface; the underscore names stay as aliases for existing callers.
+supports = _supports  # (claim Finding, evidence Finding, lexicon) -> bool: the match() support rule for one pair
+first_cue = _first_cue  # (text after a mention) -> (kind "neg"|"pos"|"unc"|"", cue text)
+ref_direction = _ref_direction  # (text after a value, value) -> ("high"|"low"|"normal"|"", reference text)
+sentences = _sentences  # (normalised text) -> [(start, end, is_question)]
+clauses = _clauses  # (sentence) -> [Clause(start, end, parts)]
+Clause = _Clause
+CUE = _CUE  # compiled polarity cue regex (groups neg / pos / unc)
+IDIOM_NOT_NEG = _IDIOM_NOT_NEG  # look-alike negations masked before the cue search ("수 없", "이유 없이")
+PRE_NEG_EN = _PRE_NEG_EN  # English negation before a mention ("no ...", "denies ...")
+PRE_NEG_KO = _PRE_NEG_KO  # Korean negation right before a mention ("안 ...", "정상 ...")
+BARE_FILLER = _BARE_FILLER  # words a bare list item may hold besides concept mentions
+SITE = _SITE  # body-site words
+LAT = _LAT  # laterality words (groups right / left / bilateral)
+LAB_RX = _LAB_RX  # [(key, analyte regex, high concept, high threshold, low concept, low threshold)]
+UNAVAILABLE = _UNAVAILABLE  # "result not provided" sentences (skipped)
+
+__all__ = ["Finding", "SOURCES", "parse", "match", "concepts_in", "affirmed", "denied", "assess_spans", "spans_of",
+           "age_from_text", "normalize", "supports", "first_cue", "ref_direction", "sentences", "clauses", "Clause",
+           "CUE", "IDIOM_NOT_NEG", "PRE_NEG_EN", "PRE_NEG_KO", "BARE_FILLER", "SITE", "LAT", "LAB_RX", "UNAVAILABLE"]
