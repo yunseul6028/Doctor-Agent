@@ -11,7 +11,7 @@ from doctor_agent.knowledge import kb  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not kb.available(), reason="data/kb not built (python scripts/build_kb.py)")
 
-KNOWN_SOURCES = {"DO", "WD", "KCD", "DDXPlus", "MedlinePlus", "MedlinePlus+LLM", "LLM"}
+KNOWN_SOURCES = {"DO", "WD", "KCD", "DDXPlus", "MedlinePlus", "MedlinePlus+LLM", "LLM", "Orphanet"}
 
 
 def _top_names(findings, k=5):

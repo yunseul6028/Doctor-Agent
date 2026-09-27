@@ -108,8 +108,9 @@ def rank_case(case: dict, k: int = 50, use_neg: bool = True, use_demo: bool = Tr
     rank = next((r for r, c in enumerate(res, 1) if c["id"] in gold), None)
     kbk = kb.get_kb()
     has_sx = any(kbk.diseases[kbk.by_id[g]]["symptoms"] for g in gold)
+    has_orpha = any(kbk.diseases[kbk.by_id[g]].get("orpha_freq") for g in gold)
     return {"id": case["_id"], "set": case["_set"], "dx": case.get("diagnosis", ""), "gold": sorted(gold),
-            "in_kb": bool(gold), "gold_has_symptoms": has_sx, "n_findings": len(findings), "rank": rank,
+            "in_kb": bool(gold), "gold_has_symptoms": has_sx, "gold_has_orphanet": has_orpha, "n_findings": len(findings), "rank": rank,
             "top3": [c["name_ko"] for c in res[:3]], "ms": round(ms, 2)}
 
 
@@ -121,6 +122,7 @@ def summarize(rows: list[dict]) -> dict:
     out["mrr"] = round(sum(1 / r["rank"] for r in rows if r["rank"]) / n, 4)
     out["coverage_in_kb"] = round(sum(r["in_kb"] for r in rows) / n, 4)
     out["coverage_with_symptoms"] = round(sum(r["gold_has_symptoms"] for r in rows) / n, 4)
+    out["coverage_with_orphanet"] = round(sum(r.get("gold_has_orphanet", False) for r in rows) / n, 4)
     cov = [r for r in rows if r["gold_has_symptoms"]]
     out["top10_given_covered"] = round(sum(1 for r in cov if r["rank"] and r["rank"] <= 10) / (len(cov) or 1), 4)
     return out
@@ -176,10 +178,13 @@ def main() -> None:
     ap.add_argument("--out", default="")
     ap.add_argument("--no-neg", action="store_true", help="do not pass negated findings")
     ap.add_argument("--no-demo", action="store_true", help="do not pass sex/age")
+    ap.add_argument("--prev-w", type=float, default=None, help="override the prevalence prior weight (0 = off)")
     args = ap.parse_args()
     t0 = time.perf_counter()
-    kb.get_kb()
+    kbk = kb.get_kb()
     load_s = time.perf_counter() - t0
+    if args.prev_w is not None:
+        kbk.PREV_W = args.prev_w
     cases = load_cases()
     rank, rows = bench_ranking(cases, use_neg=not args.no_neg, use_demo=not args.no_demo)
     # early-interview view: initial complaint + history + exam only (no test results), i.e. when the agent's KB
