@@ -32,6 +32,10 @@ Adult-only rules (min_age >= 15) are skipped for child words. detect_categories(
 Not encoded: Ranson / Glasgow-Imrie (48-h scores; BISAP covers early severity), NIHSS (15-item exam scale,
 too long for the prompt), CHA2DS2-VASc (not diagnostic), Rochester / Step-by-Step (criteria not verifiable
 in accessible abstracts; PECARN febrile infant rule used instead).
+
+2026-09-27 (later): negated() / contains_affirmed() read each keyword occurrence through the clinical-finding
+normalisation layer (doctor_agent.nlp; keyword_statuses(), ReadText); detect_categories() drops a category whose
+keywords are all denied by the layer and adds categories from curated layer concepts. See docs/nlp.md (migration).
 """
 from __future__ import annotations
 
@@ -375,6 +379,45 @@ def _dizzy_stroke_risk(t: str, context: str) -> bool:
     return not bppv_like
 
 
+# Chief-complaint category -> lexicon concepts (data/lexicon protocol links "category:<name>"). Only categories whose
+# linked concepts name exactly that complaint add categories from the layer (colloquial forms the keyword lists
+# miss); the keyword lists stay the primary detector. Not from the layer: categories whose links or concepts are
+# broader than the protocol population (rash <- "반점" floaters, edema <- local swelling, neuro <- visual symptoms,
+# joint <- leg edema / surgery, allergy <- facial edema, bleeding <- any bleeding, psychiatric <- "불안" as a
+# feeling, pruritus / menstrual / cognitive with their own rules) and heartburn for chest pain.
+_LAYER_CATEGORIES = ("chest_pain", "dyspnea", "headache", "fever", "abdominal_pain", "syncope", "palpitations",
+                     "hemoptysis_cough", "jaundice", "back_pain", "hearing_loss")
+_CATEGORY_CONCEPT_SKIP = {"chest_pain": {"SYM:heartburn"}}
+# neuro concepts that are not a focal deficit for the stroke protocol (monocular "시력 저하" and drowsiness were never
+# keywords; a stroke history is not a current deficit, and "뇌졸중" in the complaint is already a keyword)
+_NON_FOCAL_NEURO = {"SYM:seizure", "SYM:altered_mental_status", "SYM:vision_loss", "SYM:somnolence", "HX:stroke"}
+
+
+def _category_concepts() -> dict[str, frozenset[str]]:
+    from doctor_agent.nlp import LEXICON
+    out = {}
+    for c in (*_LAYER_CATEGORIES, "neuro"):  # neuro: only for the focal-deficit concept set below
+        ids = set(LEXICON.by_protocol(f"category:{c}")) - _CATEGORY_CONCEPT_SKIP.get(c, set())
+        for i in list(ids):
+            ids.update(LEXICON.descendants(i))
+        if ids:
+            out[c] = frozenset(ids)
+    return out
+
+
+def _layer_concepts(rt: ReadText) -> set[str]:
+    """Concepts affirmed (present, hedged or uncertain) for the patient in the text."""
+    return {f.concept for _s, _e, f in rt.parsed()[1] if f.subject == "patient" and f.polarity != "absent"}
+
+
+def _all_denied(rt: ReadText, kws: tuple[str, ...]) -> bool:
+    """Every keyword occurrence of this category is denied by the layer ("열은 없고 기침만 해요": not a fever complaint).
+    Occurrences the layer has no finding for count as not denied (a keyword window rule is too weak to drop a
+    category: "지혈되지 않는 출혈")."""
+    st = [x for k in kws if k in rt for x in keyword_statuses(rt, k, detail=True)]
+    return bool(st) and all(x == NEG and layer for x, layer in st)
+
+
 def detect_categories(text: str, context: str = "") -> list[str]:
     """Categories of a chief complaint, in CATEGORY_KEYWORDS order.
 
@@ -394,8 +437,12 @@ def detect_categories(text: str, context: str = "") -> list[str]:
       transient/recurrent altered consciousness without focal signs or seizure is syncope, not stroke.
     """
     t = _mask((text or "").lower())
-    found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws)}
-    focal = any(k in t for k in _NEURO_FOCAL) or _neuro_cooccurrence(t, "chest_pain" in found)
+    rt = ReadText(t)
+    found = {c for c, kws in CATEGORY_KEYWORDS.items() if any(k in t for k in kws) and not _all_denied(rt, kws)}
+    layer = _layer_concepts(rt)
+    found |= {c for c in _LAYER_CATEGORIES if layer & _CATEGORY_CONCEPTS.get(c, frozenset())}
+    focal = any(k in t for k in _NEURO_FOCAL) or _neuro_cooccurrence(t, "chest_pain" in found) \
+        or bool(layer & _FOCAL_CONCEPTS)
     if focal:
         found.add("neuro")
     elif "allergy" in found:
@@ -451,25 +498,17 @@ def detect_categories(text: str, context: str = "") -> list[str]:
     return [c for c in CATEGORY_KEYWORDS if c in found]
 
 
-def negated(text: str, keyword: str) -> bool:
-    """True when every occurrence of keyword sits in a clause that is negated after it
-    ("다리 붓거나 비행기 탄 적은 없어요", "등이 찢어지는 느낌은 아니에요"). Heuristic for pertinent negatives."""
-    t = (text or "").lower()
-    idx = t.find(keyword)
-    if idx < 0:
-        return False
-    while idx >= 0:
-        start = idx + len(keyword)
-        end = min(len(t), start + _NEG_WINDOW)
-        for sep in _CLAUSE_BREAKS:
-            j = t.find(sep, start)
-            if 0 <= j < end:
-                end = j
-        tail = t[start:end]
-        if not any(n in tail for n in _NEGATIONS):
-            return False
-        idx = t.find(keyword, idx + 1)
-    return True
+def _legacy_negated_at(t: str, idx: int, keyword: str) -> bool:
+    """Pre-2026-09-27 reading of one occurrence (fallback for keywords the normalisation layer does not cover):
+    negated when a negation word follows within the clause (40 chars, stops at commas and connectives)."""
+    start = idx + len(keyword)
+    end = min(len(t), start + _NEG_WINDOW)
+    for sep in _CLAUSE_BREAKS:
+        j = t.find(sep, start)
+        if 0 <= j < end:
+            end = j
+    tail = t[start:end]
+    return any(n in tail for n in _NEGATIONS)
 
 
 # chars after a keyword searched for a negation within the same clause (40: "심잡음이나 굴러가는 소리(friction
@@ -481,11 +520,191 @@ _NEGATIONS: tuple[str, ...] = ("없", "않", "아니", "기보다", "안 해", "
 # "거나" is deliberately not a break: "저리거나 힘이 빠진 적 없고" negates both.
 _CLAUSE_BREAKS: tuple[str, ...] = (".", "?", "!", "\n", ",", ";", "고 ", "며 ", "면서", "는데", "지만", " but ", " and ")
 
+# Keywords read by the legacy rule even where the layer has a finding: the keyword carries its own negation
+# ("의식이 없", "수동적 움직임에는 제한이 없") or is itself about relatives ("대동맥 박리 가족력").
+_KW_OWN_NEGATION = re.compile(r"없|않|아니|(?<![가-힣])안\s|못\s|음성|정상|\(-\)|\bno\b|\bnot\b|without|denie|negative"
+                              r"|absent|(?<=[가-힣])지$|멈$|멎$")  # "지혈되지", "피가 안 멈": the negation that follows is part of the phrase
+_KW_ABOUT_RELATIVES = re.compile(r"가족|family")
+# Fallback subject rule for keywords the layer has no finding for: the latest person word before the keyword in its
+# sentence is a relative (with a particle: "어머니가", "형은", "가족 중", "가족력") and no self word follows it.
+# Not 아들/딸/자녀: a parent often speaks for a child patient.
+_RE_RELATIVE = re.compile(
+    r"가족력|가족\s?중|가족분|집안에|family history"
+    r"|(?:(?:외|친)?(?:할머니|할아버지)|어머니|어머님|엄마|아버지|아버님|아빠|부모님?|오빠|누나|언니|남동생|여동생|동생"
+    r"|삼촌|외삼촌|이모|고모|숙부|큰아버지|작은아버지|형제|자매|사촌|(?<![가-힣])형)(?:께서|가|이|는|은|도|\s?중|\s?쪽)"
+    r"|\b(?:mother|father|brother|sister|sibling|parents?)\b")
+_RE_SELF = re.compile(r"(?<![가-힣])저(?:는|도|만)|(?<![가-힣])제가|본인(?:은|이|도)|(?<![가-힣])나(?:는|도)\s|(?<![가-힣])내가"
+                      r"|환자(?:는|가|분은)|\bi\b|\bthe patient\b")
+
+
+_RE_FAMILY_HISTORY = re.compile(r"가족력\s?(?::|상|으로|에서?\s|이\s?있)|가족\s?중|family history\s?(?::|of)")
+
+
+def _relative_before(t: str, idx: int, rx: re.Pattern = _RE_RELATIVE) -> bool:
+    s = max(t.rfind(c, 0, idx) for c in ".?!;\n") + 1
+    head = t[s:idx]
+    rel = [m.end() for m in rx.finditer(head)]
+    if not rel:
+        return False
+    return not any(m.start() >= rel[-1] for m in _RE_SELF.finditer(head))
+
+
+def after_family_heading(text: str, pos: int) -> bool:
+    """True when a family-history heading ("가족력:", "가족 중", "family history of") precedes pos in its sentence
+    and no self word ("저는", "제가") comes after it."""
+    return _relative_before((text or "").lower(), pos, _RE_FAMILY_HISTORY)
+
+
+# Occurrence status: "pos" (affirmed, hedged or not), "unc" (uncertain / hypothetical: never counts as denied),
+# "neg" (denied for the patient), "other" (about a relative or another person: neither the patient's nor denied)
+POS, UNC, NEG, OTHER = "pos", "unc", "neg", "other"
+
+
+class ReadText(str):
+    """A text plus its findings from the normalisation layer (doctor_agent.nlp), parsed lazily once per object.
+
+    Used by negated() / contains_affirmed() so that one case text is parsed once for many keyword lookups (pass a
+    ReadText instead of a str). Created per call/case by the caller; nothing is kept at module level."""
+
+    def __new__(cls, text: str = "", source: str = "patient"):
+        obj = super().__new__(cls, text or "")
+        obj.source = source
+        obj._parsed = None
+        return obj
+
+    def parsed(self):
+        """(normalised text, [(start, end, finding)]) with offsets into the normalised text. Each line is parsed on
+        its own (normalize() folds newlines into spaces, and a line break ends a sentence in case files: "b-hcg 양성
+        \\n hbsag 음성" must not be one list)."""
+        if self._parsed is None:
+            from doctor_agent.nlp import normalize, parse
+            parts, spans, off = [], [], 0
+            self._line_off = []
+            for line in str(self).split("\n"):
+                n = normalize(line)
+                spans += [(off + f.start, off + f.end, f) for f in parse(line, self.source)]
+                parts.append(n)
+                self._line_off.append(off)
+                off += len(n) + 1
+            self._parsed = ("\n".join(parts), spans)
+        return self._parsed
+
+    def findings_at(self, start: int, end: int) -> list:
+        """Layer findings overlapping [start, end) of this (unnormalised) text; a list-scope negation that does not
+        end its sentence is left out (see _usable)."""
+        from doctor_agent.nlp import normalize
+        norm, spans = self.parsed()
+        raw = str(self)
+
+        def to_norm(pos: int) -> int:
+            ls = raw.rfind("\n", 0, pos) + 1
+            return self._line_off[raw.count("\n", 0, ls)] + len(normalize(raw[ls:pos] + "x")) - 1
+
+        s, e = to_norm(start), to_norm(end)
+        return [f for fs, fe, f in spans if fs < e and s < fe and _usable(norm, fe, f)]
+
+
+def _as_read(text, source: str = "patient") -> ReadText:
+    return text if isinstance(text, ReadText) else ReadText(text or "", source)
+
+
+_RE_SENT_END = re.compile(r"[.?!;\n]")
+
+
+def _usable(norm: str, end: int, f) -> bool:
+    """A list-scope negation ("기침이나 가래, 열은 없어요") is trusted only when the negation ends the sentence;
+    an adnominal one ("임신 32주, 통증 없는 질 출혈") falls back to the per-keyword rule."""
+    if not (f.polarity == "absent" and f.cue.startswith("list:")):
+        return True
+    m = _RE_SENT_END.search(norm, end)
+    tail = norm[end:m.start() if m else len(norm)]
+    cue = f.cue.split(":", 1)[1].strip()  # the negation word the layer used ("list:정상")
+    p = tail.find(cue) if cue else -1
+    if p < 0:
+        return False
+    rest = tail[p:].strip()
+    return len(rest) <= 8 and " " not in rest
+
+
+# A relative or partner speaks for the patient ("(남편) 오늘 아침부터 아내가 헛소리를 해요"): person words then name the
+# patient, so subject attribution is not trusted (conservative: the finding counts as the patient's).
+_RE_PROXY = re.compile(r"\((?:남편|아내|부인|배우자|보호자|엄마|아빠|어머니|아버지|딸|아들|며느리|사위|가족|동생|형|언니|누나|오빠)"
+                       r"(?:\s?[가-힣]{0,4})?\)|보호자\s?(?::|진술|에 따르면|가 대신|분이 대신)|대신\s?(?:대답|말씀|설명)")
+
+
+def _legacy_status(t: str, idx: int, kw: str, family_kw: bool, proxy: bool = False) -> str:
+    if not family_kw and not proxy and _relative_before(t, idx):
+        return OTHER
+    return NEG if _legacy_negated_at(t, idx, kw) else POS
+
+
+def keyword_statuses(text, keyword: str, source: str = "patient", detail: bool = False) -> list:
+    """Status of every occurrence of keyword (lowercase substring) in text: POS / UNC / NEG / OTHER.
+
+    An occurrence overlapping a finding of the normalisation layer takes that finding's reading (polarity with
+    list scope, idioms, persistence and double negation; subject; hedges keep "present"; uncertain and hypothetical
+    answers are UNC). An occurrence the layer has no finding for, or a keyword that carries its own negation, keeps
+    the legacy clause-window rule (NEG or POS), plus a relative-before-it check (OTHER). detail=True returns
+    (status, read_by_layer) pairs."""
+    rt = _as_read(text, source)
+    kw = (keyword or "").lower()
+    if not kw:
+        return []
+    norm, findings = rt.parsed()
+    fam_kw = bool(_KW_ABOUT_RELATIVES.search(kw))
+    proxy = bool(_RE_PROXY.search(norm))
+    out: list = []
+
+    def add(st: str, layer: bool) -> None:
+        out.append((st, layer) if detail else st)
+
+    if kw not in norm:  # normalisation changed the keyword's surface: legacy reading on the raw text
+        raw = str(rt).lower()
+        for m in re.finditer(re.escape(kw), raw):
+            add(_legacy_status(raw, m.start(), kw, fam_kw, proxy), False)
+        return out
+    own = fam_kw or bool(_KW_OWN_NEGATION.search(kw))
+    for m in re.finditer(re.escape(kw), norm):
+        s, e = m.start(), m.end()
+        hits = [] if own else [f for fs, fe, f in findings if fs < e and s < fe and _usable(norm, fe, f)]
+        if not hits:
+            add(_legacy_status(norm, s, kw, fam_kw, proxy), False)
+            continue
+        # "가족력: 고혈압" (a family-history heading without a subject particle) is not the patient's
+        if _relative_before(norm, s, _RE_FAMILY_HISTORY):
+            mine = []
+        else:
+            mine = [f for f in hits if f.subject == "patient" or proxy]
+        if any(f.polarity == "present" and not f.hypothetical for f in mine):
+            add(POS, True)
+        elif any(f.polarity == "uncertain" or f.hypothetical for f in mine):
+            add(UNC, True)
+        elif mine:
+            add(NEG, True)
+        else:
+            add(OTHER, True)
+    return out
+
+
+def negated(text: str, keyword: str) -> bool:
+    """True when the keyword occurs, is denied for the patient at least once, and no occurrence is affirmed or
+    uncertain ("다리 붓거나 비행기 탄 적은 없어요", "등이 찢어지는 느낌은 아니에요"; relatives' mentions are ignored).
+    Read through the normalisation layer (keyword_statuses); `text` may be a ReadText."""
+    st = keyword_statuses(text, keyword)
+    return NEG in st and not (POS in st or UNC in st)
+
 
 def contains_affirmed(text: str, keywords: tuple[str, ...]) -> bool:
-    """Any keyword present and not negated in its clause."""
-    t = (text or "").lower()
-    return any(k in t and not negated(t, k) for k in keywords)
+    """Any keyword affirmed for the patient: present (hedged too) or uncertain ("열이 나는지 모르겠어요" still
+    triggers). Denied mentions and mentions about relatives ("어머니가 유방암") do not count."""
+    rt = _as_read(text)
+    low = str(rt).lower()
+    for k in keywords:
+        if k and k.lower() in low:  # cheap pre-filter: the text is parsed only when a keyword occurs
+            st = keyword_statuses(rt, k)
+            if POS in st or UNC in st:
+                return True
+    return False
 
 
 # --------------------------------------------------------------------------------------------
@@ -1636,3 +1855,8 @@ def score(rule_id: str, answers: dict) -> ScoreResult:
         missing=missing, secondary_label=f"{sec.label}({sec.meaning})" if sec else "", citation=rule.cite,
         positives=positives,
     )
+
+
+# Read-only, derived from the import-time lexicon (never modified): category concept sets for detect_categories()
+_CATEGORY_CONCEPTS: dict[str, frozenset[str]] = _category_concepts()
+_FOCAL_CONCEPTS: frozenset[str] = _CATEGORY_CONCEPTS.get("neuro", frozenset()) - _NON_FOCAL_NEURO
