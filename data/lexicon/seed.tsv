@@ -1,0 +1,2104 @@
+# Hand-authored seed of the clinical-finding lexicon (provenance tag "seed"; written by the team, no text copied).
+# Long format: concept_id <TAB> field <TAB> value. Fields:
+#   ko / en            display labels (Korean / English)
+#   lay                Korean lay expressions (구어체), "|"-separated; a trailing "~" marks a figurative form that is
+#                      NOT dropped by the simile rule ("몸이 불덩이~ 같아요" still means fever)
+#   med                Korean medical terms, "|"-separated
+#   syn                English synonyms, "|"-separated
+#   abbr               abbreviations (whole-word match), "|"-separated
+#   re                 one flexible Korean regex per row (".{0,N}" gaps never cross a comma at runtime)
+#   neg                expressions that assert the concept is ABSENT ("잘 먹어요" -> no anorexia), "|"-separated
+#   negre              one regex per row asserting absence
+#   parents            parent concept ids, "|"-separated (present child => present parent; absent GRP => absent child)
+#   flags              fig (all forms figurative-ok), group (downward absent inference), cue (emit only with an
+#                      explicit polarity cue), site=<word>, lat=<right|left|bilateral>
+# Matching is space-insensitive (spaces inside a form are optional), lower-cased, NFKC-normalised.
+# Forms of 2 compact characters must start a word; forms of 3+ characters may sit inside a word.
+
+# ---------------------------------------------------------------- groups (downward absent inference)
+GRP:systemic	ko	전신 증상
+GRP:systemic	en	constitutional symptoms
+GRP:systemic	med	전신 증상|전신적 증상|전신 쇠약 증상
+GRP:systemic	syn	constitutional symptoms|systemic symptoms|b symptoms
+GRP:systemic	flags	group
+GRP:respiratory	ko	호흡기 증상
+GRP:respiratory	en	respiratory symptoms
+GRP:respiratory	lay	감기 증상|감기 기운|감기 같은 증상|감기 걸린 것 같은 증상
+GRP:respiratory	med	호흡기 증상|호흡기계 증상|상기도 증상
+GRP:respiratory	syn	respiratory symptoms|uri symptoms
+GRP:respiratory	flags	group
+GRP:gi	ko	소화기 증상
+GRP:gi	en	gastrointestinal symptoms
+GRP:gi	lay	속 불편한 증상|배 증상
+GRP:gi	med	소화기 증상|위장 증상|위장관 증상|소화기계 증상
+GRP:gi	syn	gastrointestinal symptoms|gi symptoms
+GRP:gi	flags	group
+GRP:urinary	ko	비뇨기 증상
+GRP:urinary	en	urinary symptoms
+GRP:urinary	lay	소변 볼 때 불편|소변 보는 데 문제|소변 이상|소변에 이상|소변 증상|배뇨 문제
+GRP:urinary	med	소변 습관의 변화|소변 습관 변화|배뇨 습관 변화|배뇨 습관의 변화|비뇨기 증상|배뇨 증상|배뇨 이상|하부요로증상
+GRP:urinary	syn	urinary symptoms|luts
+GRP:urinary	flags	group
+GRP:bowel	ko	배변 이상
+GRP:bowel	en	change in bowel habits
+GRP:bowel	lay	대변 이상|대변에 이상|변 이상|대변 보는 데 문제|화장실 가는 거|대변이나 소변
+GRP:bowel	med	배변 이상|배변 습관 변화|배변 습관의 변화|배변 양상 변화
+GRP:bowel	syn	change in bowel habits|bowel habit change
+GRP:bowel	flags	group
+GRP:neuro	ko	신경학적 증상
+GRP:neuro	en	neurological symptoms
+GRP:neuro	med	신경학적 증상|신경 증상|신경계 증상|신경학적 이상 증상
+GRP:neuro	syn	neurological symptoms|neurologic symptoms
+GRP:neuro	flags	group
+GRP:weight_change	ko	체중 변화
+GRP:weight_change	en	weight change
+GRP:weight_change	lay	체중이 변하|체중이 변한|몸무게가 변하|몸무게 변화|살이 찌거나 빠지
+GRP:weight_change	med	체중 변화|체중변화
+GRP:weight_change	syn	weight change
+GRP:weight_change	flags	group
+GRP:vision	ko	시력 변화
+GRP:vision	en	visual symptoms
+GRP:vision	lay	눈 증상|눈이 이상
+GRP:vision	med	시력 변화|시야 변화|시각 증상|시력 이상|시야 이상|시각 변화
+GRP:vision	syn	visual changes|visual symptoms
+GRP:vision	flags	group
+GRP:skin	ko	피부 증상
+GRP:skin	en	skin symptoms
+GRP:skin	med	피부 증상|피부 변화|피부 이상|피부 병변
+GRP:skin	syn	skin changes|skin lesions
+GRP:skin	flags	group
+GRP:bleeding	ko	출혈 경향
+GRP:bleeding	en	bleeding tendency
+GRP:bleeding	lay	피가 잘 나|피가 쉽게 나
+GRP:bleeding	med	출혈 경향|출혈경향|출혈 증상|출혈성 경향
+GRP:bleeding	syn	bleeding tendency|bleeding diathesis
+GRP:bleeding	flags	group
+GRP:menstrual	ko	월경 이상
+GRP:menstrual	en	menstrual changes
+GRP:menstrual	lay	생리 변화|생리 이상|생리가 이상
+GRP:menstrual	med	월경 변화|월경 이상|월경 장애
+GRP:menstrual	syn	menstrual changes|menstrual irregularity
+GRP:menstrual	flags	group
+
+# ---------------------------------------------------------------- generic pain
+SYM:pain	ko	통증
+SYM:pain	en	pain
+SYM:pain	lay	아프|아파|아픈|아팠|아픔|쑤시|쑤셔|쑤신|욱신|결리|결려|쓰라|쓰려|저미|시큰
+SYM:pain	med	통증|동통|압박통|둔통
+SYM:pain	syn	pain|ache|aching|painful
+
+# ---------------------------------------------------------------- constitutional
+SYM:fever	ko	발열
+SYM:fever	en	fever
+SYM:fever	lay	열과|열이랑|열이 나|열이 났|열이 있|열나|열났|열난|열날|열이|열은|열도|열감|열기|열 기운|열기운|몸이 뜨거|몸이 뜨끈|뜨끈뜨끈|몸이 불덩이~|불덩이~|펄펄 끓~|열이 오르|열이 올라|열이 오락가락|몸에서 열
+SYM:fever	med	발열|미열|열성|발열감|체온 상승
+SYM:fever	syn	fever|febrile|pyrexia|pyrexial
+SYM:fever	neg	체온 정상|체온은 정상|열은 정상
+SYM:fever	parents	GRP:systemic
+SYM:high_fever	ko	고열
+SYM:high_fever	en	high fever
+SYM:high_fever	lay	고열이|고열이 나|심한 열|열이 심|열이 펄펄~|40도|39도|39도가 넘|40도가 넘
+SYM:high_fever	med	고열|고열감
+SYM:high_fever	syn	high fever|hyperpyrexia
+SYM:high_fever	parents	SYM:fever
+SYM:chills	ko	오한
+SYM:chills	en	chills
+SYM:chills	lay	몸이 떨렸|으슬으슬|으슬|오들오들|덜덜 떨|몸이 떨리|몸이 떨려|춥고 떨|한기|몸이 춥|추워서 떨|사시나무 떨듯~|이가 딱딱 부딪
+SYM:chills	med	오한|한전|전율
+SYM:chills	syn	chills|rigor|rigors|shivering
+SYM:chills	parents	GRP:systemic
+SYM:night_sweats	ko	야간 발한
+SYM:night_sweats	en	night sweats
+SYM:night_sweats	lay	밤에 땀|밤에 식은땀|자면서 땀|자다가 땀|잘 때 땀|밤마다 땀|이불이 젖을 정도|베개가 젖
+SYM:night_sweats	med	야간 발한|야간발한|도한
+SYM:night_sweats	syn	night sweats|nocturnal sweating
+SYM:night_sweats	parents	GRP:systemic|SYM:sweating
+SYM:sweating	ko	발한
+SYM:sweating	en	sweating
+SYM:sweating	lay	식은땀|땀을 많이|땀이 많이|땀이 나|땀이 났|땀이 흥건|땀범벅|진땀|땀을 흘|땀이 비오듯~
+SYM:sweating	med	발한|다한|다한증|과다 발한
+SYM:sweating	syn	sweating|diaphoresis|sweaty|hyperhidrosis
+SYM:fatigue	ko	피로
+SYM:fatigue	en	fatigue
+SYM:fatigue	lay	피곤|피로|기운이 없|기운도 없|기력이 없|기력도 없|쉽게 지치|쉽게 피곤|지쳐|녹초|몸이 무겁|축 처지|나른|기진맥진|늘 피곤|항상 피곤|몸에 힘이 하나도
+SYM:fatigue	med	피로감|무기력|무기력감|권태감|쇠약감|전신 쇠약|전신 쇠약감|무력감|탈진
+SYM:fatigue	syn	fatigue|tiredness|malaise|lethargy|exhaustion|weakness generalized
+SYM:fatigue	parents	GRP:systemic
+SYM:malaise	ko	전신 불쾌감
+SYM:malaise	en	malaise
+SYM:malaise	lay	몸이 안 좋|컨디션이 안 좋|몸이 찌뿌둥|찌뿌둥|몸이 개운하지|몸이 영 안 좋
+SYM:malaise	med	전신 불쾌감|권태
+SYM:malaise	syn	malaise|feeling unwell
+SYM:malaise	parents	GRP:systemic
+SYM:weight_loss	ko	체중 감소
+SYM:weight_loss	en	weight loss
+SYM:weight_loss	lay	살이 빠|살이 빠졌|몸무게가 줄|몸무게가 빠|체중이 줄|체중이 빠|몸이 말랐|몸이 마르|살이 쭉 빠|옷이 헐렁|kg 빠|킬로 빠|kg 줄|킬로 줄
+SYM:weight_loss	med	체중 감소|체중감소|체중 저하|악액질
+SYM:weight_loss	syn	weight loss|cachexia|losing weight
+SYM:weight_loss	re	[0-9]+ ?(?:kg|킬로)[^,;]{0,8}?(?:빠졌|빠지|줄었|감소)
+SYM:weight_loss	re	(체중|몸무게|살이?).{0,25}(줄었|줄어|줄고|줄지|줄거|빠졌|빠지|빠져|감소|빠진)
+SYM:weight_loss	parents	GRP:systemic|GRP:weight_change
+SYM:weight_gain	ko	체중 증가
+SYM:weight_gain	en	weight gain
+SYM:weight_gain	lay	살이 쪘|살이 찌|체중이 늘|몸무게가 늘|kg 늘|kg 쪘|킬로 늘|킬로 쪘|배가 나오
+SYM:weight_gain	med	체중 증가|체중증가
+SYM:weight_gain	syn	weight gain|gaining weight
+SYM:weight_gain	re	(체중|몸무게).{0,12}(늘었|늘어|늘고|증가|불었)
+SYM:weight_gain	parents	GRP:weight_change
+SYM:anorexia	ko	식욕 부진
+SYM:anorexia	en	decreased appetite
+SYM:anorexia	lay	잘 먹지 않|잘 먹지 못|잘 안 먹|먹지 않으려|안 먹으려|입맛이 없|입맛도 없|입맛이 떨어|입맛도 떨어|밥맛이 없|밥맛도 없|식욕이 없|식욕도 없|식욕이 떨어|밥을 못 먹|잘 못 먹|먹기 싫|못 먹겠|먹질 못|먹는 양이 줄|입맛이 뚝
+SYM:anorexia	med	식욕 부진|식욕부진|식욕 저하|식욕저하|식욕 감퇴|식욕 감소
+SYM:anorexia	syn	anorexia|decreased appetite|poor appetite|loss of appetite
+SYM:anorexia	re	(입맛|식욕|밥맛)[이은도가을를]? ?(?:좀 |많이 |하나도 |전혀 |통 |영 |별로 |완전히 )?(없|떨어|줄|저하|감소|안 나|잃)
+SYM:anorexia	neg	입맛은 괜찮|입맛은 좋|입맛도 좋|식욕은 좋|식욕은 괜찮|식욕은 정상|식욕 정상|밥은 잘 먹|잘 먹어요|잘 먹고|잘 먹습니다|잘 먹었|식사는 잘|식사를 잘|잘 먹는|분유를 잘|젖을 잘
+SYM:anorexia	parents	GRP:systemic
+SYM:polydipsia	ko	다음(갈증)
+SYM:polydipsia	en	polydipsia
+SYM:polydipsia	lay	목이 자주 마르|목이 마르|목마름|물을 많이 마시|물을 자주 마시|물을 달고|물이 자꾸 당|물이 계속 당|갈증이 나|갈증이 심
+SYM:polydipsia	med	갈증|다갈|다음다갈|구갈
+SYM:polydipsia	syn	polydipsia|thirst|excessive thirst
+SYM:cold_intolerance	ko	추위 불내성
+SYM:cold_intolerance	en	cold intolerance
+SYM:cold_intolerance	lay	추위를 많이 타|추위를 잘 타|추위를 많이 느끼|추위를 못 견디|추위를 못 참|유난히 추워|남들보다 추워
+SYM:cold_intolerance	med	한랭 불내성|추위 불내성|한랭불내성
+SYM:cold_intolerance	syn	cold intolerance
+SYM:heat_intolerance	ko	더위 불내성
+SYM:heat_intolerance	en	heat intolerance
+SYM:heat_intolerance	lay	더위를 못 참|더위를 많이 타|더위를 잘 못|더위를 견디기 힘|더위를 참기|더위를 잘 타|남들보다 더워
+SYM:heat_intolerance	med	열 불내성|열불내성|더위 불내성|고온 불내성
+SYM:heat_intolerance	syn	heat intolerance
+
+# ---------------------------------------------------------------- head / neuro
+SYM:headache	ko	두통
+SYM:headache	en	headache
+SYM:headache	lay	머리가 아프|머리가 아파|머리가 아팠|머리 아프|머리 아파|머리가 지끈|머리가 깨질|머리가 터질|머리가 띵|머리가 욱신|머리가 쑤|골이 아프|골이 울려|머리가 무겁|머리 통증|머리 전체가 아|뒷머리가 아|관자놀이가 아|이마가 아
+SYM:headache	med	두통|편두통|긴장성 두통|두부 통증|후두부 통증|전두부 통증
+SYM:headache	syn	headache|cephalgia|migraine|head pain
+SYM:headache	re	(머리|이마|관자놀이|뒷머리|정수리|뒤통수).{0,10}(아프|아파|아팠|아픈|지끈|욱신|깨질|터질|쑤시|쑤셔|통증|조이)
+SYM:headache	parents	SYM:pain
+SYM:thunderclap_headache	ko	벼락두통
+SYM:thunderclap_headache	en	thunderclap headache
+SYM:thunderclap_headache	lay	벼락 치듯~|벼락 맞은~|망치로 맞은~|망치로 때리~|망치로 얻어맞은~|머리가 터질 것~|머리가 깨질 것~|인생 최악의 두통|태어나서 가장 심한 두통|난생 처음 겪는 두통|최악의 두통
+SYM:thunderclap_headache	med	벼락두통|벼락 두통|뇌우두통|뇌우 두통|극심한 두통|생애 최악의 두통
+SYM:thunderclap_headache	syn	thunderclap headache|worst headache of life|worst headache
+SYM:thunderclap_headache	parents	SYM:headache
+SYM:dizziness	ko	어지럼
+SYM:dizziness	en	dizziness
+SYM:dizziness	lay	어지러|어지럽|어지럼|핑 돌|핑핑 돌|아찔|머리가 핑|휘청|눈앞이 빙|정신이 어질|어질어질
+SYM:dizziness	med	어지럼증|현기증|어지러움
+SYM:dizziness	syn	dizziness|dizzy|lightheadedness|lightheaded
+SYM:vertigo	ko	현훈
+SYM:vertigo	en	vertigo
+SYM:vertigo	lay	빙빙 돌|빙글빙글|천장이 돌|천장이 빙|세상이 돌|세상이 빙|방이 도|방이 돌|방이 빙빙|주변이 도|주변이 돌|주위가 빙빙|핑글핑글
+SYM:vertigo	med	현훈|회전성 어지럼|회전성 현훈|회전성 어지럼증|이석증
+SYM:vertigo	syn	vertigo|spinning sensation|room spinning
+SYM:vertigo	parents	SYM:dizziness
+SYM:syncope	ko	실신
+SYM:syncope	en	syncope
+SYM:syncope	lay	기절|쓰러졌|쓰러짐|쓰러져|쓰러진|정신을 잃|의식을 잃|정신이 나갔|필름이 끊|픽 쓰러|털썩 쓰러|깨어나 보니|정신 차려 보니|정신을 차려 보니
+SYM:syncope	med	실신|졸도|일과성 의식 소실|의식 소실|의식소실|일시적 의식 소실|의식 상실
+SYM:syncope	syn	syncope|fainting|faint|passed out|loss of consciousness|blackout
+SYM:syncope	abbr	loc
+SYM:presyncope	ko	실신 전구 증상
+SYM:presyncope	en	presyncope
+SYM:presyncope	lay	쓰러질 것 같|기절할 것 같|눈앞이 깜깜|눈앞이 캄캄|눈앞이 하얘|정신이 아득|핑 하면서 주저앉|정신이 멍해지면서
+SYM:presyncope	med	전실신|실신 전구 증상|실신전구증상|근실신
+SYM:presyncope	syn	presyncope|near syncope|near-syncope
+SYM:presyncope	parents	SYM:dizziness
+SYM:seizure	ko	경련
+SYM:seizure	en	seizure
+SYM:seizure	lay	경기|경기를|몸이 뻣뻣해지면서 떨|거품을 물|눈이 돌아가|눈이 뒤집|사지를 떨|온몸을 떨|팔다리를 떨|팔다리가 떨리면서|몸을 부들부들|몸이 굳으면서
+SYM:seizure	med	경련|발작|간질 발작|간질|전신 경련|뇌전증 발작|강직간대 발작|강직 간대|열성 경련|경련 발작
+SYM:seizure	syn	seizure|convulsion|convulsions|epileptic seizure|fits
+SYM:muscle_cramp	ko	근육 경련
+SYM:muscle_cramp	en	muscle cramp
+SYM:muscle_cramp	lay	쥐가 나|쥐가 났|쥐가 잘|다리에 쥐|종아리에 쥐|근육이 뭉치|근육이 씰룩|눈 떨림|눈꺼풀이 떨|눈밑이 떨
+SYM:muscle_cramp	med	근육 경련|근경련|다리 경련|종아리 경련|눈꺼풀 경련|안검 경련|안면 경련|반측 안면 경련|위경련|복부 경련|근육 연축|테타니|강직성 경련|손발 경련
+SYM:muscle_cramp	syn	muscle cramp|cramps|spasm|tetany|twitching
+SYM:panic	ko	공황 발작
+SYM:panic	en	panic attack
+SYM:panic	lay	공황이 와|공황 증상|숨이 넘어갈 것 같|죽을 것 같은 공포|죽을 것 같은 느낌
+SYM:panic	med	공황 발작|공황발작|공황 증상
+SYM:panic	syn	panic attack|panic
+SYM:altered_mental_status	ko	의식 변화
+SYM:altered_mental_status	en	altered mental status
+SYM:altered_mental_status	lay	지남력이 떨어|깨우기 어려|잘 깨지 않|정신이 오락가락|횡설수설|헛소리|엉뚱한 소리|앞뒤가 안 맞|앞뒤가 맞지 않|사람을 못 알아|사람을 알아보지 못|말귀를 못 알아|깨워도 잘 안 깨|깨워도 안 깨|축 처져|축 늘어|반응이 없|반응이 느리|의식이 흐|의식이 없|의식이 떨어|의식이 흐려|정신이 흐려|멍하게 있|멍하니|정신이 없어 보|평소와 다르게 멍|정신이 이상|의식이 평소와 다르|엉뚱한 말
+SYM:altered_mental_status	med	의식 저하|의식저하|의식 변화|의식변화|의식 혼탁|의식혼탁|혼돈|착란|섬망|지남력 저하|지남력 장애|지남력 상실|혼미|혼수|의식 장애|의식장애|의식 수준 저하|명료하지 않|혼동
+SYM:altered_mental_status	syn	drowsy|lethargic|decreased consciousness|decreased level of consciousness|comatose|confusion|altered mental status|altered mentation|delirium|disorientation|obtundation|stupor|coma|disoriented|confused
+SYM:altered_mental_status	abbr	ams
+SYM:altered_mental_status	re	(?:통증|자극)에 대한 반응(?:이|은)? ?(?:저하|감소|없|둔)
+SYM:altered_mental_status	neg	지남력 양호|지남력은 양호|지남력 유지|의식 명료|의식은 명료|의식 청명|의식은 또렷|정신은 또렷|정신은 멀쩡|의식은 정상|명료한 의식|지남력 정상|지남력은 정상|alert and oriented
+SYM:altered_mental_status	negre	의식.{0,12}(명료|청명|정상|또렷)
+SYM:somnolence	ko	졸림
+SYM:somnolence	en	somnolence
+SYM:somnolence	lay	졸려|졸림|자꾸 졸|잠만 자|하루 종일 자|계속 자려고|잠에 취해|늘어져서 자
+SYM:somnolence	med	기면|과다 수면|과다수면|주간 졸림|주간 과다 졸림
+SYM:somnolence	syn	somnolence|drowsiness|sleepiness|lethargic|hypersomnia
+SYM:memory_loss	ko	기억력 저하
+SYM:memory_loss	en	memory loss
+SYM:memory_loss	lay	잊어버리|길을 못 찾|헤매곤|기억력이 떨어|기억력이 나빠|기억력이 예전 같지|깜빡깜빡|깜박깜박|자꾸 잊|자꾸 까먹|기억을 못 하|했던 말을 또|같은 말을 반복|같은 질문을 반복|물건을 둔 곳을|길을 잃|날짜를 헷갈
+SYM:memory_loss	med	기억력 저하|기억력저하|기억 장애|기억장애|건망|건망증|인지 저하|인지기능 저하|인지 기능 저하|인지 장애|치매 증상
+SYM:memory_loss	syn	memory loss|forgetfulness|cognitive decline|amnesia|memory impairment
+SYM:memory_loss	re	(기억력|기억).{0,10}(감소|저하|떨어|나빠|없어지)
+SYM:weakness	ko	근력 약화
+SYM:weakness	en	weakness
+SYM:weakness	lay	힘이 빠|힘이 없|힘이 안 들어|힘이 안 들|힘을 못 쓰|힘이 풀리|힘 빠|힘없|맥이 풀리|팔다리에 힘|다리에 힘이|팔에 힘이|계단을 오르기 힘|머리를 빗을 때 팔|물건을 떨어뜨|젓가락질이 힘|단추를 채우기 힘
+SYM:weakness	med	근력 저하|근력 약화|근력 감소|근력저하|근력약화|위약|근위약|근육 약화|근위약감|사지 위약|하지 위약|상지 위약|근력 저하 소견
+SYM:weakness	syn	weakness|muscle weakness|paresis|limb weakness|proximal weakness
+SYM:weakness	re	(근력|근육|팔|다리|손|하지|상지|사지|어깨|허벅지|하체|팔다리).{0,6}(약화|저하|위약|힘이 빠|힘이 없|힘 빠|힘이 안)
+SYM:weakness	parents	GRP:neuro
+SYM:hemiparesis	ko	편마비
+SYM:hemiparesis	en	hemiparesis
+SYM:hemiparesis	lay	한쪽 팔다리에 힘|한쪽 팔에 힘|한쪽 다리에 힘|반쪽에 힘|몸 한쪽이|한쪽이 마비|한쪽 팔다리가 마비|한쪽 팔다리를 못|반신이 마비
+SYM:hemiparesis	med	편마비|반신 마비|반신마비|편측 마비|편측 위약|반신불수|편측 근력 저하|편측 근력 약화|반신 불완전마비
+SYM:hemiparesis	syn	hemiparesis|hemiplegia|unilateral weakness|one-sided weakness
+SYM:hemiparesis	re	(한쪽|한 쪽|오른쪽|왼쪽|우측|좌측|반쪽|편측|오른|왼).{0,8}(팔|다리|팔다리|손|몸|상지|하지|상하지).{0,8}(힘이 빠|힘이 없|힘이 안|힘 빠|마비|못 움직|안 움직|말을 안 듣|근력 저하|근력 약화|위약|약화)
+SYM:hemiparesis	parents	SYM:weakness|SIGN:focal_neuro_deficit
+SYM:paralysis	ko	마비
+SYM:paralysis	en	paralysis
+SYM:paralysis	lay	꼼짝|움직이지 못|못 움직여|전혀 못 움직
+SYM:paralysis	med	마비|사지 마비|하지 마비|하반신 마비|완전 마비
+SYM:paralysis	syn	paralysis|palsy|plegia
+SYM:paralysis	parents	SYM:weakness
+SYM:numbness	ko	감각 저하
+SYM:numbness	en	numbness
+SYM:numbness	lay	감각이 없|감각이 둔|감각이 떨어|무감각|남의 살 같~|나무토막 같~|감각이 이상|만져도 모르
+SYM:numbness	med	감각 저하|감각저하|감각 둔마|감각 소실|감각 감소|감각 장애|감각장애|감각 상실|무감각증
+SYM:numbness	syn	numbness|hypoesthesia|hypoaesthesia|sensory loss|numb
+SYM:numbness	re	(감각|촉각|통각|진동각|위치 ?감각|고유 ?감각)[이은도가]? ?(?:좀 |많이 |약간 |점점 )?(저하|감소|소실|둔마|떨어|없)
+SYM:numbness	parents	GRP:neuro
+SYM:paresthesia	ko	저림
+SYM:paresthesia	en	paresthesia
+SYM:paresthesia	lay	저리|저려|저림|저릿|찌릿찌릿|찌릿|전기가 오~|개미가 기어~|따끔따끔|쥐가 난 듯~|화끈거리고 저|손발이 저|손이 저|발이 저
+SYM:paresthesia	med	이상 감각|감각 이상|이상감각|착감|감각이상
+SYM:paresthesia	syn	paresthesia|paraesthesia|tingling|pins and needles
+SYM:paresthesia	parents	GRP:neuro
+SYM:tremor	ko	떨림
+SYM:tremor	en	tremor
+SYM:tremor	lay	손이 떨|손떨림|손 떨림|손이 덜덜|떨림|손을 떨|몸이 떨리는 게 계속|머리가 흔들
+SYM:tremor	med	진전|수전증|안정 시 진전|활동 시 진전|본태성 떨림
+SYM:tremor	syn	tremor|shaking|resting tremor|intention tremor
+SYM:dysarthria	ko	구음 장애
+SYM:dysarthria	en	dysarthria
+SYM:dysarthria	lay	발음이 어눌|말이 어눌|혀가 꼬|말이 꼬|발음이 새|발음이 이상|발음이 샌|술 취한 사람처럼 말~|말이 느려
+SYM:dysarthria	med	구음 장애|구음장애|구음 곤란|조음 장애|어눌한 발음|언어 불명확
+SYM:dysarthria	syn	dysarthria|slurred speech|slurring
+SYM:dysarthria	re	(말이|발음이|말투가).{0,6}(어눌|꼬|새|이상|느려)
+SYM:dysarthria	parents	GRP:neuro|SIGN:focal_neuro_deficit
+SYM:aphasia	ko	실어증
+SYM:aphasia	en	aphasia
+SYM:aphasia	lay	단어가 잘 안 나오|말을 더듬|단어가 잘 생각이 안|말을 제대로 하지 못|말을 제대로 못|말을 못 하|말이 안 나|말이 잘 안 나오|단어가 생각이 안|단어가 안 떠|말을 알아듣지 못|말을 이해하지 못|엉뚱한 단어
+SYM:aphasia	med	실어증|언어 장애|언어장애|표현성 실어|수용성 실어|실어
+SYM:aphasia	syn	aphasia|dysphasia|word-finding difficulty
+SYM:aphasia	parents	GRP:neuro|SIGN:focal_neuro_deficit
+SYM:facial_droop	ko	안면 마비
+SYM:facial_droop	en	facial droop
+SYM:facial_droop	lay	입이 돌아|입이 비뚤|얼굴이 비뚤|입꼬리가 처|입꼬리가 내려|얼굴 한쪽이 처|얼굴이 처|한쪽 눈이 안 감|눈이 잘 안 감|물을 마시면 입가로 흘
+SYM:facial_droop	med	안면 마비|안면마비|안면 비대칭|안면신경마비|안면 신경 마비|구안와사|말초성 안면 마비|중추성 안면 마비|벨 마비
+SYM:facial_droop	syn	facial droop|facial palsy|facial weakness|bell palsy|facial asymmetry
+SYM:facial_droop	parents	GRP:neuro|SIGN:focal_neuro_deficit
+SYM:diplopia	ko	복시
+SYM:diplopia	en	diplopia
+SYM:diplopia	lay	둘로 보|두 개로 보|겹쳐 보|이중으로 보|물체가 둘|사물이 둘|두 개로 겹쳐
+SYM:diplopia	med	복시|이중 시|양안 복시|단안 복시
+SYM:diplopia	syn	diplopia|double vision
+SYM:diplopia	re	(물체|사물|글씨|사람|모든 게|모든 것|화면).{0,8}(둘로|두 개|겹쳐|이중)
+SYM:diplopia	parents	GRP:vision|GRP:neuro
+SYM:blurred_vision	ko	시야 흐림
+SYM:blurred_vision	en	blurred vision
+SYM:blurred_vision	lay	흐릿하게 보|흐리게 보|뿌옇게 보|뿌옇|침침|시야가 흐|눈이 흐|초점이 안 맞|앞이 잘 안 보|시야가 뿌|눈앞이 흐|안개 낀 것처럼~|시야가 흐려
+SYM:blurred_vision	med	시야 흐림|시력 흐림|흐린 시야|시야 몽롱|시력 저하감
+SYM:blurred_vision	syn	blurred vision|blurry vision|visual blurring
+SYM:blurred_vision	parents	GRP:vision
+SYM:vision_loss	ko	시력 저하
+SYM:vision_loss	en	vision loss
+SYM:vision_loss	lay	앞이 안 보|눈이 안 보|시력이 떨어|시력이 나빠|한쪽 눈이 안 보|커튼이 쳐진~|커튼이 내려온~|시야가 가려|시야가 좁|한쪽 눈이 캄캄|눈이 멀
+SYM:vision_loss	med	시력 저하|시력 소실|시력 상실|시력저하|시야 결손|시야결손|반맹|암점|시야 장애|일과성 흑암시|흑암시
+SYM:vision_loss	syn	vision loss|visual loss|visual field defect|blindness|amaurosis|hemianopia
+SYM:vision_loss	parents	GRP:vision
+SYM:photophobia	ko	눈부심
+SYM:photophobia	en	photophobia
+SYM:photophobia	lay	빛이 눈부|눈이 부시|빛을 보면 아|빛이 싫|햇빛에 눈이 부|불빛이 괴|밝은 빛을 못
+SYM:photophobia	neg	불빛은 괜찮|빛은 괜찮|눈부심은 없|눈부시지는 않
+SYM:photophobia	med	눈부심|광선공포증|광선 공포증
+SYM:photophobia	syn	photophobia|light sensitivity
+SIGN:neck_stiffness	ko	경부 강직
+SIGN:neck_stiffness	en	neck stiffness
+SIGN:neck_stiffness	lay	목이 뻣뻣|목이 굳|목을 숙이기 힘|고개를 숙이기 힘|목이 안 숙여|고개가 안 숙여|목을 앞으로 숙이|뒷목이 뻣뻣|뒷목이 굳|목덜미가 뻣뻣
+SIGN:neck_stiffness	med	경부 강직|경부강직|목 강직|항부 강직|항부강직|경직된 목|목 경직|경부 경직|수막 자극 징후|수막자극징후|수막 자극 증상|뇌막 자극 징후|수막자극 징후
+SIGN:neck_stiffness	syn	neck stiffness|nuchal rigidity|meningismus|stiff neck|meningeal signs
+SIGN:neck_stiffness	re	(?<![가-힣])(?:뒷목|목 ?뒤|목덜미|목)[이은도가]? ?(?:점점 |좀 |많이 |너무 |계속 )?(?:뻣뻣|굳)
+SIGN:neck_stiffness	neg	경부 유연|목은 부드럽|목이 부드럽|neck supple
+SIGN:kernig	ko	케르니그 징후
+SIGN:kernig	en	kernig sign
+SIGN:kernig	med	케르니그 징후|케르니히 징후|케르니그|케르니히|브루진스키 징후|브루진스키|브루친스키
+SIGN:kernig	syn	kernig sign|kernig|brudzinski sign|brudzinski
+SIGN:kernig	parents	SIGN:neck_stiffness
+SYM:gait_disturbance	ko	보행 장애
+SYM:gait_disturbance	en	gait disturbance
+SYM:gait_disturbance	re	걸음걸이[가도이는]? ?(?:점점 |좀 |많이 )?(?:불안|이상|비틀|어색|느려)
+SYM:gait_disturbance	lay	걷기 힘|걷기가 힘|걷기 어렵|걸음이 불안|비틀거|휘청거|똑바로 못 걷|걸음걸이가 이상|자꾸 넘어지|넘어지곤|균형을 못 잡|균형 잡기가|중심을 못 잡|종종걸음|발을 끌|걸을 때 비틀|술 취한 것처럼 걷~
+SYM:gait_disturbance	med	보행 장애|보행장애|보행 이상|보행 불안|보행 실조|균형 장애|자세 불안정|보행 곤란
+SYM:gait_disturbance	syn	gait disturbance|unsteady gait|imbalance|difficulty walking|gait abnormality
+SYM:gait_disturbance	parents	GRP:neuro
+SIGN:ataxia	ko	운동 실조
+SIGN:ataxia	en	ataxia
+SIGN:ataxia	med	운동 실조|운동실조|실조|소뇌성 실조|협조 운동 장애|협조운동장애|손가락-코 검사 이상|손가락 코 검사 이상|롬버그 징후 양성|롬버그 양성|조화운동불능|이상 보행
+SIGN:ataxia	syn	ataxia|cerebellar ataxia|dysmetria|romberg positive|intention tremor
+SIGN:ataxia	parents	GRP:neuro|SIGN:focal_neuro_deficit
+SYM:hearing_loss	ko	난청
+SYM:hearing_loss	en	hearing loss
+SYM:hearing_loss	lay	잘 못 알아듣|잘 못 알아들|말을 잘 못 알아|잘 안 들|잘 들리지|안 들려|안 들리|귀가 먹|귀가 멍|소리가 작게 들|귀가 먹먹|청력이 떨어|청력이 나빠|말소리가 잘 안|티비 소리를 크게
+SYM:hearing_loss	med	청력 장애|청각 장애|난청|청력 저하|청력저하|청력 감소|청력 소실|청력 손실|돌발성 난청|감각신경성 난청|전음성 난청
+SYM:hearing_loss	syn	hearing loss|deafness|hard of hearing|hypoacusis
+SYM:hearing_loss	re	(?<![가-힣])(귀|청력|한쪽 귀|오른쪽 귀|왼쪽 귀)[이은도가]? ?(?:잘 |좀 |많이 |점점 |갑자기 |서서히 )?(안 들|먹먹|떨어|저하|감소|멍|나빠)
+SYM:tinnitus	ko	이명
+SYM:tinnitus	en	tinnitus
+SYM:tinnitus	lay	귀에서 소리|귀에서 삐|귀울림|윙윙 소리|삐 소리|매미 소리|귀에서 윙|귀에서 쉬
+SYM:tinnitus	med	이명|귀울림|이명증
+SYM:tinnitus	syn	tinnitus|ringing in the ears
+SYM:ear_pain	ko	귀 통증
+SYM:ear_pain	en	ear pain
+SYM:ear_pain	lay	귀가 아프|귀가 아파|귀가 아팠|귀 안이 아|귀가 쑤|귀를 만지면 아|귀를 자꾸 만져|귀를 잡아당기
+SYM:ear_pain	med	이통|귀 통증|귀통증
+SYM:ear_pain	syn	ear pain|otalgia|earache
+SYM:ear_pain	re	(?<![가-힣])귀[^,;]{0,10}?(아프|아파|아팠|통증|찌르|쑤시)
+SYM:ear_pain	parents	SYM:pain
+SYM:ear_discharge	ko	이루
+SYM:ear_discharge	en	ear discharge
+SYM:ear_discharge	lay	귀에서 고름|귀에서 진물|귀에서 물이|귀에서 분비물|귀에서 뭐가 나
+SYM:ear_discharge	med	이루|귀 분비물|이루증
+SYM:ear_discharge	syn	otorrhea|ear discharge
+SYM:insomnia	ko	불면
+SYM:insomnia	en	insomnia
+SYM:insomnia	lay	잠을 잘 자지 못|잘 자지 못|잠을 못 자|못 자요|못 잤|잠을 잘 못|깨서 잠을 못|잠을 못|잠이 안 와|잠이 안 오|잠들기 힘|잠들기가 힘|잠들기 어렵|자주 깨|자다가 자꾸 깨|새벽에 깨|잠을 설|밤새 뒤척|한숨도 못|잠을 잘 수가 없
+SYM:insomnia	med	불면|불면증|수면 장애|수면장애|입면 장애|수면 유지 장애|조기 각성
+SYM:insomnia	syn	insomnia|sleeplessness|difficulty sleeping|sleep disturbance
+SYM:insomnia	re	(잠을|잠이|잠에)(?: 잘| 통| 거의| 푹| 제대로| 도통)? ?(못|안 와|안 오|설치|설쳐|들기 힘|들기 어)
+SYM:insomnia	neg	잠은 잘 자|잠도 잘 자|잠은 잘 잡|잘 자요|잘 잡니다|잘 자고|수면은 양호|수면 양호
+SYM:somnolence	parents	SYM:altered_mental_status
+SYM:anxiety	ko	불안
+SYM:anxiety	en	anxiety
+SYM:anxiety	lay	불안해|불안하|초조|안절부절|조마조마|걱정이 많|마음이 불안|가슴이 조마|긴장이 돼|신경이 곤두
+SYM:anxiety	med	불안|불안감|불안증|초조감|과도한 걱정
+SYM:anxiety	syn	anxiety|nervousness|restlessness|anxious
+SYM:depressed_mood	ko	우울
+SYM:depressed_mood	en	depressed mood
+SYM:depressed_mood	lay	우울|기분이 가라앉|기분이 처지|기분이 울적|의욕이 없|의욕도 없|흥미가 없|흥미를 잃|즐거운 게 없|재미가 없|눈물이 자꾸|희망이 없|사는 게 재미|아무것도 하기 싫|만사가 귀찮
+SYM:depressed_mood	med	우울감|우울|의욕 저하|흥미 상실|무쾌감|무쾌감증|우울 증상|정동 저하
+SYM:depressed_mood	syn	depressed mood|depression|anhedonia|sadness|low mood
+SYM:suicidal_ideation	ko	자살 사고
+SYM:suicidal_ideation	en	suicidal ideation
+SYM:suicidal_ideation	lay	죽고 싶|죽고싶|자살하고 싶|살고 싶지 않|사라지고 싶|죽을 생각|목숨을 끊|손목을 긋
+SYM:suicidal_ideation	med	자살 사고|자살 생각|자살 충동|자해|자살 시도|자해 행동
+SYM:suicidal_ideation	syn	suicidal ideation|self-harm|suicide attempt|suicidal
+SYM:hallucination	ko	환각
+SYM:hallucination	en	hallucination
+SYM:hallucination	lay	헛것이 보|헛것이|헛소리가 들|없는 소리가 들|누가 말하는 소리가|목소리가 들려|벌레가 기어다니는 게 보
+SYM:hallucination	med	환청|환시|환각|환촉|지각 이상
+SYM:hallucination	syn	hallucination|hallucinations|auditory hallucination|visual hallucination
+SYM:delusion	ko	망상
+SYM:delusion	en	delusion
+SYM:delusion	lay	누가 쫓아|감시당|누가 나를 해치|독을 탔|도청|누가 따라온|음모
+SYM:delusion	med	망상|피해망상|과대망상|관계망상
+SYM:delusion	syn	delusion|paranoia|paranoid ideation|delusions
+SYM:behavior_change	ko	행동 변화
+SYM:behavior_change	en	behavior change
+SYM:behavior_change	lay	이상한 행동|성격이 변|성격이 바뀌|난폭|공격적|과격|엉뚱한 행동|폭력적|물건을 던|소리를 지르|돈을 막 쓰|말이 많아지|잠을 안 자고도
+SYM:behavior_change	med	이상행동|이상 행동|행동 변화|성격 변화|탈억제|초조 행동|행동 장애|조증|경조증|사고 장애|와해된 행동
+SYM:behavior_change	syn	behavior change|behavioral change|agitation|aggression|mania|disinhibition
+SYM:irritability	ko	보챔/짜증
+SYM:irritability	en	irritability
+SYM:irritability	lay	짜증|예민|신경질|화를 잘 내|보채|떼를 쓰|자꾸 울|달래지지 않|달래도 안 그치|칭얼
+SYM:irritability	med	이자극성|보챔
+SYM:irritability	syn	irritability|fussiness|irritable|inconsolable crying
+
+# ---------------------------------------------------------------- respiratory
+SYM:cough	ko	기침
+SYM:cough	en	cough
+SYM:cough	lay	기침|콜록|잔기침|마른기침|헛기침|기침 발작|기침이 계속|기침을 해|기침을 하|밤새 기침
+SYM:cough	med	기침|해수|건성 기침|습성 기침|만성 기침|발작성 기침
+SYM:cough	syn	cough|coughing|dry cough|productive cough|chronic cough
+SYM:cough	parents	GRP:respiratory
+SYM:barking_cough	ko	개 짖는 듯한 기침
+SYM:barking_cough	en	barking cough
+SYM:barking_cough	lay	컹컹~|개 짖는~|물개 소리~|쇳소리 나는 기침|컹컹거리는 기침
+SYM:barking_cough	med	개 짖는 소리 기침|크룹성 기침|크루프 기침
+SYM:barking_cough	syn	barking cough|croupy cough|seal-like cough
+SYM:barking_cough	parents	SYM:cough
+SYM:sputum	ko	가래
+SYM:sputum	en	sputum
+SYM:sputum	lay	가래|가래가 끓|누런 가래|초록 가래|녹색 가래|끈적한 가래|노란 가래|흰 가래|가래가 나오|가래가 많
+SYM:sputum	med	객담|화농성 객담|점액성 객담|농성 객담|객담 증가
+SYM:sputum	syn	sputum|phlegm|expectoration|productive cough with abnormal sputum
+SYM:sputum	parents	GRP:respiratory
+SYM:hemoptysis	ko	객혈
+SYM:hemoptysis	en	hemoptysis
+SYM:hemoptysis	lay	피가래|피 섞인 가래|피가 섞인 가래|가래에 피|기침할 때 피|기침하면 피|기침에 피|기침과 함께 피|핏덩이를 기침|피를 기침|선홍색 피가 기침
+SYM:hemoptysis	med	객혈|각혈|혈담|혈성 객담|대량 객혈|혈성객담
+SYM:hemoptysis	syn	hemoptysis|haemoptysis|coughing up blood|blood-streaked sputum|bloody sputum
+SYM:hemoptysis	re	(가래|기침|객담).{0,10}(피가|피를|피도|피 |혈액|핏)
+SYM:hemoptysis	parents	GRP:respiratory|GRP:bleeding
+SYM:dyspnea	ko	호흡곤란
+SYM:dyspnea	en	dyspnea
+SYM:dyspnea	lay	숨이 차|숨이 찬|숨차|숨참|숨찬|숨이 가쁘|숨이 가빠|숨 가쁨|숨가쁨|숨가빠|숨가쁘|숨쉬기 힘|숨쉬기가 힘|숨쉬기 어렵|숨쉬기가 어렵|숨이 막|숨 막히|숨이 답답|숨을 못 쉬|숨을 쉬기 어|숨을 쉬기가 힘|숨을 헐떡|헐떡|헉헉|숨을 제대로 못|숨쉬기 곤란|숨 쉬기가 곤란|숨소리가 거칠|숨을 몰아|호흡이 힘|호흡하기 힘|호흡이 가빠|숨 쉬기 힘들어
+SYM:dyspnea	med	호흡곤란|호흡 곤란|호흡 부전|호흡장애|호흡 장애|호흡 곤란감|숨가쁨|호흡 불편
+SYM:dyspnea	syn	dyspnea|dyspnoea|shortness of breath|breathlessness|short of breath|difficulty breathing|respiratory distress|breathless
+SYM:dyspnea	abbr	sob
+SYM:dyspnea	re	숨이? ?[^.,]{0,6}?(차|찬|가빠|가쁘|막히|막혀)
+SYM:dyspnea	parents	GRP:respiratory
+SYM:exertional_dyspnea	ko	운동 시 호흡곤란
+SYM:exertional_dyspnea	en	exertional dyspnea
+SYM:exertional_dyspnea	lay	계단을 오르면 숨|계단을 오를 때 숨|걸으면 숨|걸을 때 숨|조금만 걸어도 숨|조금만 움직여도 숨|움직이면 숨|운동하면 숨|운동할 때 숨|언덕을 오르면 숨
+SYM:exertional_dyspnea	med	운동성 호흡곤란|노작성 호흡곤란|운동 시 호흡곤란|활동 시 호흡곤란
+SYM:exertional_dyspnea	syn	exertional dyspnea|dyspnea on exertion|exertional breathlessness
+SYM:exertional_dyspnea	abbr	doe
+SYM:exertional_dyspnea	re	(계단|걸으|걷|걸을|움직이|움직일|운동|활동|오르|언덕|뛰).{0,12}숨이? ?(차|찬|가빠|가쁘|헐떡|막)
+SYM:exertional_dyspnea	parents	SYM:dyspnea
+SYM:orthopnea	ko	기좌호흡
+SYM:orthopnea	en	orthopnea
+SYM:orthopnea	lay	누우면 숨이|누우면 숨차|누우면 숨|누워 있으면 숨|누우면 더 숨|앉아서 자|앉아서 잠|베개를 여러 개|베개를 높|베개를 두세 개|누울 때 숨
+SYM:orthopnea	med	기좌호흡|좌위호흡|앉은 자세 호흡|기좌 호흡
+SYM:orthopnea	syn	orthopnea|orthopnoea
+SYM:orthopnea	parents	SYM:dyspnea
+SYM:pnd	ko	발작성 야간 호흡곤란
+SYM:pnd	en	paroxysmal nocturnal dyspnea
+SYM:pnd	lay	자다가 숨이 차|자다가 숨이 막|자다가 숨이 차서 깨|밤에 숨이 차서 깨|자다가 숨이 답답해서 깨|자다 깨서 숨
+SYM:pnd	med	발작성 야간 호흡곤란|발작성 야간호흡곤란|야간 호흡곤란
+SYM:pnd	syn	paroxysmal nocturnal dyspnea
+SYM:pnd	abbr	pnd
+SYM:pnd	parents	SYM:dyspnea
+SIGN:wheeze	ko	천명음
+SIGN:wheeze	en	wheeze
+SIGN:wheeze	lay	쌕쌕|쌕쌕거|휘파람 소리~|가랑가랑|숨 쉴 때 쌕쌕|숨소리에서 소리
+SIGN:wheeze	med	천명|천명음|쌕쌕거림|호기성 천명
+SIGN:wheeze	syn	wheeze|wheezing|wheezes|rhonchi
+SIGN:wheeze	neg	호흡음 명료|호흡음은 명료|호흡음 청명|호흡음은 청명|폐음 청명|청명한 호흡음|폐야 청명|clear to auscultation
+SIGN:wheeze	negre	폐야.{0,6}(깨끗|청명)
+SIGN:wheeze	parents	GRP:respiratory
+SIGN:stridor	ko	협착음
+SIGN:stridor	en	stridor
+SIGN:stridor	lay	그렁그렁|그르렁|숨 쉴 때 그렁|숨 들이쉴 때 소리
+SIGN:stridor	med	협착음|흡기성 천명|흡기 천명|그렁거림|흡기성 협착음
+SIGN:stridor	syn	stridor|inspiratory stridor
+SIGN:stridor	parents	GRP:respiratory
+SIGN:crackles	ko	수포음
+SIGN:crackles	en	crackles
+SIGN:crackles	med	수포음|악설음|염발음|거품소리|습성 수포음|건성 수포음|벨크로 수포음|흡기 말 수포음
+SIGN:crackles	syn	crackles|rales|crepitations|crackle|rale|velcro crackles
+SIGN:crackles	neg	호흡음 명료|호흡음은 명료|호흡음 청명|호흡음은 청명|폐음 청명|청명한 호흡음|폐야 청명|clear to auscultation
+SIGN:crackles	negre	폐야.{0,6}(깨끗|청명)
+SIGN:decreased_breath_sounds	ko	호흡음 감소
+SIGN:decreased_breath_sounds	en	decreased breath sounds
+SIGN:decreased_breath_sounds	med	호흡음 감소|호흡음 저하|호흡음 소실|호흡음이 감소|호흡음 약화|호흡음이 약|폐음 감소
+SIGN:decreased_breath_sounds	syn	decreased breath sounds|diminished breath sounds|absent breath sounds
+SIGN:decreased_breath_sounds	re	호흡음.{0,8}(감소|저하|약해|약함|약화|소실|들리지 않|안 들|줄어)
+SIGN:dullness	ko	타진 탁음
+SIGN:dullness	en	dullness to percussion
+SIGN:dullness	med	탁음|타진 시 탁음|둔탁음|타진상 탁음|편평음
+SIGN:dullness	syn	dullness|dullness to percussion|stony dullness
+SIGN:friction_rub	ko	마찰음
+SIGN:friction_rub	en	friction rub
+SIGN:friction_rub	med	마찰음|심막 마찰음|심낭 마찰음|흉막 마찰음|심장막 마찰음
+SIGN:friction_rub	syn	friction rub|pericardial rub|pleural rub
+SIGN:tachypnea	ko	빈호흡
+SIGN:tachypnea	en	tachypnea
+SIGN:tachypnea	re	숨을 ?(?:아주 |너무 |매우 |자꾸 )?(?:빨리|빠르게|가쁘게|헐떡이며)
+SIGN:tachypnea	lay	숨을 빨리|숨을 가쁘게 몰아|호흡이 빠르|숨을 빠르게|숨을 몰아쉬
+SIGN:tachypnea	med	빈호흡|호흡수 증가|빠른 호흡|과호흡|과환기
+SIGN:tachypnea	neg	호흡수 정상|호흡수는 정상|호흡 정상|호흡수 정상 범위
+SIGN:tachypnea	syn	tachypnea|tachypnoea|rapid breathing|hyperventilation
+SIGN:bradypnea	ko	서호흡
+SIGN:bradypnea	en	bradypnea
+SIGN:bradypnea	med	서호흡|호흡수 감소|느린 호흡|호흡 억제
+SIGN:bradypnea	syn	bradypnea|respiratory depression|slow breathing
+SIGN:hypoxemia	ko	저산소증
+SIGN:hypoxemia	en	hypoxemia
+SIGN:hypoxemia	lay	산소가 부족|산소포화도가 낮|산소 포화도가 떨어|산소가 떨어
+SIGN:hypoxemia	med	저산소증|저산소혈증|산소포화도 저하|산소 포화도 저하|포화도 저하|산소 요구량 증가
+SIGN:hypoxemia	syn	hypoxemia|hypoxia|desaturation|hypoxaemia|low oxygen saturation
+SIGN:cyanosis	ko	청색증
+SIGN:cyanosis	en	cyanosis
+SIGN:cyanosis	lay	입술이 파랗|입술이 퍼렇|입술이 새파|손끝이 파랗|얼굴이 파랗|파래지|퍼레지|입술 색이 파
+SIGN:cyanosis	med	청색증|중심성 청색증|말초성 청색증
+SIGN:cyanosis	syn	cyanosis|cyanotic|blue lips
+SIGN:retractions	ko	흉벽 함몰
+SIGN:retractions	en	chest retractions
+SIGN:retractions	lay	갈비뼈 사이가 쑥 들어가|숨 쉴 때 가슴이 쑥|코를 벌렁
+SIGN:retractions	med	흉벽 함몰|늑간 함몰|흉곽 함몰|비익 호흡|호흡 보조근 사용|보조 호흡근 사용|끙끙거림
+SIGN:retractions	syn	chest retractions|intercostal retractions|nasal flaring|accessory muscle use|grunting
+
+# ---------------------------------------------------------------- cardiovascular
+SYM:chest_pain	ko	흉통
+SYM:chest_pain	en	chest pain
+SYM:chest_pain	lay	가슴이 아프|가슴이 아파|가슴이 아팠|가슴 아프|가슴 아파|가슴 통증|가슴을 쥐어짜|가슴이 조이|가슴이 뻐근|가슴이 찢|가슴이 짓눌|가슴을 누르|가슴에 통증|가슴 쪽이 아|가슴 한가운데가 아|가슴이 찌릿|가슴이 결리|가슴이 쑤
+SYM:chest_pain	med	흉통|흉부 통증|흉골하 통증|흉골 뒤 통증|협심통|전흉부 통증|흉골하 흉통
+SYM:chest_pain	syn	chest pain|chest discomfort|angina|retrosternal pain|thoracic pain|substernal chest pain
+SYM:chest_pain	re	(가슴|흉부|흉골|앞가슴).{0,10}(아프|아파|아팠|아픈|통증|쥐어짜|조이|짓누르|짓눌|뻐근|찢|쑤시|결리|찌르|뻐개)
+SYM:chest_pain	parents	SYM:pain
+SYM:chest_tightness	ko	흉부 압박감
+SYM:chest_tightness	en	chest tightness
+SYM:chest_tightness	lay	가슴이 답답|가슴 답답|가슴이 꽉 막|가슴이 무겁|가슴을 누르는|가슴에 돌을 얹은~|가슴에 뭐가 얹힌~|가슴이 꽉 조
+SYM:chest_tightness	med	흉부 압박감|흉부 불편감|흉부 답답함|흉부압박감|흉부 중압감|흉부 불쾌감
+SYM:chest_tightness	syn	chest tightness|chest pressure|chest heaviness
+SYM:chest_tightness	parents	SYM:chest_pain
+SYM:pleuritic_pain	ko	흉막성 흉통
+SYM:pleuritic_pain	en	pleuritic chest pain
+SYM:pleuritic_pain	lay	숨을 들이쉴 때 아|숨을 들이마실 때 아|숨을 쉴 때 아|숨 쉴 때 아|숨쉴 때마다 아|깊게 숨을 쉬면 아|깊이 숨을 쉬면|숨을 크게 쉬면 아|숨을 크게 쉬면
+SYM:pleuritic_pain	med	흉막성 통증|흉막성 흉통|흡기 시 통증|흡기시 통증|흡기 시 악화|호흡 시 악화|흉막염성 흉통
+SYM:pleuritic_pain	syn	pleuritic chest pain|pleuritic pain|pain on inspiration
+SYM:pleuritic_pain	re	(숨을?|호흡|들이쉬|들이마시|심호흡).{0,8}(때|면|마다|시).{0,8}(아프|아파|아팠|통증|찌르|결리|심해)
+SYM:pleuritic_pain	parents	SYM:chest_pain
+SYM:palpitation	ko	두근거림
+SYM:palpitation	en	palpitations
+SYM:palpitation	lay	두근|두근두근|가슴이 뛰|심장이 뛰|심장이 빨리|심장이 빠르게|쿵쾅|벌렁벌렁|심장이 벌렁|가슴이 벌렁|심장이 멎는|맥이 건너뛰|심장이 튀|가슴이 콩닥|콩닥콩닥|심장이 불규칙|심장이 제멋대로
+SYM:palpitation	med	두근거림|심계항진|심계 항진
+SYM:palpitation	syn	palpitation|palpitations|racing heart|pounding heart|heart racing
+SIGN:tachycardia	ko	빈맥
+SIGN:tachycardia	en	tachycardia
+SIGN:tachycardia	lay	맥이 빠르|맥박이 빠르|심박이 빠르|심박수가 빠르|맥박수가 높
+SIGN:tachycardia	med	빈맥|동성 빈맥|동빈맥|빈박|심박수 증가|빈맥성
+SIGN:tachycardia	neg	맥박 정상|맥박수 정상|심박수 정상|맥박은 정상|심박수는 정상|맥박 수 정상
+SIGN:tachycardia	syn	tachycardia|tachycardic|rapid heart rate|sinus tachycardia
+SIGN:bradycardia	ko	서맥
+SIGN:bradycardia	en	bradycardia
+SIGN:bradycardia	lay	맥이 느리|맥박이 느리|심박이 느리|맥박수가 낮
+SIGN:bradycardia	med	서맥|동성 서맥|동서맥|서맥성|심박수 감소
+SIGN:bradycardia	neg	맥박 정상|맥박수 정상|심박수 정상|맥박은 정상|심박수는 정상|맥박 수 정상
+SIGN:bradycardia	syn	bradycardia|bradycardic|slow heart rate|sinus bradycardia
+SIGN:irregular_pulse	ko	불규칙 맥박
+SIGN:irregular_pulse	en	irregular pulse
+SIGN:irregular_pulse	lay	맥이 불규칙|맥박이 불규칙|박동이 불규칙|맥이 건너뛰
+SIGN:irregular_pulse	neg	심음은 규칙|심박동은 규칙|심율동은 규칙|박동 규칙|박동은 규칙|정규 심동율|심동율 규칙|리듬은 규칙|심박동 규칙|규칙적인 심박동|심율동 규칙|규칙적인 리듬|리듬 규칙|심박 규칙|맥박 규칙|규칙적인 맥박|심음 규칙|규칙적인 심음
+SIGN:irregular_pulse	med	심음이 불규칙|심음은 불규칙|불규칙한 심음|심박동이 불규칙|심장 리듬이 불규칙|불규칙한 리듬|불규칙한 심장 박동|불규칙한 맥|불규칙 맥박|불규칙한 맥박|부정맥|불규칙적으로 불규칙|맥박 결손
+SIGN:irregular_pulse	syn	irregular pulse|irregularly irregular|arrhythmia|irregular heartbeat|heart arrhythmia
+SIGN:hypotension	ko	저혈압
+SIGN:hypotension	en	hypotension
+SIGN:hypotension	lay	혈압이 낮|혈압이 떨어|혈압이 뚝
+SIGN:hypotension	med	저혈압|혈압 저하|혈압저하|기립성 저혈압|저혈압성
+SIGN:hypotension	syn	hypotension|hypotensive|low blood pressure|orthostatic hypotension
+SIGN:shock	ko	쇼크
+SIGN:shock	en	shock
+SIGN:shock	med	쇼크|순환 부전|순환부전|쇼크 상태|패혈성 쇼크|출혈성 쇼크
+SIGN:shock	syn	shock|circulatory collapse|septic shock
+SIGN:shock	parents	SIGN:hypotension
+SIGN:elevated_bp	ko	혈압 상승
+SIGN:elevated_bp	en	elevated blood pressure
+SIGN:elevated_bp	lay	혈압이 높|혈압이 올라|혈압이 많이 높
+SIGN:elevated_bp	med	혈압 상승|고혈압성 위기|고혈압 위기|고혈압성 응급|혈압 증가
+SIGN:elevated_bp	syn	elevated blood pressure|hypertensive|hypertensive crisis|hypertensive urgency
+SIGN:hypothermia	ko	저체온
+SIGN:hypothermia	en	hypothermia
+SIGN:hypothermia	lay	몸이 차갑|몸이 싸늘|체온이 낮
+SIGN:hypothermia	med	저체온|저체온증|체온 저하
+SIGN:hypothermia	syn	hypothermia|low body temperature
+SIGN:murmur	ko	심잡음
+SIGN:murmur	en	heart murmur
+SIGN:murmur	med	심잡음|잡음|수축기 잡음|확장기 잡음|심장 잡음|수축기 심잡음|확장기 심잡음|전수축기 잡음|박출성 잡음
+SIGN:murmur	syn	murmur|heart murmur|systolic murmur|diastolic murmur
+SIGN:jvd	ko	경정맥 확장
+SIGN:jvd	en	jugular venous distension
+SIGN:jvd	lay	목 핏줄이 튀어나|목 혈관이 부|목 정맥이 불룩
+SIGN:jvd	med	경정맥 확장|경정맥 팽대|경정맥압 상승|경정맥 울혈|경정맥 팽창
+SIGN:jvd	syn	jugular venous distension|elevated jvp|jugular venous distention
+SIGN:jvd	abbr	jvd
+SIGN:s3	ko	제3심음
+SIGN:s3	en	s3 gallop
+SIGN:s3	med	제3심음|3심음|분마음|제4심음|s3 분마음|s4
+SIGN:s3	syn	s3 gallop|third heart sound|gallop rhythm|s4 gallop
+SIGN:s3	abbr	s3
+SIGN:edema	ko	부종
+SIGN:edema	en	edema
+SIGN:edema	lay	붓고|붓는|붓네|붓기|부기|부었|부어|부은|퉁퉁|띵띵|누르면 쑥 들어가|눌린 자국|양말 자국|신발이 꽉 끼|반지가 안 들어가|몸이 붓
+SIGN:edema	med	부종|함요부종|함요 부종|종창|말초 부종|전신 부종|부종성
+SIGN:edema	syn	edema|oedema|swelling|pitting edema|peripheral edema|anasarca
+SIGN:edema	re	(다리|발목|종아리|하지|발등|발|손|얼굴|눈|눈두덩|눈꺼풀|몸|전신|온몸|손가락|사지)[이가도은는]? ?(퉁퉁 |많이 |좀 |약간 |살짝 )?(붓|부었|부어|부은|부종|붓기|부기)
+SIGN:leg_edema	ko	하지 부종
+SIGN:leg_edema	en	leg edema
+SIGN:leg_edema	lay	다리가 붓|다리가 부었|다리가 부어|발목이 붓|발목이 부었|발목이 부어|종아리가 붓|종아리가 부었|발등이 붓|다리 부종|다리가 퉁퉁|발이 붓|발이 부었
+SIGN:leg_edema	med	하지 부종|하지부종|양측 하지 부종|발목 부종|족부 부종|하지 함요 부종|하지 종창
+SIGN:leg_edema	syn	leg edema|leg swelling|ankle edema|lower extremity edema|pedal edema
+SIGN:leg_edema	re	(다리|발목|종아리|하지|발등|발)[이가도은는]? ?(퉁퉁 |많이 |좀 |약간 )?(붓|부었|부어|부은|부종|붓기|부기)
+SIGN:leg_edema	parents	SIGN:edema
+SIGN:unilateral_leg_swelling	ko	편측 하지 부종
+SIGN:unilateral_leg_swelling	en	unilateral leg swelling
+SIGN:unilateral_leg_swelling	med	편측 하지 부종|일측 하지 부종|편측 다리 부종|한쪽 다리 부종
+SIGN:unilateral_leg_swelling	syn	unilateral leg swelling|calf swelling|unilateral leg edema
+SIGN:unilateral_leg_swelling	re	(한쪽|한 쪽|왼쪽|오른쪽|좌측|우측|편측|왼|오른) ?(다리|종아리|하지|발목|허벅지)(?! ?관절)[이가도은는에]? ?.{0,8}(붓|부었|부어|부은|부종|붓기|부기|커졌|굵어)
+SIGN:unilateral_leg_swelling	parents	SIGN:leg_edema
+SIGN:facial_edema	ko	안면 부종
+SIGN:facial_edema	en	facial edema
+SIGN:facial_edema	lay	얼굴이 붓|얼굴이 부었|얼굴이 부어|눈이 붓|눈이 부었|눈두덩이 붓|눈두덩이 부었|눈꺼풀이 붓|아침에 눈이 붓|얼굴이 퉁퉁
+SIGN:facial_edema	med	안면 부종|안와 주위 부종|눈꺼풀 부종|안검 부종|안면부종|안와주위 부종
+SIGN:facial_edema	syn	facial edema|periorbital edema|facial swelling|eyelid edema
+SIGN:facial_edema	re	(얼굴|눈두덩|눈꺼풀|눈 주위|눈가|눈)[이가도은는]? ?(퉁퉁 |많이 |좀 )?(붓|부었|부어|부은|부종|붓기|부기)
+SIGN:facial_edema	parents	SIGN:edema
+SIGN:clubbing	ko	곤봉지
+SIGN:clubbing	en	clubbing
+SIGN:clubbing	lay	손가락 끝이 뭉툭|손끝이 둥글|손톱이 둥글게
+SIGN:clubbing	med	곤봉지|곤봉 손가락|곤봉형 손가락|곤봉손가락|곤봉 모양
+SIGN:clubbing	syn	clubbing|digital clubbing|nail clubbing
+SIGN:pulse_deficit	ko	맥박 차이
+SIGN:pulse_deficit	en	pulse deficit
+SIGN:pulse_deficit	med	맥박 차이|맥박이 약|맥박 소실|맥박이 만져지지|양팔 혈압 차이|양팔 혈압 차|양측 혈압 차이|상지 혈압 차이|맥박 감소|말초 맥박 감소|말초 맥박 소실
+SIGN:pulse_deficit	syn	pulse deficit|pulse differential|absent pulse|blood pressure differential|diminished pulses
+
+# ---------------------------------------------------------------- gastrointestinal
+SYM:nausea	ko	구역
+SYM:nausea	en	nausea
+SYM:nausea	lay	메스꺼|메스껍|메슥|속이 울렁|울렁거|울렁울렁|속이 안 좋|토할 것 같|토할 거 같|토할 듯|헛구역|구역질|속이 니글|니글니글|느글|속이 뒤집|속이 미식
+SYM:nausea	med	구역|오심|구역감|구토감
+SYM:nausea	syn	nausea|nauseous|queasy
+SYM:nausea	parents	GRP:gi
+SYM:vomiting	ko	구토
+SYM:vomiting	en	vomiting
+SYM:vomiting	lay	토했|토하|토해|토함|토를|토할|토하기|게워|게웠|토가 나|먹은 걸 다 토|분수처럼 토~|쏟듯이 토|다 올렸|올려요|오바이트
+SYM:vomiting	med	구토|반복적 구토|분출성 구토|분수토|사출성 구토|구토증
+SYM:vomiting	syn	vomiting|emesis|throwing up|vomit|projectile vomiting
+SYM:vomiting	parents	GRP:gi
+SYM:hematemesis	ko	토혈
+SYM:hematemesis	en	hematemesis
+SYM:hematemesis	lay	피를 토|피가 섞인 토|토에 피|토한 것에 피|커피 찌꺼기~|커피색~|커피 가루 같은~|검붉은 걸 토|핏덩이를 토
+SYM:hematemesis	med	토혈|혈성 구토|커피 찌꺼기 구토|커피색 구토|커피 찌꺼기 모양 구토물
+SYM:hematemesis	syn	hematemesis|haematemesis|coffee-ground emesis|bloody vomit
+SYM:hematemesis	re	(피|혈액|핏).{0,6}(토했|토하|토해|토함|구토)|(토했|토한|구토|토물).{0,8}(피가|피를|피도|혈액|핏)
+SYM:hematemesis	parents	SYM:vomiting|GRP:bleeding
+SYM:bilious_vomiting	ko	담즙성 구토
+SYM:bilious_vomiting	en	bilious vomiting
+SYM:bilious_vomiting	lay	초록색 토|녹색 토|초록색으로 토|초록색 구토|노란 물을 토|쓴물을 토|초록 물을 토|초록색 물을 토
+SYM:bilious_vomiting	med	담즙성 구토|담즙 구토|담즙이 섞인 구토|녹색 구토
+SYM:bilious_vomiting	syn	bilious vomiting|bilious emesis|green vomit
+SYM:bilious_vomiting	parents	SYM:vomiting
+SYM:abdominal_pain	ko	복통
+SYM:abdominal_pain	en	abdominal pain
+SYM:abdominal_pain	lay	배가 아프|배가 아파|배가 아팠|배 아프|배 아파|배아파|배아픔|배가 쥐어|배가 꼬이|배가 살살|배가 뒤틀|배가 콕콕|배를 쥐어|배가 끊어|배 통증|배에 통증|배앓이|배가 찢어|배가 쑤|배를 움켜|배가 사르르|배꼽 주위가 아|배를 만지면 더 심하게 울|배를 만지면 울
+SYM:abdominal_pain	med	복통|복부 통증|복부통증|위통|배꼽 주위 통증|제대 주위 통증|복부 불편감|전복부 통증|복부 동통
+SYM:abdominal_pain	syn	abdominal pain|stomach ache|belly pain|stomachache|abdominal discomfort|tummy ache
+SYM:abdominal_pain	re	(?:(?<![가-힣])배(?:가|는|도|를|에|쪽이?|가 좀| )|아랫배|윗배|명치|복부|배꼽|옆구리)[^.,]{0,14}?(아프|아파|아팠|아픈|통증|쑤시|쑤셔|결리|쥐어짜|꼬이|뒤틀|찌르|쓰리|쓰려)
+SYM:abdominal_pain	parents	SYM:pain|GRP:gi
+SYM:epigastric_pain	ko	상복부 통증
+SYM:epigastric_pain	en	epigastric pain
+SYM:epigastric_pain	lay	명치가 아|명치 통증|명치가 쓰리|명치가 쓰려|명치가 콕콕|명치 끝이 아|윗배가 아|윗배 통증|윗배가 쓰리|명치가 답답|명치가 뻐근
+SYM:epigastric_pain	med	상복부 통증|심와부 통증|심와부통|상복부통|명치 통증|심와부 동통
+SYM:epigastric_pain	syn	epigastric pain|upper abdominal pain|epigastric discomfort
+SYM:epigastric_pain	re	(명치|윗배|상복부|심와부|위쪽 배)[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쓰리|쓰려|쥐어짜|찌르|뻐근|답답|쑤시)
+SYM:epigastric_pain	parents	SYM:abdominal_pain
+SYM:rlq_pain	ko	우하복부 통증
+SYM:rlq_pain	en	right lower quadrant pain
+SYM:rlq_pain	lay	오른쪽 아랫배가 아|오른쪽 아랫배 통증|오른쪽 아랫배가 쑤|배꼽 오른쪽 아래가 아|오른쪽 아래 배가 아
+SYM:rlq_pain	med	우하복부 통증|우하복부 동통|우하복부통|우하복부 복통
+SYM:rlq_pain	syn	right lower quadrant pain|rlq pain|right iliac fossa pain
+SYM:rlq_pain	re	(오른쪽|우측|오른) ?(아랫배|하복부|아래쪽 배|아래 배|배 아래)[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|쑤셔|찌르)
+SYM:rlq_pain	re	우하복부[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|찌르)
+SYM:rlq_pain	parents	SYM:abdominal_pain
+SYM:ruq_pain	ko	우상복부 통증
+SYM:ruq_pain	en	right upper quadrant pain
+SYM:ruq_pain	lay	오른쪽 윗배가 아|오른쪽 갈비뼈 아래가 아|오른쪽 갈비뼈 밑이 아|오른쪽 윗배 통증
+SYM:ruq_pain	med	우상복부 통증|우상복부통|우상복부 동통|우계륵부 통증
+SYM:ruq_pain	syn	right upper quadrant pain|ruq pain
+SYM:ruq_pain	re	(오른쪽|우측|오른) ?(윗배|상복부|위쪽 배|갈비뼈 아래|갈비뼈 밑)[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|찌르|뻐근)
+SYM:ruq_pain	re	우상복부[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|찌르)
+SYM:ruq_pain	parents	SYM:abdominal_pain
+SYM:llq_pain	ko	좌하복부 통증
+SYM:llq_pain	en	left lower quadrant pain
+SYM:llq_pain	lay	왼쪽 아랫배가 아|왼쪽 아랫배 통증|왼쪽 아래 배가 아
+SYM:llq_pain	med	좌하복부 통증|좌하복부통|좌하복부 동통
+SYM:llq_pain	syn	left lower quadrant pain|llq pain
+SYM:llq_pain	re	(왼쪽|좌측|왼) ?(아랫배|하복부|아래 배|아래쪽 배)[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|찌르)
+SYM:llq_pain	re	좌하복부[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|찌르)
+SYM:llq_pain	parents	SYM:abdominal_pain
+SYM:luq_pain	ko	좌상복부 통증
+SYM:luq_pain	en	left upper quadrant pain
+SYM:luq_pain	lay	왼쪽 윗배가 아|왼쪽 갈비뼈 아래가 아
+SYM:luq_pain	med	좌상복부 통증|좌상복부통
+SYM:luq_pain	syn	left upper quadrant pain|luq pain
+SYM:luq_pain	parents	SYM:abdominal_pain
+SYM:lower_abdominal_pain	ko	하복부 통증
+SYM:lower_abdominal_pain	en	lower abdominal pain
+SYM:lower_abdominal_pain	lay	아랫배가 아|아랫배 통증|아랫배가 쑤|아랫배가 묵직|아랫배가 당기|아랫배가 뻐근|아랫배가 싸
+SYM:lower_abdominal_pain	med	하복통|하복부 통증|하복부통|치골상부 통증|치골 상부 통증|하복부 동통
+SYM:lower_abdominal_pain	syn	lower abdominal pain|suprapubic pain|pelvic abdominal pain
+SYM:lower_abdominal_pain	re	(?<![가-힣])(아랫배|하복부|치골 위|치골상부|치골 상부)[^.,]{0,8}?(아프|아파|아팠|아픈|통증|쑤시|묵직|당기|뻐근)
+SYM:lower_abdominal_pain	parents	SYM:abdominal_pain
+SYM:flank_pain	ko	옆구리 통증
+SYM:flank_pain	en	flank pain
+SYM:flank_pain	lay	옆구리가 아|옆구리 통증|옆구리가 결리|옆구리가 쑤|옆구리가 끊어|허리 옆이 아|옆구리 쪽이 아
+SYM:flank_pain	med	측복부 통증|옆구리 통증|측복통|옆구리통|측부 통증
+SYM:flank_pain	syn	flank pain|loin pain|renal colic
+SYM:flank_pain	re	(옆구리|측복부|허리 옆)[^.,]{0,8}?(아프|아파|아팠|아픈|통증|결리|쑤시|찌르|끊어)
+SYM:flank_pain	parents	SYM:pain
+SYM:diarrhea	ko	설사
+SYM:diarrhea	en	diarrhea
+SYM:diarrhea	lay	설사|묽은 변|물 같은 변~|물설사|변이 묽|무른 변|변이 무르|물처럼 나와~|쌀뜨물 같은~|화장실을 들락날락|묽게 나와|변을 묽게|묽은 대변
+SYM:diarrhea	med	설사|수양성 설사|수양변|무른변|설사증
+SYM:diarrhea	syn	diarrhea|diarrhoea|loose stool|loose stools|watery stool|watery diarrhea
+SYM:diarrhea	parents	GRP:gi|GRP:bowel
+SYM:bloody_diarrhea	ko	혈성 설사
+SYM:bloody_diarrhea	en	bloody diarrhea
+SYM:bloody_diarrhea	lay	피 섞인 설사|설사에 피|피설사|피가 섞인 설사|설사에 피가
+SYM:bloody_diarrhea	med	혈성 설사|혈변성 설사|이질|점액혈변|점혈변
+SYM:bloody_diarrhea	syn	bloody diarrhea|dysentery|bloody diarrhoea
+SYM:bloody_diarrhea	parents	SYM:diarrhea|SYM:hematochezia
+SYM:constipation	ko	변비
+SYM:constipation	en	constipation
+SYM:constipation	lay	변을 못 봤|변을 못 보|변이 안 나|대변을 못|대변을 안 봤|화장실을 못 가|변이 딱딱|며칠째 변을|배변이 어렵|변 보기 힘|변 보기가 힘|변을 보기 힘|변이 잘 안 나|토끼똥
+SYM:constipation	med	변비|배변 곤란|배변곤란|만성 변비
+SYM:constipation	syn	constipation|constipated|hard stools
+SYM:constipation	parents	GRP:gi|GRP:bowel
+SYM:constipation	neg	대변은 정상|변은 잘 봐|대변은 잘 봐|배변은 규칙|대변도 잘|변은 매일|배변 양상은 정상
+SYM:obstipation	ko	배변·가스 배출 중단
+SYM:obstipation	en	obstipation
+SYM:obstipation	lay	방귀도 안 나|방귀가 안 나|가스가 안 나|방귀도 못 뀌|방귀도 나오지 않|가스도 나오지 않
+SYM:obstipation	med	가스 배출 없음|배변 배가스 없음|완전 변비|배가스 중단
+SYM:obstipation	syn	obstipation|no flatus|failure to pass flatus
+SYM:obstipation	parents	SYM:constipation
+SYM:hematochezia	ko	혈변
+SYM:hematochezia	en	hematochezia
+SYM:hematochezia	lay	변에 피|대변에 피|피가 섞인 변|피 섞인 변|빨간 피가 나와|항문에서 피|선홍색 피|휴지에 피|변기에 피|변이 빨갛|피똥|변에서 피
+SYM:hematochezia	med	혈변|선혈변|항문 출혈|직장 출혈|하부 위장관 출혈|하부위장관 출혈|혈액 섞인 변
+SYM:hematochezia	syn	hematochezia|rectal bleeding|bloody stool|blood in stool|bright red blood per rectum
+SYM:hematochezia	abbr	brbpr
+SYM:hematochezia	re	(?:대변|(?<![가-힣])변(?=[에이은을도의]|\s|색)|항문|변기)[^.,]{0,8}(피가|피를|피도|피 |피는|혈액|빨갛|빨간|핏)
+SYM:hematochezia	parents	GRP:bowel|GRP:bleeding
+SYM:melena	ko	흑색변
+SYM:melena	en	melena
+SYM:melena	lay	검은 변|까만 변|까맣게 나|짜장면 같은~|짜장 같은~|변이 까맣|변이 검|새까만 변|타르 같은~|검은색 변|변 색이 까맣|변 색이 검
+SYM:melena	med	흑색변|흑변|타르변|흑색 변|타르성 변
+SYM:melena	syn	melena|black stool|tarry stool|black tarry stools
+SYM:melena	re	(?:대변|(?<![가-힣])변(?=[이은을도의]|\s|색))[^.,]{0,6}(검은|검게|검정|까맣|까만|새까|짜장|타르)
+SYM:melena	parents	GRP:bowel|GRP:bleeding
+SYM:bloating	ko	복부 팽만감
+SYM:bloating	en	bloating
+SYM:bloating	lay	더부룩|배가 빵빵|배가 불러|배에 가스|가스가 차|배가 부풀|배가 나왔|배가 팽팽|배가 땡땡|헛배|배가 부른 느낌
+SYM:bloating	med	팽만감|복부 팽만감|가스 팽만|고창
+SYM:bloating	syn	bloating|abdominal bloating|gassiness|flatulence
+SYM:bloating	parents	GRP:gi
+SIGN:abdominal_distension	ko	복부 팽만
+SIGN:abdominal_distension	en	abdominal distension
+SIGN:abdominal_distension	med	팽만되지|팽만되어|팽만됨|복부 팽만|복부팽만|복부 팽창|복부 팽륜|복부 팽대|배가 팽만
+SIGN:abdominal_distension	syn	abdominal distension|distended abdomen|distension
+SYM:heartburn	ko	속쓰림
+SYM:heartburn	en	heartburn
+SYM:heartburn	lay	속이 쓰린|속 쓰림|속쓰림|속이 쓰리|속이 쓰려|속이 쓰림|가슴이 타|가슴이 화끈|가슴이 쓰리|신물|신트림|목까지 올라오|위산이 올라|목구멍으로 올라|쓴물이 올라|속이 타는
+SYM:heartburn	med	가슴 쓰림|흉부 작열감|위산 역류|역류 증상|위식도 역류 증상|작열감
+SYM:heartburn	syn	heartburn|acid reflux|regurgitation|pyrosis|reflux symptoms
+SYM:heartburn	parents	GRP:gi
+SYM:dysphagia	ko	삼킴 곤란
+SYM:dysphagia	en	dysphagia
+SYM:dysphagia	lay	삼킬 때 걸리|삼킬 때 뭔가 걸리|삼키기 힘|삼키기가 힘|삼키기 어렵|삼키기가 어렵|음식이 걸리|목에 걸리|목에 뭐가 걸린|넘기기 힘|넘어가지 않|잘 안 넘어가|밥이 걸려|음식이 내려가지 않|사레가 잘 들|사레가 들|침을 흘
+SYM:dysphagia	med	연하곤란|연하 곤란|삼킴 곤란|삼킴곤란|연하 장애|삼킴 장애|연하장애
+SYM:dysphagia	syn	dysphagia|difficulty swallowing|swallowing difficulty
+SYM:dysphagia	parents	GRP:gi
+SYM:odynophagia	ko	연하통
+SYM:odynophagia	en	odynophagia
+SYM:odynophagia	lay	삼킬 때 아|삼킬 때 통증|침 삼킬 때 아|넘길 때 아|삼키면 아|침만 삼켜도 아
+SYM:odynophagia	med	연하통|삼킴통|연하 통증
+SYM:odynophagia	syn	odynophagia|painful swallowing
+SYM:odynophagia	parents	SYM:pain
+SYM:indigestion	ko	소화불량
+SYM:indigestion	en	dyspepsia
+SYM:indigestion	lay	소화가 안|소화가 잘 안|체한|체했|얹힌|속이 더부룩|소화가 안 되|밥 먹으면 금방 배불|조금만 먹어도 배가 불
+SYM:indigestion	med	소화불량|소화 불량|디스펩시아|기능성 소화불량|조기 포만감|조기포만감
+SYM:indigestion	syn	dyspepsia|indigestion|early satiety
+SYM:indigestion	parents	GRP:gi
+SYM:jaundice	ko	황달
+SYM:jaundice	en	jaundice
+SYM:jaundice	lay	눈이 노랗|눈이 누렇|피부가 노랗|피부가 누렇|얼굴이 노랗|노랗게 변|노래졌|노래지|누레졌|흰자가 노랗|눈 흰자가 노|몸이 노랗|온몸이 노랗
+SYM:jaundice	med	황달|공막 황달|공막 황염|황색 공막|공막황달|피부 황달|폐쇄성 황달
+SYM:jaundice	syn	jaundice|icterus|scleral icterus|yellowing|yellow skin
+SYM:jaundice	re	(눈|피부|얼굴|흰자|몸|온몸|손바닥|공막)[^.,]{0,8}(노랗|누렇|노래|누래|노랬|누렜|노란색|황색)
+SYM:dark_urine	ko	진한 소변
+SYM:dark_urine	en	dark urine
+SYM:dark_urine	lay	소변 색이 진|소변이 진해|소변이 진하|콜라색 소변~|콜라 같은 소변~|간장색 소변~|갈색 소변|소변 색이 짙|소변이 갈색|홍차색~|소변이 콜라~|소변이 짙
+SYM:dark_urine	med	암색뇨|갈색뇨|진한 소변|농축뇨|빌리루빈뇨
+SYM:dark_urine	syn	dark urine|tea-colored urine|cola-colored urine|bilirubinuria
+SYM:dark_urine	re	(소변|오줌)[^.,]{0,8}(진해|진하|진한|짙|콜라|간장|갈색|홍차|검붉)
+SYM:dark_urine	parents	GRP:urinary
+SYM:pale_stool	ko	회백색 변
+SYM:pale_stool	en	acholic stool
+SYM:pale_stool	lay	흰 변|하얀 변|회색 변|변 색이 하얗|변이 하얗|변이 허옇|변 색이 연해|변이 회색
+SYM:pale_stool	med	회백색 변|무색변|점토색 변|백색변|회색변|탈색변
+SYM:pale_stool	syn	acholic stool|clay-colored stool|pale stool|clay-colored stools
+SYM:pale_stool	parents	GRP:bowel
+SIGN:ascites	ko	복수
+SIGN:ascites	en	ascites
+SIGN:ascites	lay	배에 물이|배에 물 찼|배가 점점 불러오|배가 불러오
+SIGN:ascites	med	복수|파동 징후|이동 탁음|이동성 탁음|액체 파동|복강 내 액체|복강내 액체|복강 내 유리 액체
+SIGN:ascites	syn	ascites|shifting dullness|fluid wave|free fluid
+SIGN:hepatomegaly	ko	간비대
+SIGN:hepatomegaly	en	hepatomegaly
+SIGN:hepatomegaly	lay	간이 커|간이 만져|간이 부었
+SIGN:hepatomegaly	med	간비대|간종대|간 비대|간 종대|간 촉지|간이 촉지|간 비대 소견
+SIGN:hepatomegaly	syn	hepatomegaly|enlarged liver|palpable liver
+SIGN:splenomegaly	ko	비장비대
+SIGN:splenomegaly	en	splenomegaly
+SIGN:splenomegaly	lay	비장이 커|비장이 만져|왼쪽 윗배에 뭔가 만져
+SIGN:splenomegaly	med	비장비대|비장 비대|비종대|비장 종대|비장 촉지|비장이 촉지|비비대
+SIGN:splenomegaly	syn	splenomegaly|enlarged spleen|palpable spleen
+SIGN:hepatosplenomegaly	ko	간비장비대
+SIGN:hepatosplenomegaly	en	hepatosplenomegaly
+SIGN:hepatosplenomegaly	med	간비장비대|간비종대|간비장 비대|간 비장 비대|간비장종대
+SIGN:hepatosplenomegaly	syn	hepatosplenomegaly
+SIGN:hepatosplenomegaly	parents	SIGN:hepatomegaly|SIGN:splenomegaly
+SIGN:abdominal_mass	ko	복부 종괴
+SIGN:abdominal_mass	en	abdominal mass
+SIGN:abdominal_mass	re	(?:복부|배|상복부|하복부|우상복부|좌상복부|우하복부|좌하복부|옆구리)[^,;]{0,15}?(?:덩이|종괴|덩어리|혹)(?:가|이)? ?(?:촉지|촉진|만져)
+SIGN:abdominal_mass	lay	배에 혹|배에 뭔가 만져|배에 덩어리|배에 멍울|소시지 모양~|올리브 모양~
+SIGN:abdominal_mass	med	복부 종괴|복부 덩이|복부 종물|촉지되는 종괴|소시지 모양 종괴|올리브 모양 종괴|복부 덩어리
+SIGN:abdominal_mass	syn	abdominal mass|palpable mass|olive-shaped mass|sausage-shaped mass
+SIGN:tenderness	ko	압통
+SIGN:tenderness	en	tenderness
+SIGN:tenderness	lay	누르면 아프|누르면 아파|누르니까 아프|누르니까 아파|눌렀을 때 아|누를 때 아|만지면 아프|만지면 아파|건드리면 아
+SIGN:tenderness	med	압통|국소 압통|전반적 압통|심한 압통|경미한 압통|압통점
+SIGN:tenderness	syn	tenderness|tender|point tenderness
+SIGN:abdominal_tenderness	ko	복부 압통
+SIGN:abdominal_tenderness	en	abdominal tenderness
+SIGN:abdominal_tenderness	lay	배를 누르면 아|배를 누르니 아|배를 눌렀을 때 아|배를 만지면 아|배를 만지면 더 아
+SIGN:abdominal_tenderness	med	복부 압통|복부압통|전복부 압통|복부 전반 압통|복부 전반의 압통|하복부 압통|배꼽 주위 압통
+SIGN:abdominal_tenderness	syn	abdominal tenderness|diffuse abdominal tenderness
+SIGN:abdominal_tenderness	re	(복부|배|복벽|하복부|전복부)[^.,]{0,12}(압통|누르면 아|tender)
+SIGN:abdominal_tenderness	neg	soft and non-tender|non-tender|nontender
+SIGN:abdominal_tenderness	parents	SIGN:tenderness
+SIGN:rlq_tenderness	ko	우하복부 압통
+SIGN:rlq_tenderness	en	right lower quadrant tenderness
+SIGN:rlq_tenderness	lay	오른쪽 아랫배를 누르면 아|오른쪽 아랫배를 누르니
+SIGN:rlq_tenderness	med	우하복부 압통|맥버니 압통|맥버니점 압통|맥버니 점 압통|맥버니점|우하복부 국소 압통
+SIGN:rlq_tenderness	syn	right lower quadrant tenderness|rlq tenderness|mcburney point tenderness|mcburney
+SIGN:rlq_tenderness	re	(우하복부|오른쪽 아랫배|우측 하복부|맥버니|mcburney)[^.,]{0,12}(압통|누르면 아|tender)
+SIGN:rlq_tenderness	parents	SIGN:abdominal_tenderness
+SIGN:ruq_tenderness	ko	우상복부 압통
+SIGN:ruq_tenderness	en	right upper quadrant tenderness
+SIGN:ruq_tenderness	med	우상복부 압통|우계륵부 압통|우상복부의 압통
+SIGN:ruq_tenderness	syn	right upper quadrant tenderness|ruq tenderness
+SIGN:ruq_tenderness	re	(우상복부|오른쪽 윗배|우측 상복부|우계륵부)[^.,]{0,12}(압통|누르면 아|tender)
+SIGN:ruq_tenderness	parents	SIGN:abdominal_tenderness
+SIGN:epigastric_tenderness	ko	심와부 압통
+SIGN:epigastric_tenderness	en	epigastric tenderness
+SIGN:epigastric_tenderness	med	심와부 압통|상복부 압통|명치 압통|상복부의 압통
+SIGN:epigastric_tenderness	syn	epigastric tenderness
+SIGN:epigastric_tenderness	re	(심와부|상복부|명치)[^.,]{0,12}(압통|누르면 아|tender)
+SIGN:epigastric_tenderness	parents	SIGN:abdominal_tenderness
+SIGN:llq_tenderness	ko	좌하복부 압통
+SIGN:llq_tenderness	en	left lower quadrant tenderness
+SIGN:llq_tenderness	med	좌하복부 압통|좌하복부의 압통
+SIGN:llq_tenderness	syn	left lower quadrant tenderness|llq tenderness
+SIGN:llq_tenderness	re	(좌하복부|왼쪽 아랫배|좌측 하복부)[^.,]{0,12}(압통|누르면 아|tender)
+SIGN:llq_tenderness	parents	SIGN:abdominal_tenderness
+SIGN:suprapubic_tenderness	ko	치골상부 압통
+SIGN:suprapubic_tenderness	en	suprapubic tenderness
+SIGN:suprapubic_tenderness	med	치골상부 압통|치골 상부 압통|치골위 압통
+SIGN:suprapubic_tenderness	syn	suprapubic tenderness
+SIGN:suprapubic_tenderness	parents	SIGN:abdominal_tenderness
+SIGN:cva_tenderness	ko	늑골척추각 압통
+SIGN:cva_tenderness	en	costovertebral angle tenderness
+SIGN:cva_tenderness	lay	옆구리를 두드리면 아|등을 두드리면 아
+SIGN:cva_tenderness	med	늑골척추각 압통|늑척추각 압통|갈비척추각 압통|cva 압통|늑골척추각 타진통|신장 부위 타진통|늑골척추각 부위 압통
+SIGN:cva_tenderness	syn	costovertebral angle tenderness|cva tenderness|cvat
+SIGN:cva_tenderness	re	(늑골척추각|갈비척추각|늑척추각|cva|늑골 척추각)[^.,]{0,10}(압통|타진통|tender|통증)
+SIGN:cva_tenderness	parents	SIGN:tenderness
+SIGN:rebound_tenderness	ko	반발통
+SIGN:rebound_tenderness	en	rebound tenderness
+SIGN:rebound_tenderness	lay	눌렀다 뗄 때 아|손을 뗄 때 아|눌렀다 뗄 때 더 아|뗄 때 더 아
+SIGN:rebound_tenderness	med	반발통|반동압통|반동 압통|반발 압통|블룸버그 징후
+SIGN:rebound_tenderness	syn	rebound tenderness|blumberg sign|rebound
+SIGN:guarding	ko	근성 방어
+SIGN:guarding	en	guarding
+SIGN:guarding	lay	배가 딱딱|배가 판자~|배에 힘이 들어가 있
+SIGN:guarding	med	근성 방어|근육 방어|복벽 강직|판상 강직|판자 같은 복부|복부 강직|복근 강직|불수의적 방어
+SIGN:guarding	syn	guarding|abdominal rigidity|board-like abdomen|involuntary guarding
+SIGN:guarding	neg	복부 부드러|배가 말랑|복부는 부드|부드럽고 평탄|평탄하고 부드|부드러움|soft abdomen|abdomen soft
+SIGN:murphy_sign	ko	머피 징후
+SIGN:murphy_sign	en	murphy sign
+SIGN:murphy_sign	med	머피 징후|머피징후|머피 증후|머피씨 징후
+SIGN:murphy_sign	syn	murphy sign|murphy's sign
+SIGN:psoas_sign	ko	요근 징후
+SIGN:psoas_sign	en	psoas sign
+SIGN:psoas_sign	med	요근 징후|장요근 징후|요근징후|폐쇄근 징후|폐쇄근징후|로브싱 징후|로브싱징후|롭싱 징후
+SIGN:psoas_sign	syn	psoas sign|obturator sign|rovsing sign
+SIGN:bowel_sounds_decreased	ko	장음 감소
+SIGN:bowel_sounds_decreased	en	decreased bowel sounds
+SIGN:bowel_sounds_decreased	med	장음 감소|장음 저하|장음 소실|장음 약화|장운동음 감소
+SIGN:bowel_sounds_decreased	syn	decreased bowel sounds|absent bowel sounds|hypoactive bowel sounds
+SIGN:bowel_sounds_decreased	re	장음[이은]?.{0,6}(감소|저하|소실|약해|약함|약화|들리지 않|안 들|거의 없)
+SIGN:bowel_sounds_increased	ko	장음 항진
+SIGN:bowel_sounds_increased	en	hyperactive bowel sounds
+SIGN:bowel_sounds_increased	med	장음 항진|장음 증가|금속성 장음|고음조 장음|장음항진
+SIGN:bowel_sounds_increased	syn	hyperactive bowel sounds|high-pitched bowel sounds|tinkling bowel sounds
+SIGN:bowel_sounds_increased	re	장음[이은]?.{0,6}(항진|증가|금속성|고음조)
+SIGN:rectal_exam_blood	ko	직장수지검사 혈액
+SIGN:rectal_exam_blood	en	blood on rectal examination
+SIGN:rectal_exam_blood	med	직장수지검사상 혈액|직장 수지 검사상 혈변|수지검사상 흑색변|장갑에 혈액|장갑에 묻은 혈액|직장수지검사에서 혈액
+SIGN:rectal_exam_blood	syn	blood on rectal examination|guaiac positive stool|heme-positive stool
+
+# ---------------------------------------------------------------- genitourinary / gynecology
+SYM:dysuria	ko	배뇨통
+SYM:dysuria	en	dysuria
+SYM:dysuria	lay	소변 볼 때 아|소변볼 때 아|소변 볼 때 따|소변볼 때 따|소변 볼 때 찌릿|소변 볼 때 화끈|소변 볼 때 쓰라|오줌 눌 때 아|오줌 쌀 때 아|소변이 따끔|소변 볼 때 통증|소변을 볼 때 아|소변을 볼 때 따|소변 보는 게 아
+SYM:dysuria	med	배뇨통|배뇨 시 통증|배뇨시 통증|배뇨 작열감|배뇨 시 작열감|배뇨 곤란|배뇨곤란|배뇨 시 불편감
+SYM:dysuria	syn	dysuria|painful urination|burning urination|burning on urination
+SYM:dysuria	re	(소변|오줌|배뇨)[^.,]{0,10}(아프|아파|아팠|찌릿|따끔|화끈|쓰라|쓰려|통증|타는)
+SYM:dysuria	parents	GRP:urinary
+SYM:frequency	ko	빈뇨
+SYM:frequency	en	urinary frequency
+SYM:frequency	lay	소변을 자주|화장실을 자주|오줌을 자주|소변이 자주|자주 마려|화장실에 자꾸|소변을 너무 자주|화장실을 계속
+SYM:frequency	med	빈뇨|주간 빈뇨
+SYM:frequency	syn	urinary frequency|frequent urination|frequency
+SYM:frequency	re	(소변|오줌|화장실)[^.,]{0,6}자주|자주[^.,]{0,6}(소변|오줌|화장실|마려)
+SYM:frequency	parents	GRP:urinary
+SYM:urgency	ko	급박뇨
+SYM:urgency	en	urinary urgency
+SYM:urgency	lay	소변이 급|소변을 참기 힘|오줌을 참기 힘|참을 수 없이 마려|갑자기 마려|소변을 못 참
+SYM:urgency	med	요절박|급박뇨|절박뇨|요의 절박
+SYM:urgency	syn	urinary urgency|urgency
+SYM:urgency	parents	GRP:urinary
+SYM:nocturia	ko	야간뇨
+SYM:nocturia	en	nocturia
+SYM:nocturia	lay	밤에 소변|밤에 화장실|자다가 소변|자다가 화장실|밤에 오줌|밤에 자주 깨서 소변
+SYM:nocturia	med	야간뇨|야간 빈뇨|야뇨
+SYM:nocturia	syn	nocturia
+SYM:nocturia	re	(밤에|야간에?|자다가|새벽에)[^.,]{0,8}(소변|화장실|오줌)
+SYM:nocturia	parents	GRP:urinary
+SYM:polyuria	ko	다뇨
+SYM:polyuria	en	polyuria
+SYM:polyuria	lay	배뇨량이 늘|배뇨량 증가|소변을 많이|소변 양이 많|소변량이 많|소변이 많이|오줌을 많이|소변 양이 늘|소변량이 늘
+SYM:polyuria	med	다뇨|소변량 증가|요량 증가|다뇨증
+SYM:polyuria	syn	polyuria|increased urine output
+SYM:polyuria	re	(소변량|소변 양|소변|오줌)[^.,]{0,8}(많이|많아|늘었|늘어|증가)|하루[^.,]{0,6}소변[^.,]{0,10}리터
+SYM:polyuria	parents	GRP:urinary
+SYM:oliguria	ko	핍뇨
+SYM:oliguria	en	oliguria
+SYM:oliguria	lay	소변이 안 나|소변량이 줄|소변이 적게|오줌이 안 나|소변을 거의 안|소변 양이 줄|소변이 잘 안 나|소변을 거의 못|기저귀가 안 젖|기저귀가 덜 젖
+SYM:oliguria	med	핍뇨|무뇨|소변량 감소|요량 감소|소변 감소|핍뇨증
+SYM:oliguria	syn	oliguria|anuria|decreased urine output|reduced urine output
+SYM:oliguria	re	(소변량|소변 양|소변이|소변은|소변도|오줌이)[^.,]{0,8}(줄었|줄어|감소|적어)
+SYM:oliguria	parents	GRP:urinary
+SYM:urinary_retention	ko	요폐
+SYM:urinary_retention	en	urinary retention
+SYM:urinary_retention	lay	소변을 못 보|소변을 보고 싶은데 안 나|방광이 차|소변이 나오지 않아 배|오줌을 못 누|소변이 시원하게 안|잔뇨감|소변 줄기가 약|소변 줄기가 가늘
+SYM:urinary_retention	med	요폐|요저류|급성 요폐|잔뇨|잔뇨감|요정체|배뇨 지연
+SYM:urinary_retention	syn	urinary retention|incomplete emptying|weak stream|hesitancy
+SYM:urinary_retention	parents	GRP:urinary
+SYM:urinary_incontinence	ko	요실금
+SYM:urinary_incontinence	en	urinary incontinence
+SYM:urinary_incontinence	lay	소변을 가리지 못|대소변을 못 가리|소변을 못 가리|소변이 새|소변을 지리|오줌을 지리|오줌을 싸|소변을 참지 못|바지에 실수|기침할 때 소변이|소변이 저절로
+SYM:urinary_incontinence	med	요실금|복압성 요실금|절박성 요실금|실금
+SYM:urinary_incontinence	syn	urinary incontinence|incontinence|enuresis
+SYM:urinary_incontinence	parents	GRP:urinary
+SYM:fecal_incontinence	ko	변실금
+SYM:fecal_incontinence	en	fecal incontinence
+SYM:fecal_incontinence	lay	대변을 지리|변이 새|대변을 참지 못|변을 참지 못
+SYM:fecal_incontinence	med	변실금|대변 실금
+SYM:fecal_incontinence	syn	fecal incontinence|bowel incontinence
+SYM:fecal_incontinence	parents	GRP:bowel
+SYM:hematuria	ko	혈뇨
+SYM:hematuria	en	hematuria
+SYM:hematuria	lay	소변에 피|소변이 빨갛|붉은 소변|빨간 소변|피오줌|소변 색이 빨갛|소변이 붉|소변에서 피|오줌에 피|핏빛 소변
+SYM:hematuria	med	혈뇨|육안적 혈뇨|육안 혈뇨|현미경적 혈뇨|미세 혈뇨|요잠혈
+SYM:hematuria	syn	hematuria|haematuria|blood in urine|gross hematuria|microscopic hematuria
+SYM:hematuria	re	(소변|오줌)[^.,]{0,8}(피가|피를|피도|피 |빨갛|붉|빨간|핏빛|핏)
+SYM:hematuria	parents	GRP:urinary|GRP:bleeding
+SYM:foamy_urine	ko	거품뇨
+SYM:foamy_urine	en	foamy urine
+SYM:foamy_urine	lay	소변에 거품|소변이 거품|거품 소변|오줌에 거품|거품이 많은 소변|소변 볼 때 거품
+SYM:foamy_urine	med	거품뇨|포말뇨
+SYM:foamy_urine	syn	foamy urine|frothy urine
+SYM:foamy_urine	re	(소변|오줌)[^.,]{0,8}거품
+SYM:foamy_urine	parents	GRP:urinary
+SYM:cloudy_urine	ko	혼탁뇨
+SYM:cloudy_urine	en	cloudy urine
+SYM:cloudy_urine	lay	소변이 탁|소변이 뿌옇|소변 냄새|소변에서 냄새|소변에서 고약한 냄새|소변이 흐려
+SYM:cloudy_urine	med	혼탁뇨|악취뇨|탁한 소변
+SYM:cloudy_urine	syn	cloudy urine|foul-smelling urine|turbid urine
+SYM:cloudy_urine	parents	GRP:urinary
+SYM:vaginal_bleeding	ko	질 출혈
+SYM:vaginal_bleeding	en	vaginal bleeding
+SYM:vaginal_bleeding	lay	하혈|피가 비치|아래에서 피|생리가 아닌데 피|생리 아닌 출혈|출혈이 비치|갈색 분비물|속옷에 피|피가 묻어 나|질에서 피|생리처럼 피~|성관계 후 피|폐경 후에 피
+SYM:vaginal_bleeding	med	질 출혈|질출혈|부정 출혈|부정출혈|자궁 출혈|비정상 자궁 출혈|폐경 후 출혈|성교 후 출혈|점상 질출혈|불규칙 질출혈|이상 자궁 출혈
+SYM:vaginal_bleeding	syn	vaginal bleeding|abnormal uterine bleeding|spotting|postmenopausal bleeding|postcoital bleeding
+SYM:vaginal_bleeding	abbr	aub
+SYM:vaginal_bleeding	parents	GRP:bleeding|GRP:menstrual
+SYM:vaginal_discharge	ko	질 분비물
+SYM:vaginal_discharge	en	vaginal discharge
+SYM:vaginal_discharge	lay	분비물 관찰|분비물이 관찰|자궁경부 분비물|농성 분비물|냉이|냉이 많|분비물이|냄새나는 분비물|누런 냉|하얀 냉|비린내|생선 비린내|치즈 같은 분비물~|거품 같은 분비물~
+SYM:vaginal_discharge	med	질 분비물|대하|질분비물|대하증|질 분비물 증가
+SYM:vaginal_discharge	syn	vaginal discharge|leukorrhea
+SYM:pelvic_pain	ko	골반통
+SYM:pelvic_pain	en	pelvic pain
+SYM:pelvic_pain	lay	골반이 아|골반 쪽이 아|밑이 빠질 듯~|사타구니가 아|아래가 묵직
+SYM:pelvic_pain	med	골반통|골반 통증|골반 동통|자궁 경부 운동 압통|자궁경부 운동 압통|부속기 압통|자궁 부속기 압통
+SYM:pelvic_pain	syn	pelvic pain|cervical motion tenderness|adnexal tenderness
+SYM:pelvic_pain	parents	SYM:pain
+SYM:amenorrhea	ko	무월경
+SYM:amenorrhea	en	amenorrhea
+SYM:amenorrhea	lay	생리를 안|생리가 없|생리가 늦|생리가 안 나|생리를 안 해|생리가 끊|월경이 없|생리를 건너|생리가 멈|생리를 거르|생리가 안 와|생리를 하지 않|월경을 하지|생리가 안 왔
+SYM:amenorrhea	med	무월경|월경 지연|월경 없음|이차성 무월경|원발성 무월경|월경 중단|희발월경
+SYM:amenorrhea	syn	amenorrhea|amenorrhoea|missed period|missed periods|oligomenorrhea
+SYM:amenorrhea	re	(생리|월경)[이은도가를을]? ?(?:좀 |한 달 |두 달 |몇 달 |[0-9]+ ?(?:달|개월|주)(?:째| 동안| 넘게| 이상)? ?)?(늦|없|안 해|안 하|안 나|끊|멈|건너|거르|안 와|안 왔|하지 않)
+SYM:amenorrhea	negre	(?:생리|월경)(?:는|를|도)? ?[^,;]{0,12}?(?:평소처럼|정상적으로|규칙적으로) ?(?:했|하고|있|나오)
+SYM:amenorrhea	neg	생리는 규칙|생리 주기는 규칙|월경은 규칙|생리는 정상|월경은 정상|생리는 규칙적|월경 주기는 규칙
+SYM:amenorrhea	parents	GRP:menstrual
+SYM:primary_amenorrhea	ko	원발성 무월경
+SYM:primary_amenorrhea	en	primary amenorrhea
+SYM:primary_amenorrhea	lay	초경이 없|초경을 안|초경을 아직|초경이 아직|초경을 하지|초경 없
+SYM:primary_amenorrhea	med	원발성 무월경|일차성 무월경|초경 지연
+SYM:primary_amenorrhea	syn	primary amenorrhea|delayed menarche
+SYM:primary_amenorrhea	parents	SYM:amenorrhea
+SYM:menorrhagia	ko	월경과다
+SYM:menorrhagia	en	menorrhagia
+SYM:menorrhagia	lay	생리량이 많|생리 양이 많|생리양이 많|생리를 오래|생리가 길어|생리혈이 많|패드를 자주|생리 기간이 길|덩어리가 나와
+SYM:menorrhagia	med	월경과다|과다월경|과다 월경|월경량 증가|과다 출혈
+SYM:menorrhagia	syn	menorrhagia|heavy menstrual bleeding|heavy periods
+SYM:menorrhagia	parents	GRP:menstrual|GRP:bleeding
+SYM:irregular_menses	ko	월경 불순
+SYM:irregular_menses	en	irregular menstruation
+SYM:irregular_menses	re	(?:생리|월경)(?:가|는|이)? ?(?:원래 |좀 |많이 |항상 |자주 )*불규칙
+SYM:irregular_menses	lay	생리가 불규칙|생리 주기가 불규칙|월경이 불규칙|생리가 들쭉날쭉|생리가 왔다 안 왔다
+SYM:irregular_menses	med	월경불순|월경 불순|불규칙 월경|불규칙한 월경|월경 주기 불규칙
+SYM:irregular_menses	syn	irregular menstruation|irregular periods|irregular menses|menstrual irregularity
+SYM:irregular_menses	neg	주기도 규칙|주기는 규칙|주기가 규칙|생리는 규칙|생리 주기는 규칙|월경은 규칙|생리는 규칙적|월경 주기는 규칙
+SYM:irregular_menses	parents	GRP:menstrual
+SYM:dysmenorrhea	ko	월경통
+SYM:dysmenorrhea	en	dysmenorrhea
+SYM:dysmenorrhea	lay	생리통|생리할 때 배가 아|생리 때 아
+SYM:dysmenorrhea	med	월경통|월경곤란증|생리통|월경 곤란증
+SYM:dysmenorrhea	syn	dysmenorrhea|menstrual cramps|period pain
+SYM:dysmenorrhea	parents	SYM:pain|GRP:menstrual
+SYM:erectile_dysfunction	ko	발기부전
+SYM:erectile_dysfunction	en	erectile dysfunction
+SYM:erectile_dysfunction	lay	발기가 안|발기가 잘 안|발기를 유지|발기가 유지되지|발기가 되지 않
+SYM:erectile_dysfunction	med	발기부전|발기 부전|발기 장애|성기능 장애|성욕 감퇴|성욕 저하
+SYM:erectile_dysfunction	syn	erectile dysfunction|impotence|decreased libido
+SYM:erectile_dysfunction	abbr	ed
+SYM:erectile_dysfunction	re	발기[가를이는]? ?(?:잘 |유지가 |유지하는 데 |유지하기가? |유지하는 게 )?(안 |어려|힘들|못)
+SYM:scrotal_pain	ko	음낭 통증
+SYM:scrotal_pain	en	scrotal pain
+SYM:scrotal_pain	lay	고환이 아|불알이 아|음낭이 아|고환이 부었|음낭이 부었|고환이 붓|음낭이 붓
+SYM:scrotal_pain	med	고환 통증|음낭 통증|고환통|음낭 부종|고환 부종|음낭종창
+SYM:scrotal_pain	syn	testicular pain|scrotal pain|scrotal swelling|testicular swelling
+SYM:scrotal_pain	re	(고환|음낭|불알)[^.,]{0,6}(아프|아파|아팠|통증|붓|부었|부어)
+SYM:scrotal_pain	parents	SYM:pain
+SYM:breast_lump	ko	유방 종괴
+SYM:breast_lump	en	breast lump
+SYM:breast_lump	lay	가슴에 멍울|유방에 멍울|가슴에 혹|유방에 혹|유방에 뭔가 만져|가슴에 뭔가 만져|가슴에 딱딱한|유방에 딱딱한
+SYM:breast_lump	med	유방 종괴|유방 멍울|유방 결절|유방 덩이|유방종괴
+SYM:breast_lump	syn	breast lump|breast mass|breast nodule
+SYM:nipple_discharge	ko	유두 분비물
+SYM:nipple_discharge	en	nipple discharge
+SYM:nipple_discharge	lay	젖꼭지에서 분비물|유두에서 피|젖이 나와|젖꼭지에서 피|젖꼭지에서 뭐가|유두에서 분비물|젖이 나오
+SYM:nipple_discharge	med	유두 분비물|유즙 분비|유즙분비|유즙루|유두 출혈|혈성 유두 분비물
+SYM:nipple_discharge	syn	nipple discharge|galactorrhea
+
+# ---------------------------------------------------------------- musculoskeletal
+SYM:arthralgia	ko	관절통
+SYM:arthralgia	en	arthralgia
+SYM:arthralgia	lay	관절이 아프|관절이 아파|마디가 아프|마디마디|손가락 마디|무릎이 아프|무릎이 아파|손목이 아프|어깨가 아프|어깨가 아파|발목이 아프|팔꿈치가 아프|엄지발가락이 아프|관절이 쑤|무릎이 시리|관절 마디가
+SYM:arthralgia	med	관절통|관절 통증|다발성 관절통|다관절통|관절 동통|단관절통
+SYM:arthralgia	syn	arthralgia|joint pain|polyarthralgia|joint aches
+SYM:arthralgia	re	(관절|무릎|손가락|손목|발목|어깨|팔꿈치|고관절|엄지발가락|발가락|마디|손마디)[^.,]{0,8}(아프|아파|아팠|아픈|통증|쑤시|쑤셔|시리|욱신)
+SYM:arthralgia	parents	SYM:pain
+SIGN:joint_swelling	ko	관절 부종
+SIGN:joint_swelling	en	joint swelling
+SIGN:joint_swelling	lay	관절이 붓|관절이 부었|관절이 부어|무릎이 붓|무릎이 부었|무릎이 부어|손가락이 붓|손가락이 부었|발가락이 붓|발가락이 부었|관절이 퉁퉁|손가락 관절이 붓|부어올랐
+SIGN:joint_swelling	med	관절 부종|관절 종창|관절 삼출|관절 삼출액|활막염|관절 비후|관절 종대|관절액 증가|관절부종
+SIGN:joint_swelling	syn	joint swelling|synovitis|joint effusion|swollen joints|swollen joint
+SIGN:joint_swelling	re	(관절|무릎|손가락|손목|발가락|엄지발가락|팔꿈치|손마디)(?:(?!이나|및|또는|과 |와 )[^,;]){0,8}?(붓|부었|부어|부은|부종|종창|삼출|부어오)
+SIGN:joint_swelling	parents	SIGN:edema
+SIGN:joint_warmth	ko	관절 발적·열감
+SIGN:joint_warmth	en	warm red joint
+SIGN:joint_warmth	lay	관절이 빨갛|무릎이 빨갛|관절이 뜨겁|관절이 화끈|관절이 뜨끈|발가락이 빨갛|발가락이 뜨겁
+SIGN:joint_warmth	med	관절 발적|관절 열감|관절 발열감|관절 부위 열감|관절 부위 발적|국소 열감
+SIGN:joint_warmth	syn	joint erythema|warm joint|hot joint|red joint
+SIGN:joint_warmth	re	(관절|무릎|발목|엄지발가락|발가락|손가락|손목|팔꿈치)(?:(?!이나|및|또는|과 |와 )[^,;]){0,8}?(빨갛|붉|뜨겁|뜨끈|화끈|열감|발적|벌겋)
+SIGN:joint_tenderness	ko	관절 압통
+SIGN:joint_tenderness	en	joint tenderness
+SIGN:joint_tenderness	med	관절 압통|관절 부위 압통|관절선 압통|관절선의 압통
+SIGN:joint_tenderness	syn	joint tenderness|joint line tenderness
+SIGN:joint_tenderness	re	(관절|무릎|손목|발목|팔꿈치|어깨|손가락|엄지발가락)(?:선|부위|주변|주위)?(?:의|에|에서|으로)? ?(?:국소적 |국소 |경미한 |심한 )?압통
+SIGN:joint_tenderness	parents	SIGN:tenderness
+SIGN:limited_rom	ko	관절 운동 제한
+SIGN:limited_rom	en	limited range of motion
+SIGN:limited_rom	lay	팔이 안 올라가|팔을 들 수가 없|무릎이 안 굽혀|무릎이 안 펴|고개가 안 돌아|허리를 못 굽|다리를 못 펴|움직이기 힘
+SIGN:limited_rom	med	운동 범위 제한|관절 운동 제한|가동 범위 제한|가동 범위 감소|운동 제한|관절가동범위 감소|관절 운동 범위 감소
+SIGN:limited_rom	syn	limited range of motion|decreased range of motion|restricted movement
+SYM:joint_stiffness	ko	관절 강직
+SYM:joint_stiffness	en	joint stiffness
+SYM:joint_stiffness	lay	관절이 뻣뻣|손이 뻣뻣|손가락이 뻣뻣|몸이 뻣뻣|관절이 굳|손이 굳|허리가 뻣뻣|허리가 굳
+SYM:joint_stiffness	med	관절 강직|관절강직|관절 경직
+SYM:joint_stiffness	syn	joint stiffness|stiffness
+SYM:morning_stiffness	ko	조조강직
+SYM:morning_stiffness	en	morning stiffness
+SYM:morning_stiffness	lay	아침에 뻣뻣|아침에 손이 뻣뻣|아침에 일어나면 뻣뻣|아침에 손이 굳|아침에 몸이 굳|아침에 허리가 뻣뻣|아침에 관절이 굳
+SYM:morning_stiffness	med	조조강직|조조 강직|아침 강직|아침 경직|조조경직
+SYM:morning_stiffness	syn	morning stiffness
+SYM:morning_stiffness	re	아침[^.,]{0,15}(뻣뻣|굳어|굳는|굳고)
+SYM:morning_stiffness	parents	SYM:joint_stiffness
+SYM:myalgia	ko	근육통
+SYM:myalgia	en	myalgia
+SYM:myalgia	lay	근육이 아프|근육이 쑤|온몸이 쑤|온몸이 아프|온몸이 아파|몸살|삭신이 쑤|몸이 쑤|몸 여기저기가 아|근육이 당기|어깨가 뭉쳐|근육이 결리
+SYM:myalgia	med	근육통|전신 근육통|근육 통증|근육 동통|근통
+SYM:myalgia	syn	myalgia|muscle pain|body aches|muscle aches
+SYM:myalgia	parents	SYM:pain|GRP:systemic
+SYM:back_pain	ko	요통
+SYM:back_pain	en	back pain
+SYM:back_pain	lay	허리가 아프|허리가 아파|허리가 아팠|허리 아프|허리 아파|허리 통증|허리가 끊어|허리가 결리|허리가 쑤|허리가 뻐근|허리를 삐|허리를 다쳐|등이 아프|등이 아파|등 통증|등이 결리|등이 쑤|엉덩이가 아
+SYM:back_pain	med	요통|요부 통증|허리 통증|등의 통증|등 쪽 통증|요추부 통증|배부통|배부 통증|요천추부 통증|천골 통증|하부 요통|요추 통증
+SYM:back_pain	syn	back pain|low back pain|lumbago|lower back pain|backache
+SYM:back_pain	re	(허리|요추|허리춤|엉덩이)[^.,]{0,8}(아프|아파|아팠|아픈|통증|끊어|결리|쑤시|쑤셔|뻐근)|(?<![가-힣])등(?:이|은|도|쪽이|쪽도) ?(?:너무 |좀 |많이 |계속 )?(?:아프|아파|아팠|통증|결리|쑤시|뻐근)
+SYM:back_pain	parents	SYM:pain
+SYM:sciatica	ko	좌골신경통
+SYM:sciatica	en	sciatica
+SYM:sciatica	lay	엉덩이에서 다리로 뻗|다리로 뻗치|다리까지 저리|다리까지 내려가|다리 뒤쪽으로 저리|허리에서 다리로
+SYM:sciatica	med	좌골신경통|하지 방사통|다리 방사통|신경근병증|요추 신경근병증|하지 직거상 검사 양성|하지직거상 검사 양성
+SYM:sciatica	syn	sciatica|radiculopathy|radicular pain|positive straight leg raise
+SYM:sciatica	parents	SYM:back_pain
+SYM:neck_pain	ko	목 통증
+SYM:neck_pain	en	neck pain
+SYM:neck_pain	lay	뒷목이 아|뒷목이 당기|목 뒤가 아|목덜미가 아|목덜미가 당기|뒷목이 뻐근|목을 돌리면 아|고개를 돌리면 아
+SYM:neck_pain	med	경부 통증|경부통|목 통증|경추 통증|후경부 통증|경추부 통증
+SYM:neck_pain	syn	neck pain|cervical pain|cervicalgia
+SYM:neck_pain	re	(?<![가-힣])(?:뒷목|목 ?뒤|목덜미)[이가은는도]? ?[^.,]{0,8}(아프|아파|아팠|아픈|통증|당기|땡기|뻐근|결리)
+SYM:neck_pain	parents	SYM:pain
+SYM:limb_pain	ko	사지 통증
+SYM:limb_pain	en	limb pain
+SYM:limb_pain	lay	다리가 아프|다리가 아파|다리가 아팠|팔이 아프|팔이 아파|허벅지가 아프|정강이가 아|팔다리가 아|다리가 쑤|팔이 쑤|다리가 욱신
+SYM:limb_pain	med	사지 통증|하지 통증|상지 통증|다리 통증|팔 통증|하지통|대퇴부 통증
+SYM:limb_pain	syn	limb pain|leg pain|arm pain|extremity pain|thigh pain
+SYM:limb_pain	re	(다리|팔|허벅지|정강이|팔다리|하지|상지|대퇴)[^.,]{0,8}(아프|아파|아팠|아픈|통증|쑤시|쑤셔|욱신)
+SYM:limb_pain	parents	SYM:pain
+SYM:calf_pain	ko	종아리 통증
+SYM:calf_pain	en	calf pain
+SYM:calf_pain	lay	종아리가 아|종아리가 당기|장딴지가 아|종아리가 땡기|종아리 통증
+SYM:calf_pain	med	종아리 통증|비복근 통증|장딴지 통증|종아리 압통|호만 징후|호만스 징후
+SYM:calf_pain	syn	calf pain|calf tenderness|homans sign
+SYM:calf_pain	re	(종아리|장딴지|비복근)[^.,]{0,8}(아프|아파|아팠|아픈|통증|당기|땡기|압통|쑤시)
+SYM:calf_pain	parents	SYM:limb_pain
+SYM:claudication	ko	간헐적 파행
+SYM:claudication	en	claudication
+SYM:claudication	lay	걸으면 다리가 아프|걸을 때 종아리가|조금 걸으면 다리가|걸으면 종아리가|쉬면 나아지는 다리|걸으면 엉덩이가 아
+SYM:claudication	med	간헐적 파행|간헐성 파행|파행|파행증|신경인성 파행
+SYM:claudication	syn	claudication|intermittent claudication|neurogenic claudication
+SYM:claudication	parents	SYM:limb_pain
+SYM:jaw_pain	ko	턱 통증
+SYM:jaw_pain	en	jaw pain
+SYM:jaw_pain	lay	턱이 아프|턱이 아파|턱이 아팠|씹을 때 턱이|씹을 때 아|입을 벌리면 아|턱관절이 아
+SYM:jaw_pain	med	턱 통증|턱관절 통증|턱 파행|저작 시 통증|하악 통증
+SYM:jaw_pain	syn	jaw pain|jaw claudication|trismus
+SYM:jaw_pain	parents	SYM:pain
+SYM:bone_pain	ko	뼈 통증
+SYM:bone_pain	en	bone pain
+SYM:bone_pain	lay	뼈가 아프|뼈가 쑤|뼈마디가 쑤|뼈가 욱신|뼈 속이 아
+SYM:bone_pain	med	골통|뼈 통증|골 통증|골동통
+SYM:bone_pain	syn	bone pain|ostealgia
+SYM:bone_pain	parents	SYM:pain
+SYM:shoulder_pain	ko	어깨 통증
+SYM:shoulder_pain	en	shoulder pain
+SYM:shoulder_pain	lay	어깨가 아프|어깨가 아파|어깨가 쑤|어깨가 결리|어깨가 뻐근|팔을 들 때 아
+SYM:shoulder_pain	med	어깨 통증|견관절 통증|견부 통증|어깨통증
+SYM:shoulder_pain	syn	shoulder pain
+SYM:shoulder_pain	parents	SYM:pain
+SIGN:muscle_atrophy	ko	근위축
+SIGN:muscle_atrophy	en	muscle atrophy
+SIGN:muscle_atrophy	lay	근육이 빠지|근육이 말라|근육이 가늘|근육이 줄
+SIGN:muscle_atrophy	med	근위축|근육 위축|근육위축|근소모|근육 소모
+SIGN:muscle_atrophy	syn	muscle atrophy|muscle wasting|wasting|amyotrophy
+SIGN:fasciculation	ko	근섬유다발수축
+SIGN:fasciculation	en	fasciculation
+SIGN:fasciculation	lay	근육이 씰룩씰룩|근육이 파르르|근육이 꿈틀|근육이 벌떡
+SIGN:fasciculation	med	근섬유속연축|근섬유다발수축|근속상수축|근섬유다발 수축|섬유속성 연축
+SIGN:fasciculation	syn	fasciculation|fasciculations|muscle twitching
+SIGN:rigidity	ko	근강직
+SIGN:rigidity	en	muscle rigidity
+SIGN:rigidity	lay	근육이 굳|몸이 딱딱하게 굳|몸이 뻣뻣하게 굳
+SIGN:rigidity	med	근강직|근육 강직|톱니바퀴 강직|톱니바퀴형 강직|납관 강직|납관형 강직|경축|근긴장도 증가|강직성
+SIGN:rigidity	syn	rigidity|cogwheel rigidity|muscle rigidity|lead-pipe rigidity|spasticity|increased tone
+SIGN:hyporeflexia	ko	반사 저하
+SIGN:hyporeflexia	en	hyporeflexia
+SIGN:hyporeflexia	med	반사 저하|반사 감소|반사 소실|건반사 저하|심부건반사 저하|심부건반사 감소|심부건반사 소실|무반사|반사 약화|건반사 소실|반사가 저하
+SIGN:hyporeflexia	syn	hyporeflexia|areflexia|decreased reflexes|absent reflexes|diminished reflexes
+SIGN:hyporeflexia	re	(심부건반사|건반사|반사|슬개건 반사|아킬레스건 반사)[^.,]{0,8}(저하|감소|소실|약화|약해)
+SIGN:hyperreflexia	ko	반사 항진
+SIGN:hyperreflexia	en	hyperreflexia
+SIGN:hyperreflexia	med	반사 항진|반사항진|건반사 항진|심부건반사 항진|클로누스|간대성 경련|발목 간대성 경련|반사 증가
+SIGN:hyperreflexia	syn	hyperreflexia|clonus|brisk reflexes|increased reflexes
+SIGN:hyperreflexia	re	(심부건반사|건반사|반사)[^.,]{0,8}(항진|증가|활발)
+SIGN:babinski	ko	바빈스키 징후
+SIGN:babinski	en	babinski sign
+SIGN:babinski	med	바빈스키|바빈스키 징후|바빈스키 반사|병적 반사|족저 반응 신전|호프만 징후|호프만
+SIGN:babinski	syn	babinski sign|extensor plantar|upgoing plantar|pathologic reflex|hoffmann sign|babinski
+SIGN:babinski	parents	SIGN:focal_neuro_deficit
+SIGN:focal_neuro_deficit	ko	국소 신경학적 결손
+SIGN:focal_neuro_deficit	en	focal neurological deficit
+SIGN:focal_neuro_deficit	med	국소 신경학적 결손|국소 신경 결손|국소신경학적 결손|국소 신경 징후|국소 신경학적 이상|국소 신경학적 징후|국소 신경 이상|편측 감각 저하|편측 신경학적 결손|신경학적 결손
+SIGN:focal_neuro_deficit	syn	focal neurological deficit|focal deficit|focal neurologic deficit|neurological deficit
+SIGN:focal_neuro_deficit	parents	GRP:neuro
+SIGN:pupil_abnormal	ko	동공 이상
+SIGN:pupil_abnormal	en	pupillary abnormality
+SIGN:pupil_abnormal	med	동공 부동|동공부동|동공 확대|동공 산대|동공 반사 소실|대광 반사 소실|동공 비대칭|동공 반응 저하|대광반사 소실|동공 축소|축동|산동|상대적 구심성 동공 결손
+SIGN:pupil_abnormal	syn	anisocoria|dilated pupil|fixed pupil|miosis|mydriasis|rapd|pinpoint pupils
+SIGN:papilledema	ko	유두부종
+SIGN:papilledema	en	papilledema
+SIGN:papilledema	med	유두부종|유두 부종|시신경유두 부종|시신경 유두 부종|울혈유두|울혈 유두|시신경유두부종|시신경 부종
+SIGN:papilledema	syn	papilledema|papilloedema|optic disc swelling|optic disc edema
+SIGN:nystagmus	ko	안진
+SIGN:nystagmus	en	nystagmus
+SIGN:nystagmus	lay	눈동자가 떨|눈이 떨리듯 움직|눈알이 흔들
+SIGN:nystagmus	med	안진|안구진탕|안구 진탕|수평 안진|수직 안진|회선 안진|자발 안진
+SIGN:nystagmus	syn	nystagmus|horizontal nystagmus|vertical nystagmus
+SIGN:ptosis	ko	안검하수
+SIGN:ptosis	en	ptosis
+SIGN:ptosis	lay	눈꺼풀이 처|눈꺼풀이 내려|눈꺼풀 처짐|눈이 자꾸 감기|눈을 뜨기 힘|눈꺼풀이 무거
+SIGN:ptosis	med	안검하수|눈꺼풀 처짐|상안검 처짐|안검 하수
+SIGN:ptosis	syn	ptosis|eyelid drooping|drooping eyelid
+SIGN:ophthalmoplegia	ko	안구 운동 장애
+SIGN:ophthalmoplegia	en	ophthalmoplegia
+SIGN:ophthalmoplegia	lay	눈이 한쪽으로 안 돌아|눈이 안 움직
+SIGN:ophthalmoplegia	med	안구 운동 장애|안구운동장애|외안근 마비|안근 마비|안구 운동 제한|외전 신경 마비|동안 신경 마비|안구 운동 이상
+SIGN:ophthalmoplegia	syn	ophthalmoplegia|extraocular muscle palsy|gaze palsy|cranial nerve palsy
+SIGN:dehydration	ko	탈수 소견
+SIGN:dehydration	en	dehydration
+SIGN:dehydration	lay	눈이 쑥 들어가|눈이 퀭|입이 바짝 마르|입술이 바짝|소변을 적게|눈물이 안 나|대천문이 함몰|숫구멍이 들어가
+SIGN:dehydration	med	탈수|구강 점막 건조|점막 건조|피부 긴장도 저하|피부 탄력 저하|대천문 함몰|모세혈관 재충전 시간 지연|모세혈관 재충만 지연|탈수 소견|피부 긴장도 감소
+SIGN:dehydration	syn	dehydration|dry mucous membranes|poor skin turgor|delayed capillary refill|sunken eyes|sunken fontanelle
+SIGN:dehydration	re	(구강 ?점막|점막|혀|입술|피부)[이은도가]? ?(?:매우 |많이 |약간 |다소 |심하게 |바짝 )?건조
+SIGN:dehydration	neg	수화 상태는 양호|수화상태 양호|수화 상태 양호|수화 상태는 좋|구강 점막 습윤|점막 습윤|구강 점막은 촉촉|점막이 촉촉|수화 상태 양호|수분 상태 양호
+SIGN:pallor	ko	창백
+SIGN:pallor	en	pallor
+SIGN:pallor	lay	얼굴이 하얗|얼굴이 창백|핏기가 없|얼굴이 허옇|안색이 안 좋|얼굴이 새하얗|혈색이 없
+SIGN:pallor	med	창백|결막 창백|안색 창백|피부 창백|안검 결막 창백|창백한 결막|창백함
+SIGN:pallor	syn	pallor|pale|conjunctival pallor|pallid
+SIGN:pallor	neg	결막 창백하지 않|결막은 창백하지 않
+
+# ---------------------------------------------------------------- skin
+SYM:rash	ko	발진
+SYM:rash	en	rash
+SYM:rash	lay	뭐가 났|울긋불긋|붉은 반점|빨간 반점|빨간 점|좁쌀 같은~|오돌토돌|뾰루지|빨갛게 올라|두드러기 같은~|피부에 뭐가|피부가 빨갛게 일어|반점이 생|반점이 올라|붉은 점들|피부가 뒤집|울퉁불퉁한 반점
+SYM:rash	med	발진|피부 발진|반점|구진|홍반성 발진|반구진|반구진성 발진|수포성 발진|농포|반상 발진|구진성 발진|결절성 홍반|과녁 모양 병변|표적 병변
+SYM:rash	syn	rash|exanthem|skin eruption|eruption|maculopapular rash|papules|pustules|erythema nodosum|target lesions|skin rash
+SYM:rash	parents	GRP:skin
+SYM:pruritus	ko	가려움
+SYM:pruritus	en	pruritus
+SYM:pruritus	lay	가렵|가려워|가려운|가려움|간지러|간지럽|간질간질|근질근질|긁어|긁게|긁고|긁느라|긁적
+SYM:pruritus	med	가려움증|소양증|소양감|소양|전신 소양증|피부 소양증
+SYM:pruritus	syn	pruritus|itching|itch|itchy|pruritic
+SYM:pruritus	parents	GRP:skin
+SYM:urticaria	ko	두드러기
+SYM:urticaria	en	urticaria
+SYM:urticaria	lay	두드러기|모기 물린 것처럼 부~|벌레 물린 것처럼 부~|피부가 부풀어 오르|부풀어 오른 반점
+SYM:urticaria	med	두드러기|팽진|담마진|만성 두드러기|급성 두드러기
+SYM:urticaria	syn	urticaria|hives|wheals|wheal
+SYM:urticaria	parents	SYM:rash
+SYM:angioedema	ko	혈관부종
+SYM:angioedema	en	angioedema
+SYM:angioedema	lay	입술이 붓|입술이 부었|입술이 부어|혀가 붓|혀가 부었|혀가 부어|목구멍이 붓|목이 조여 오|목이 막히는 느낌|입술이 퉁퉁
+SYM:angioedema	med	혈관부종|혈관 부종|혈관성 부종|입술 부종|혀 부종|인후 부종|후두 부종|기도 부종
+SYM:angioedema	syn	angioedema|lip swelling|tongue swelling|laryngeal edema|airway edema
+SYM:angioedema	re	(입술|혀|목구멍|인후|후두)[이가도은는]? ?(퉁퉁 |많이 |좀 )?(붓|부었|부어|부은|부종|부풀)
+SYM:angioedema	parents	SIGN:edema
+SIGN:erythema	ko	홍반
+SIGN:erythema	en	erythema
+SIGN:erythema	lay	빨갛게|벌겋게|피부가 붉|빨개졌|빨개지|벌게|피부가 빨갛
+SIGN:erythema	med	홍반|발적|피부 발적|국소 발적|홍조
+SIGN:erythema	syn	erythema|redness|erythematous|flushing
+SIGN:petechiae	ko	점상출혈
+SIGN:petechiae	en	petechiae
+SIGN:petechiae	lay	빨간 점이 오돌|좁쌀 같은 빨간 점~|눌러도 안 없어지는|깨알 같은 빨간 점~|점처럼 피가
+SIGN:petechiae	med	점상출혈|점상 출혈|자반|자반증|출혈반|촉지성 자반|점상 출혈반|반상 출혈반
+SIGN:petechiae	syn	petechiae|purpura|palpable purpura|petechial rash|petechia
+SIGN:petechiae	parents	GRP:bleeding|SYM:rash
+SYM:easy_bruising	ko	쉽게 드는 멍
+SYM:easy_bruising	en	easy bruising
+SYM:easy_bruising	lay	멍이 잘|멍이 쉽게|쉽게 멍|멍이 자주|멍이 많이|시퍼렇게 멍|부딪히지도 않았는데 멍|멍이 들었|멍이 생|퍼런 멍|시퍼런 멍|멍 자국
+SYM:easy_bruising	med	반상출혈|피하출혈|피하 출혈|반상 출혈|자반성 멍|멍
+SYM:easy_bruising	syn	easy bruising|ecchymosis|bruising|bruises easily|ecchymoses|bruise
+SYM:easy_bruising	parents	GRP:bleeding
+SYM:epistaxis	ko	코피
+SYM:epistaxis	en	epistaxis
+SYM:epistaxis	lay	코피|코에서 피|코피가 자주|코피가 안 멈
+SYM:epistaxis	med	비출혈|코피|비강 출혈
+SYM:epistaxis	syn	epistaxis|nosebleed|nose bleed|nosebleeds
+SYM:epistaxis	parents	GRP:bleeding
+SYM:gum_bleeding	ko	잇몸 출혈
+SYM:gum_bleeding	en	gum bleeding
+SYM:gum_bleeding	lay	잇몸에서 피|양치할 때 피|이 닦을 때 피|잇몸이 피
+SYM:gum_bleeding	med	잇몸 출혈|치은 출혈|치은출혈
+SYM:gum_bleeding	syn	gum bleeding|gingival bleeding|bleeding gums
+SYM:gum_bleeding	parents	GRP:bleeding
+SYM:prolonged_bleeding	ko	지혈 곤란
+SYM:prolonged_bleeding	en	prolonged bleeding
+SYM:prolonged_bleeding	lay	피가 잘 안 멈|피가 안 멈|지혈이 안|지혈이 잘 안|피가 멈추지 않|피가 오래|피가 계속 나|지혈되지|피가 멎지 않|출혈이 멈추지
+SYM:prolonged_bleeding	med	지혈 곤란|출혈 시간 연장|지혈 장애|지연 출혈
+SYM:prolonged_bleeding	syn	prolonged bleeding|bleeding tendency|delayed hemostasis
+SYM:prolonged_bleeding	parents	GRP:bleeding
+SYM:hair_loss	ko	탈모
+SYM:hair_loss	en	hair loss
+SYM:hair_loss	lay	머리카락이 빠|머리가 빠|머리숱이 줄|머리가 한 움큼|머리털이 빠|눈썹이 빠
+SYM:hair_loss	med	탈모|탈모증|원형 탈모|원형탈모|모발 소실
+SYM:hair_loss	syn	alopecia|hair loss
+SYM:blister	ko	물집
+SYM:blister	en	blister
+SYM:blister	lay	물집|물집이 잡|진물이 나|진물이 흘|물집이 터
+SYM:blister	med	수포|수포성 병변|대수포|소수포|수포 형성|포진|대상포진 병변
+SYM:blister	syn	blister|blisters|vesicle|vesicles|bulla|bullae|vesicular rash|dermatomal rash
+SYM:blister	parents	SYM:rash
+SIGN:malar_rash	ko	협부 발진
+SIGN:malar_rash	en	malar rash
+SIGN:malar_rash	lay	양 볼에 빨갛|볼이 빨갛|나비 모양~|양쪽 뺨이 빨갛|뺨이 빨갛
+SIGN:malar_rash	med	협부 발진|나비 모양 홍반|나비모양 홍반|나비 모양 발진|뺨 발진|협부 홍반|말라 발진|안면 홍반
+SIGN:malar_rash	syn	malar rash|butterfly rash|malar erythema
+SIGN:malar_rash	parents	SYM:rash
+SYM:photosensitivity	ko	광과민
+SYM:photosensitivity	en	photosensitivity
+SYM:photosensitivity	lay	햇빛을 쬐면|햇볕에 나가면|햇빛에 노출되면|햇빛을 받으면|햇볕을 쬐면|햇빛에 타면
+SYM:photosensitivity	med	광과민|광과민성|일광 과민|광과민증|일광 과민성|광선과민
+SYM:photosensitivity	syn	photosensitivity|sun sensitivity|sensitivity to the sun|photosensitive rash
+SYM:photosensitivity	re	(햇빛|햇볕|자외선|일광)[^.,]{0,20}(발진|홍반|붉|빨갛|두드러기|가렵|올라|물집|심해)
+SYM:dry_skin	ko	피부 건조
+SYM:dry_skin	en	dry skin
+SYM:dry_skin	lay	피부가 건조|피부가 거칠|각질이|피부가 푸석|피부가 갈라
+SYM:dry_skin	med	피부 건조|피부건조증|건피증|피부 건조증|건조한 피부|건조증
+SYM:dry_skin	syn	dry skin|xeroderma|xerosis
+SYM:skin_thickening	ko	피부 경화
+SYM:skin_thickening	en	skin thickening
+SYM:skin_thickening	lay	피부가 딱딱|피부가 두꺼워|피부가 당기|손가락 피부가 딱딱
+SYM:skin_thickening	med	피부 경화|피부경화|피부 비후|손가락 경화|경피증 소견
+SYM:skin_thickening	syn	skin thickening|sclerodactyly|skin tightening
+SYM:mouth_ulcer	ko	구강 궤양
+SYM:mouth_ulcer	en	oral ulcer
+SYM:mouth_ulcer	lay	입안이 헐|입병|혓바늘|입안에 염증|혀가 헐|입이 헐|입안에 궤양|입 안이 헐|입안이 자주 헐
+SYM:mouth_ulcer	med	구강 궤양|구내염|아프타|아프타성 궤양|구강궤양|구강 아프타|구강 점막 궤양
+SYM:mouth_ulcer	syn	oral ulcer|mouth ulcer|aphthous ulcer|oral ulcers|stomatitis
+SYM:mouth_ulcer	re	(구강|입안|입 안|혀|잇몸|구내)[^.,]{0,10}(궤양|헐|염증)
+SYM:genital_ulcer	ko	생식기 궤양
+SYM:genital_ulcer	en	genital ulcer
+SYM:genital_ulcer	lay	성기에 상처|성기에 헌|음부에 헌|음부에 상처|성기에 물집|음부에 물집
+SYM:genital_ulcer	med	생식기 궤양|음부 궤양|외음부 궤양|성기 궤양|경성 하감|무통성 궤양
+SYM:genital_ulcer	syn	genital ulcer|genital ulcers|chancre|genital lesion
+SYM:dry_mouth	ko	구강 건조
+SYM:dry_mouth	en	dry mouth
+SYM:dry_mouth	lay	입이 마르|입안이 마르|입이 바짝|입이 텁텁|침이 안 나|침이 잘 안 나|입이 자주 마르|입안이 건조
+SYM:dry_mouth	med	구강 건조|구강건조증|입마름|구강 건조증|구강건조
+SYM:dry_mouth	syn	dry mouth|xerostomia
+SYM:dry_eye	ko	안구 건조
+SYM:dry_eye	en	dry eyes
+SYM:dry_eye	lay	눈이 건조|눈이 뻑뻑|눈이 모래~|눈에 모래가 들어간~|눈이 시리|눈이 까끌
+SYM:dry_eye	med	안구 건조|안구건조증|안구 건조증|건성안
+SYM:dry_eye	syn	dry eyes|dry eye|xerophthalmia|keratoconjunctivitis sicca
+SYM:raynaud	ko	레이노 현상
+SYM:raynaud	en	raynaud phenomenon
+SYM:raynaud	lay	손가락이 하얗|손끝이 하얗|손가락 색이 변|추우면 손가락|손가락이 파랗게|손가락이 하얗게 변|손이 하얘졌다가
+SYM:raynaud	med	레이노 현상|레이노|레이노드|레이노 증후
+SYM:raynaud	syn	raynaud phenomenon|raynaud's phenomenon|raynaud
+SYM:skin_hyperpigmentation	ko	피부 색소 침착
+SYM:skin_hyperpigmentation	en	hyperpigmentation
+SYM:skin_hyperpigmentation	lay	피부가 까매|피부가 검게|피부색이 짙어|피부가 거무스름|잇몸이 검게
+SYM:skin_hyperpigmentation	med	색소 침착|과색소 침착|과다 색소 침착|흑색 극세포증|흑색가시세포증
+SYM:skin_hyperpigmentation	syn	hyperpigmentation|acanthosis nigricans|skin darkening|bronze skin
+
+# ---------------------------------------------------------------- ENT / eye / neck
+SYM:sore_throat	ko	인후통
+SYM:sore_throat	en	sore throat
+SYM:sore_throat	lay	목이 아프|목이 아파|목이 아팠|목이 따끔|목구멍이 아프|목구멍이 아파|목구멍이 따끔|목이 칼칼|침 삼키기 힘|목이 부었|목이 붓|목이 쓰라|목 안이 아
+SYM:sore_throat	med	인후통|인두통|인후 통증|인두염 증상
+SYM:sore_throat	syn	sore throat|pharyngitis|throat pain
+SYM:sore_throat	re	(?<![가-힣])(목|목구멍|인후|목안)[이은도가]? ?(너무 |좀 |많이 |계속 )?(안 |전혀 안 |별로 안 )?(아프|아파|아팠|아픈|따끔|칼칼|쓰라|쓰려|화끈)
+SYM:sore_throat	parents	SYM:pain|GRP:respiratory
+SYM:rhinorrhea	ko	콧물
+SYM:rhinorrhea	en	rhinorrhea
+SYM:rhinorrhea	lay	콧물|코가 줄줄|누런 콧물|맑은 콧물|콧물이 흘|코를 훌쩍
+SYM:rhinorrhea	med	콧물|비루|후비루|수양성 비루|화농성 비루
+SYM:rhinorrhea	syn	rhinorrhea|runny nose|nasal discharge|postnasal drip
+SYM:rhinorrhea	parents	GRP:respiratory
+SYM:nasal_congestion	ko	코막힘
+SYM:nasal_congestion	en	nasal congestion
+SYM:nasal_congestion	lay	코가 막|코막힘|코가 답답|코가 꽉|숨을 코로 못
+SYM:nasal_congestion	med	비폐색|비충혈|코막힘|비강 폐색
+SYM:nasal_congestion	syn	nasal congestion|stuffy nose|nasal obstruction
+SYM:nasal_congestion	parents	GRP:respiratory
+SYM:sneezing	ko	재채기
+SYM:sneezing	en	sneezing
+SYM:sneezing	lay	재채기|에취
+SYM:sneezing	med	재채기
+SYM:sneezing	syn	sneezing|sneeze
+SYM:sneezing	parents	GRP:respiratory
+SYM:hoarseness	ko	쉰 목소리
+SYM:hoarseness	en	hoarseness
+SYM:hoarseness	lay	목소리가 쉬|목이 쉬|목이 잠기|쉰 목소리|목소리가 변|목소리가 안 나|목소리가 갈라|목소리가 거칠
+SYM:hoarseness	med	애성|쉰목소리|음성 변화|발성 장애
+SYM:hoarseness	syn	hoarseness|dysphonia|hoarse voice|voice change
+SYM:red_eye	ko	눈 충혈
+SYM:red_eye	en	red eye
+SYM:red_eye	lay	눈이 빨갛|눈이 충혈|눈이 벌겋|눈이 빨개|흰자가 빨갛|눈이 토끼눈~
+SYM:red_eye	med	결막 충혈|안구 충혈|적안|결막염|결막 주입|공막 충혈|결막 발적
+SYM:red_eye	syn	red eye|conjunctival injection|conjunctivitis|conjunctival hyperemia|scleral injection
+SYM:eye_pain	ko	안통
+SYM:eye_pain	en	eye pain
+SYM:eye_pain	lay	눈이 아프|눈이 아파|눈알이 아|눈 통증|눈이 욱신|눈 뒤가 아|눈을 움직이면 아
+SYM:eye_pain	med	안통|안구 통증|안와 통증|안구통
+SYM:eye_pain	syn	eye pain|ocular pain|orbital pain
+SYM:eye_pain	parents	SYM:pain
+SYM:lacrimation	ko	눈물 흘림
+SYM:lacrimation	en	watery eyes
+SYM:lacrimation	lay	눈물이 줄줄|눈물이 계속|눈물이 많이 나|눈물 흘림
+SYM:lacrimation	med	유루|눈물 흘림|유루증
+SYM:lacrimation	syn	watery eyes|lacrimation|epiphora
+SIGN:lymphadenopathy	ko	림프절 비대
+SIGN:lymphadenopathy	en	lymphadenopathy
+SIGN:lymphadenopathy	lay	멍울|임파선이 부|혹이 만져|몽우리|목에 뭐가 만져|겨드랑이에 멍울|사타구니에 멍울|귀 뒤에 멍울|임파선이 커
+SIGN:lymphadenopathy	med	림프절 증대|임파선 증대|림프절 비대|림프절 종대|림프절병증|림프절 촉지|임파선 비대|경부 림프절 비대|경부 림프절 종대|림프절 종창|림프절이 촉지|림프절비대|액와 림프절 비대|서혜부 림프절 비대
+SIGN:lymphadenopathy	syn	lymphadenopathy|lymph node enlargement|swollen lymph nodes|enlarged lymph nodes|cervical lymphadenopathy
+SIGN:lymphadenopathy	re	림프절[^.,]{0,10}?(비대|종대|촉지|촉진|커져|부어|종창|만져)
+SIGN:neck_mass	ko	경부 종괴
+SIGN:neck_mass	en	neck mass
+SIGN:neck_mass	lay	목에 혹|목에 멍울|목에 덩어리|목에 뭔가 만져|목에 뭔가 튀어나|목이 불룩|턱밑에 혹|턱 밑에 혹
+SIGN:neck_mass	med	경부 종괴|목 종괴|경부 덩이|경부 종물|경부 결절|경부종괴
+SIGN:neck_mass	syn	neck mass|neck lump|neck swelling|cervical mass
+SIGN:neck_mass	re	((?<![손발가-힣])목|(?<!자궁)경부|턱밑|턱 밑|쇄골 위)[^.,;]{0,12}?(종괴|혹이|혹을|혹도|혹 |멍울|덩이|덩어리)
+SIGN:goiter	ko	갑상선 종대
+SIGN:goiter	en	goiter
+SIGN:goiter	lay	목 앞쪽이 부|목 앞이 불룩|갑상선이 부
+SIGN:goiter	med	갑상선 종대|갑상선 비대|갑상샘 종대|갑상선종|갑상샘종|갑상선 결절|갑상샘 결절|갑상선비대|미만성 갑상선 비대
+SIGN:goiter	syn	goiter|goitre|thyromegaly|thyroid nodule|thyroid enlargement
+SIGN:exophthalmos	ko	안구 돌출
+SIGN:exophthalmos	en	exophthalmos
+SIGN:exophthalmos	lay	눈이 튀어나|눈이 돌출|눈이 커진 것 같|눈이 부리부리|눈이 튀어나온
+SIGN:exophthalmos	med	안구 돌출|안구돌출|돌출안|안구 돌출증|안검 후퇴
+SIGN:exophthalmos	syn	exophthalmos|proptosis|lid retraction|lid lag
+SIGN:tonsillar_exudate	ko	편도 삼출물
+SIGN:tonsillar_exudate	en	tonsillar exudate
+SIGN:tonsillar_exudate	lay	편도에 하얀|편도에 고름|편도에 흰|목젖 옆이 부|편도가 부
+SIGN:tonsillar_exudate	med	편도 삼출물|편도 백태|편도 비대|편도 부종|편도선 비대|편도 종대|편도 발적|편도선염 소견|삼출성 편도염
+SIGN:tonsillar_exudate	syn	tonsillar exudate|tonsillar swelling|tonsillar enlargement|exudative tonsillitis
+SIGN:pharyngeal_erythema	ko	인두 발적
+SIGN:pharyngeal_erythema	en	pharyngeal erythema
+SIGN:pharyngeal_erythema	lay	목구멍이 빨갛|목 안이 빨갛
+SIGN:pharyngeal_erythema	med	인두 발적|인두 충혈|인후 발적|인후두 발적|인두 부종
+SIGN:pharyngeal_erythema	syn	pharyngeal erythema|pharyngeal injection|erythematous pharynx
+SIGN:tm_abnormal	ko	고막 이상
+SIGN:tm_abnormal	en	tympanic membrane abnormality
+SIGN:tm_abnormal	med	고막 팽윤|고막 발적|고막 천공|중이 삼출|고막 혼탁|고막 운동성 저하|중이 삼출액|고막 팽창
+SIGN:tm_abnormal	syn	bulging tympanic membrane|tympanic membrane erythema|middle ear effusion|tm perforation
+SIGN:strawberry_tongue	ko	딸기혀
+SIGN:strawberry_tongue	en	strawberry tongue
+SIGN:strawberry_tongue	lay	혀가 딸기처럼~|혀가 빨갛고 오돌토돌
+SIGN:strawberry_tongue	med	딸기혀|딸기 혀|딸기모양 혀
+SIGN:strawberry_tongue	syn	strawberry tongue
+
+# ---------------------------------------------------------------- history / risk factors
+HX:smoking	ko	흡연
+HX:smoking	en	smoking
+HX:smoking	lay	담배|담배를 피|담배 피|담배는 피|담배를 하루|담배는 하루|담배를|담배는|담배도|갑씩|갑 피|전자담배|담배를 태
+HX:smoking	med	흡연|흡연력|갑년|흡연자|현재 흡연
+HX:smoking	syn	smoking|smoker|tobacco|pack-years|cigarettes|tobacco smoking history|tobacco use
+HX:smoking	abbr	py
+HX:former_smoking	ko	과거 흡연
+HX:former_smoking	en	former smoker
+HX:former_smoking	lay	담배를 끊|담배는 끊|담배를 끊은|예전에 피웠|예전에는 피웠|전에 피우다 끊|피우다가 끊
+HX:former_smoking	med	금연|과거 흡연|과거흡연|과거 흡연자|과거 흡연력
+HX:former_smoking	syn	former smoker|ex-smoker|quit smoking
+HX:former_smoking	parents	HX:smoking
+HX:alcohol	ko	음주
+HX:alcohol	en	alcohol use
+HX:alcohol	lay	술이나|술과|술이|술을 마시|술은 마시|술을 드|술은 가끔|술도 가끔|술을 자주|소주|맥주|와인|막걸리|양주|위스키|술을|술은|술도|반주|한잔씩|술자리
+HX:alcohol	med	음주|음주력|과음|폭음|알코올|사회적 음주
+HX:alcohol	syn	alcohol|drinking|etoh|alcohol use|alcohol consumption
+HX:alcohol_use_disorder	ko	알코올 사용 장애
+HX:alcohol_use_disorder	en	alcohol use disorder
+HX:alcohol_use_disorder	lay	술을 매일|매일 술|매일 소주|술을 많이|하루에 소주|술을 끊지 못|술 없이는|아침부터 술|술을 달고|술을 거의 매일|거의 매일 술
+HX:alcohol_use_disorder	med	알코올 의존|알코올 중독|알코올 사용 장애|만성 음주|알코올 남용|과도한 음주|만성 알코올 섭취|알코올성
+HX:alcohol_use_disorder	syn	alcohol use disorder|alcoholism|alcohol abuse|alcohol dependence|heavy drinking|chronic alcohol use|alcohol abuse or addiction
+HX:alcohol_use_disorder	parents	HX:alcohol
+HX:drug_use	ko	약물 남용
+HX:drug_use	en	illicit drug use
+HX:drug_use	lay	약물은 하지|약물도 하지|약물을 하|마약|필로폰|대마|코카인|헤로인|주사 약물|불법 약물|약물 주사|마약 주사|주사로 약을|떨을|마리화나
+HX:drug_use	med	약물 남용|정맥 약물 사용|마약 사용|정맥 주사 약물|불법 약물 사용|약물 사용 장애
+HX:drug_use	syn	illicit drug use|ivdu|injection drug use|cocaine|heroin|methamphetamine|drug abuse|pwid|recreational drugs
+HX:hypertension	ko	고혈압
+HX:hypertension	en	hypertension
+HX:hypertension	lay	혈압이 높다고|혈압이 높아서 약|혈압이 높은 편|혈압약|혈압 약|고혈압 약|혈압이 있|혈압 때문에 약
+HX:hypertension	med	고혈압|본태성 고혈압|고혈압증|고혈압 병력
+HX:hypertension	syn	hypertension|high blood pressure|arterial hypertension|essential hypertension
+HX:hypertension	abbr	htn
+HX:diabetes	ko	당뇨병
+HX:diabetes	en	diabetes
+HX:diabetes	lay	당뇨|당뇨약|당뇨 약|인슐린 주사|인슐린을 맞|혈당 약|당 수치가 높|혈당 관리
+HX:diabetes	med	당뇨병|제2형 당뇨병|제1형 당뇨병|2형 당뇨|1형 당뇨|당뇨 병력|형 당뇨병|임신성 당뇨
+HX:diabetes	syn	diabetes|diabetes mellitus|t2dm|t1dm|type 2 diabetes|type 1 diabetes|diabetic
+HX:diabetes	abbr	dm
+HX:dyslipidemia	ko	이상지질혈증
+HX:dyslipidemia	en	dyslipidemia
+HX:dyslipidemia	lay	콜레스테롤이 높|콜레스테롤 약|고지혈|기름기가 많다고
+HX:dyslipidemia	med	고지혈증|이상지질혈증|고콜레스테롤혈증|고중성지방혈증|고지혈
+HX:dyslipidemia	syn	dyslipidemia|hyperlipidemia|hypercholesterolemia|high cholesterol
+HX:ckd	ko	만성 콩팥병
+HX:ckd	en	chronic kidney disease
+HX:ckd	lay	콩팥이 안 좋|신장이 안 좋|투석을|투석 중|콩팥 기능이 떨어|신장 기능이 떨어
+HX:ckd	med	신장병|콩팥병|신장 질환|신장질환|신장 절제|만성 신부전|만성 콩팥병|만성 신장병|신부전|투석|혈액투석|복막투석|말기 신부전|말기 신장병|만성신부전|만성 신장 질환
+HX:ckd	syn	nephrectomy|chronic kidney disease|ckd|esrd|dialysis|renal failure|kidney failure|end-stage renal disease
+HX:cardiovascular_disease	ko	심혈관 질환
+HX:cardiovascular_disease	en	cardiovascular disease
+HX:cardiovascular_disease	lay	심장병|심장이 안 좋|심장 질환|심장 쪽 질환|혈관 질환
+HX:cardiovascular_disease	med	심혈관 질환|심혈관질환|심장 질환|심장질환|심혈관계 질환|심장 혈관 질환
+HX:cardiovascular_disease	syn	cardiovascular disease|heart disease|cvd
+HX:sudden_death	ko	급사
+HX:sudden_death	en	sudden death
+HX:sudden_death	re	갑자기[^,;]{0,12}?(?:돌아가|사망)
+HX:sudden_death	lay	갑자기 돌아가신|갑자기 돌아가셨|갑자기 사망|젊은 나이에 돌아가신|자다가 돌아가신
+HX:sudden_death	med	급사|돌연사|심장 돌연사|급성 심장사|원인 불명 사망
+HX:sudden_death	syn	sudden death|sudden cardiac death|unexplained death
+HX:coronary_disease	parents	HX:cardiovascular_disease
+HX:heart_failure	parents	HX:cardiovascular_disease
+HX:atrial_fibrillation	parents	HX:cardiovascular_disease
+HX:valve_disease	parents	HX:cardiovascular_disease
+HX:coronary_disease	ko	관상동맥 질환
+HX:coronary_disease	en	coronary artery disease
+HX:coronary_disease	lay	심장 발작|심장발작|스텐트|심장 스텐트|심장 혈관이 막혀|심장 시술|풍선 시술|심장마비|심장 혈관 시술
+HX:coronary_disease	med	협심증|심근경색|관상동맥 질환|관상동맥질환|허혈성 심질환|심근경색증|관상동맥 우회술|관상동맥 중재술|급성 심근경색
+HX:coronary_disease	syn	coronary artery disease|cad|myocardial infarction|angina pectoris|ischemic heart disease|stent|cabg
+HX:heart_failure	ko	심부전
+HX:heart_failure	en	heart failure
+HX:heart_failure	lay	심장이 약|심장 기능이 떨어|심장이 안 좋|심장 기능이 약
+HX:heart_failure	med	심부전|울혈성 심부전|심부전증|좌심실 기능 저하|심근병증
+HX:heart_failure	syn	heart failure|chf|congestive heart failure|cardiomyopathy|reduced ejection fraction
+HX:atrial_fibrillation	ko	심방세동
+HX:atrial_fibrillation	en	atrial fibrillation
+HX:atrial_fibrillation	lay	부정맥 약|부정맥이 있|맥이 불규칙하다고
+HX:atrial_fibrillation	med	심방세동|심방 세동|심방조동|심방 조동|부정맥 병력
+HX:atrial_fibrillation	syn	atrial fibrillation|afib|atrial flutter|a-fib
+HX:atrial_fibrillation	abbr	af
+HX:stroke	ko	뇌졸중
+HX:stroke	en	stroke
+HX:stroke	lay	중풍|풍 맞|풍이 왔|뇌혈관이 막|뇌에 피가 터
+HX:stroke	med	뇌간경색|뇌간 경색|소뇌경색|열공경색|뇌졸중|뇌경색|뇌출혈|일과성 허혈 발작|일과성 뇌허혈|뇌혈관 질환|허혈성 뇌졸중|출혈성 뇌졸중
+HX:stroke	syn	stroke|cva|tia|transient ischemic attack|cerebral infarction|intracerebral hemorrhage|cerebrovascular accident
+HX:cancer	ko	암
+HX:cancer	en	cancer
+HX:cancer	lay	암을|암이|암은|암으로|암 진단|암 치료|암 진단|암을 앓|암 수술|암이 있|암으로 치료|암 투병|혹을 떼|암 판정|암이 재발
+HX:cancer	med	암|악성 종양|악성종양|종양|유방암|위암|폐암|대장암|간암|전립선암|췌장암|갑상선암|갑상샘암|자궁경부암|난소암|혈액암|백혈병|림프종|골수종|방광암|신장암|식도암|담도암|뇌종양|흑색종|육종|전이|전이암|자궁내막암|두경부암
+HX:cancer	syn	cancer|malignancy|metastasis|carcinoma|neoplasm|tumor|leukemia|lymphoma|myeloma|metastatic
+HX:chemotherapy	ko	항암치료
+HX:chemotherapy	en	chemotherapy
+HX:chemotherapy	lay	항암 치료|항암제|항암 주사|항암을|방사선 치료|항암 중
+HX:chemotherapy	med	화학요법|항암화학요법|항암치료|방사선요법|방사선 치료|면역항암제
+HX:chemotherapy	syn	chemotherapy|radiotherapy|radiation therapy|immunotherapy
+HX:chemotherapy	parents	HX:immunosuppression|HX:cancer
+HX:immunosuppression	ko	면역저하
+HX:immunosuppression	en	immunosuppression
+HX:immunosuppression	lay	면역이 약|면역력이 떨어|면역력이 약|이식을 받|이식받|면역 억제제를|스테로이드를 오래|스테로이드를 장기
+HX:immunosuppression	med	프레드니솔론|장기간 스테로이드|고용량 스테로이드|이식 후|면역저하|면역 저하|면역억제|면역 억제|면역억제제|면역 억제제|장기이식|장기 이식|신장 이식|간 이식|골수 이식|조혈모세포 이식|스테로이드 장기 복용|면역결핍|호중구 감소증
+HX:immunosuppression	syn	prednisone|prednisolone|immunosuppression|immunocompromised|transplant|immunodeficiency|neutropenia|chronic steroid use
+HX:hiv	ko	HIV 감염
+HX:hiv	en	hiv infection
+HX:hiv	lay	에이즈
+HX:hiv	med	에이즈|후천성 면역결핍|인간면역결핍바이러스|hiv 감염|hiv 양성
+HX:hiv	syn	hiv infection|aids|human immunodeficiency virus
+HX:hiv	abbr	hiv
+HX:hiv	parents	HX:immunosuppression
+HX:pregnancy	ko	임신
+HX:pregnancy	en	pregnancy
+HX:pregnancy	lay	임신 중|임신했|임신을 했|임산부|아기를 가졌|배 속에 아기|임신한 지|뱃속 아기|임신 주
+HX:pregnancy	med	임신|임신중|임부|초산부|경산부|자궁내 임신
+HX:pregnancy	syn	pregnancy|pregnant|gravid|gestation
+HX:pregnancy	re	(임신|재태) ?\d+ ?주|\d+ ?주 ?(차 )?임신
+HX:menopause	ko	폐경
+HX:menopause	en	menopause
+HX:menopause	lay	생리가 끊긴 지|생리가 끊어진 지|생리를 안 한 지 오래|폐경이 됐|폐경됐
+HX:menopause	med	폐경|완경|폐경기|폐경 후|갱년기
+HX:menopause	syn	menopause|postmenopausal|menopausal
+HX:hormone_use	ko	호르몬제 복용
+HX:hormone_use	en	hormone use
+HX:hormone_use	lay	피임약|호르몬 약|호르몬제|여성 호르몬
+HX:hormone_use	med	경구 피임약|경구피임약|호르몬 치료|호르몬 대체 요법|호르몬대체요법|에스트로겐|에스트로젠|호르몬 요법
+HX:hormone_use	syn	oral contraceptive|ocp|estrogen|hormone therapy|hormone replacement therapy|hrt|contraceptive pill
+HX:anticoagulant	ko	항응고제 복용
+HX:anticoagulant	en	anticoagulant use
+HX:anticoagulant	lay	피 묽게 하는 약|피를 묽게|혈전 약|피가 굳지 않게 하는 약
+HX:anticoagulant	med	에녹사파린|클렉산|혈액 희석제|항응고제|와파린|쿠마딘|아픽사반|리바록사반|에독사반|다비가트란|엘리퀴스|자렐토|릭시아나|프라닥사|헤파린|항응고 치료
+HX:anticoagulant	syn	xarelto|eliquis|lixiana|pradaxa|enoxaparin|clexane|noac|anticoagulant|warfarin|doac|apixaban|rivaroxaban|edoxaban|dabigatran|heparin|coumadin|anticoagulation
+HX:antiplatelet	ko	항혈소판제 복용
+HX:antiplatelet	en	antiplatelet use
+HX:antiplatelet	lay	아스피린|클로피도그렐|플라빅스|혈소판 약
+HX:antiplatelet	med	브릴린타|에피언트|항혈소판제|아스피린|클로피도그렐|티카그렐러|프라수그렐|이중 항혈소판
+HX:antiplatelet	syn	plavix|brilinta|prasugrel|antiplatelet|aspirin|clopidogrel|ticagrelor|dual antiplatelet therapy
+HX:medication	ko	복용 약물
+HX:medication	en	current medications
+HX:medication	lay	약을 먹|약을 복용|복용하고|복용 중|먹는 약|드시는 약|약은|약도|복용 약|먹고 있는 약|복용하는 약|정기적으로 먹는 약|약을 드시|처방받은 약|약을 드시고
+HX:medication	med	복용 약물|투약력|약물력|복용 중인 약|복용약|상용 약물|현재 복용 약
+HX:medication	syn	medications|current medications|medication history|drug history
+HX:recent_surgery	ko	최근 수술
+HX:recent_surgery	en	recent surgery
+HX:recent_surgery	lay	수술하|수술을 받|수술받|수술했|수술한 지|수술 후|수술을 했|수술한 적|수술 받은 지
+HX:recent_surgery	med	수술력|수술 병력|수술 후|술후|최근 수술|제왕절개|충수절제술|담낭절제술|고관절 치환술|슬관절 치환술
+HX:recent_surgery	syn	surgery|recent surgery|postoperative|operation|surgical history
+HX:immobilization	ko	부동
+HX:immobilization	en	immobilization
+HX:immobilization	lay	오래 누워|침대에만|거동을 못|거동이 불편|깁스|석고 붕대|오래 앉아|누워서만 지내|병상에 누워
+HX:immobilization	med	부동|장기 침상|침상 안정|침상 생활|장기간 부동|거동 불가
+HX:immobilization	syn	immobilization|bed rest|bedridden|immobility|cast
+HX:long_travel	ko	장거리 여행
+HX:long_travel	en	long-haul travel
+HX:long_travel	lay	장거리 비행|장시간 비행|장거리 여행|장시간 운전|비행기를 오래|비행기를 10시간|비행기를 타고|오래 비행기|긴 비행
+HX:long_travel	med	장거리 비행|장시간 비행
+HX:long_travel	syn	long flight|long-haul flight|long car journey|prolonged travel
+HX:long_travel	parents	HX:immobilization|HX:travel
+HX:prior_vte	ko	정맥혈전색전증 병력
+HX:prior_vte	en	history of venous thromboembolism
+HX:prior_vte	lay	혈전이 생긴 적|피떡이 생긴 적|다리에 혈전|폐에 혈전|혈전으로 치료
+HX:prior_vte	med	심부정맥혈전증|심부 정맥 혈전증|폐색전증|정맥혈전색전증|혈전증|혈전증 병력|혈전 병력|폐색전증 병력|심부정맥혈전
+HX:prior_vte	syn	deep vein thrombosis|pulmonary embolism|venous thromboembolism|vte|history of dvt|history of pe|thrombosis
+HX:prior_vte	abbr	dvt
+HX:trauma	ko	외상
+HX:trauma	en	trauma
+HX:trauma	lay	머리를 다친|상처를 입|상처가 났|찔렸|찔리|베였|다쳤|다친|넘어졌|넘어져|넘어진|넘어지면서|부딪혔|부딪쳤|부딪힌|교통사고|사고를|삐었|접질|미끄러져|추락|굴러떨어|낙상|얻어맞
+HX:trauma	med	부상|외상|타박상|낙상|교통사고|염좌|골절|탈구|열상|찰과상|둔상|관통상
+HX:trauma	syn	trauma|injury|fall|mva|motor vehicle accident|fracture|sprain|contusion|laceration
+HX:head_trauma	ko	두부 외상
+HX:head_trauma	en	head trauma
+HX:head_trauma	re	머리(?:를|가)? ?(?:심하게 |세게 |크게 |바닥에 )?(?:부딪|다쳤|다친|박았|박은|찧|맞았)
+HX:head_trauma	lay	머리 부상|두부 부상|머리를 다친|머리를 부딪|머리를 다쳤|머리를 박|머리를 맞|머리를 찧|머리부터 떨어|머리를 바닥에
+HX:head_trauma	med	두부 외상|두부외상|뇌진탕|두부 손상|외상성 뇌손상
+HX:head_trauma	syn	head trauma|head injury|concussion|traumatic brain injury
+HX:head_trauma	parents	HX:trauma
+HX:travel	ko	여행력
+HX:travel	en	travel history
+HX:travel	lay	해외여행|해외 여행|여행을 다녀|여행을 갔|여행을 가|출장을|해외에 다녀|동남아|아프리카에|캠핑|등산을|산에 다녀|야외 활동|풀밭에|밭일|성묘
+HX:travel	med	여행력|해외 여행력|해외 체류|야외 활동력
+HX:travel	syn	travel history|recent travel|travel|outdoor activity|camping|hiking
+HX:sick_contact	ko	접촉력
+HX:sick_contact	en	sick contact
+HX:sick_contact	lay	아픈 사람을 만|아픈 사람과 만|아픈 사람을 만난|아픈 사람과 접촉|아픈 사람이랑|주변에 아픈 사람|같이 사는 사람도|가족도 같은 증상|주변에 비슷한 증상|같이 먹은 사람|같은 증상을 보이|어린이집에서 유행|유치원에서 유행|반 친구들도|유행하고 있
+HX:sick_contact	med	접촉력|감염자 접촉|환자 접촉|결핵 환자 접촉|집단 발생
+HX:sick_contact	syn	sick contact|exposure|contact history|sick contacts|outbreak
+HX:tuberculosis	ko	결핵
+HX:tuberculosis	en	tuberculosis
+HX:tuberculosis	lay	결핵약|결핵을 앓|결핵 치료
+HX:tuberculosis	med	결핵|폐결핵|잠복결핵|결핵 병력|결핵성|결핵균
+HX:tuberculosis	syn	tuberculosis|tb|pulmonary tuberculosis|latent tuberculosis
+HX:hepatitis_b	ko	B형 간염
+HX:hepatitis_b	en	hepatitis b
+HX:hepatitis_b	lay	간염 보균|b형 간염 보균|간염 바이러스 보유
+HX:hepatitis_b	med	b형 간염|b형간염|b형 간염 보유자|만성 b형 간염|c형 간염|c형간염|만성 간염|바이러스성 간염
+HX:hepatitis_b	syn	hepatitis b|hbv|hepatitis c|hcv|viral hepatitis|chronic hepatitis
+HX:liver_disease	ko	만성 간질환
+HX:liver_disease	en	chronic liver disease
+HX:liver_disease	lay	간이 안 좋|간이 나쁘|간 수치가 높다고|간 기능이 떨어
+HX:liver_disease	med	간경화|간경변|간경변증|간질환|지방간|알코올성 간질환|만성 간질환|간 섬유화|문맥 고혈압
+HX:liver_disease	syn	cirrhosis|liver disease|chronic liver disease|fatty liver|portal hypertension
+HX:asthma	ko	천식
+HX:asthma	en	asthma
+HX:asthma	lay	천식약|천식이 있|기관지가 약
+HX:asthma	med	천식|기관지 천식|기관지천식|소아 천식
+HX:asthma	syn	asthma|bronchial asthma|reactive airway disease
+HX:copd	ko	만성 폐쇄성 폐질환
+HX:copd	en	copd
+HX:copd	lay	폐가 안 좋|폐기능이 떨어
+HX:copd	med	만성 폐쇄성 폐질환|만성폐쇄성폐질환|폐기종|만성 기관지염|폐쇄성 폐질환
+HX:copd	syn	copd|emphysema|chronic bronchitis|chronic obstructive pulmonary disease
+HX:thyroid_disease	ko	갑상선 질환
+HX:thyroid_disease	en	thyroid disease
+HX:thyroid_disease	lay	갑상선 약|갑상선이 안 좋|갑상선 수술|갑상선을 떼|갑상샘 약
+HX:thyroid_disease	med	갑상선 질환|갑상선 기능 저하증|갑상선 기능 항진증|갑상선기능저하증|갑상선기능항진증|갑상샘 기능 저하증|갑상샘 기능 항진증|하시모토 갑상선염|그레이브스병|갑상선염
+HX:thyroid_disease	syn	thyroid disease|hypothyroidism|hyperthyroidism|graves disease|hashimoto thyroiditis|thyroiditis
+HX:allergy	ko	알레르기
+HX:allergy	en	allergy
+HX:allergy	lay	알레르기가 있|알레르기|알러지|먹으면 두드러기|약을 먹으면 두드러기
+HX:allergy	med	알레르기|알러지|약물 알레르기|음식 알레르기|과민반응|과민 반응|약물 과민반응|알레르기 병력
+HX:allergy	syn	allergy|allergies|drug allergy|food allergy|hypersensitivity|allergic
+HX:contrast_allergy	ko	조영제 과민반응
+HX:contrast_allergy	en	contrast allergy
+HX:contrast_allergy	lay	조영제 맞고|조영제를 맞고|조영제 주사 맞고
+HX:contrast_allergy	med	조영제 알레르기|조영제 과민|조영제 부작용|조영제에 알레르기|조영제에 두드러기|조영제 과민반응
+HX:contrast_allergy	syn	contrast allergy|contrast reaction|iodinated contrast allergy
+HX:contrast_allergy	parents	HX:allergy
+SYM:allergic_reaction	ko	급성 알레르기 반응
+SYM:allergic_reaction	en	allergic reaction
+SYM:allergic_reaction	lay	먹고 나서 두드러기|먹고 나서 입술이|벌에 쏘|벌에 쏘인|땅콩을 먹|새우를 먹|주사 맞고 나서|약을 먹고 나서 두드러기|먹자마자 두드러기
+SYM:allergic_reaction	med	아나필락시스|알레르기 반응|알레르기성 반응|과민성 쇼크|아나필락시스 쇼크|급성 알레르기 반응|알레르기반응
+SYM:allergic_reaction	syn	anaphylaxis|allergic reaction|anaphylactic shock|anaphylactic reaction
+HX:psych_history	ko	정신과 병력
+HX:psych_history	en	psychiatric history
+HX:psych_history	lay	정신과 약|정신과에 다니|정신과 치료|신경정신과
+HX:psych_history	med	우울증|공황장애|조현병|양극성 장애|조울증|불안장애|정신분열증|강박장애|외상 후 스트레스 장애|섭식장애|거식증
+HX:psych_history	syn	depression|schizophrenia|bipolar disorder|anxiety disorder|psychiatric history|ptsd|eating disorder
+HX:marfan	ko	결합조직 질환
+HX:marfan	en	connective tissue disorder
+HX:marfan	med	마르판|마르판 증후군|결합조직 질환|엘러스-단로스|엘러스 단로스
+HX:marfan	syn	marfan|marfan syndrome|ehlers-danlos|connective tissue disorder
+HX:valve_disease	ko	판막 질환
+HX:valve_disease	en	valvular heart disease
+HX:valve_disease	lay	심장 판막 수술|판막 수술|판막을 바꾸|인공판막을
+HX:valve_disease	med	인공판막|인공 판막|기계판막|판막 치환|판막 질환|판막질환|판막증|승모판 탈출|대동맥판 협착|류마티스 심장병|류마티스열|선천성 심장병|선천성 심장 질환|이엽성 대동맥판
+HX:valve_disease	syn	prosthetic valve|valvular heart disease|valve replacement|rheumatic heart disease|congenital heart disease|bicuspid aortic valve
+HX:dental_procedure	ko	치과 시술
+HX:dental_procedure	en	dental procedure
+HX:dental_procedure	lay	이를 뽑|치과 치료|치과에서|스케일링|사랑니를 뽑|임플란트 시술
+HX:dental_procedure	med	발치|치과 시술|치과 치료|치근관 치료
+HX:dental_procedure	syn	dental procedure|tooth extraction|dental work
+HX:vaccination	ko	예방접종
+HX:vaccination	en	vaccination
+HX:vaccination	lay	예방접종|예방 접종|백신|주사를 다 맞|접종은 다|독감 주사|접종을 제때
+HX:vaccination	med	예방접종|예방 접종|백신 접종|접종력|기본 접종
+HX:vaccination	syn	vaccination|immunization|vaccinated|immunizations up to date
+HX:sexual_activity	ko	성 접촉
+HX:sexual_activity	en	sexual activity
+HX:sexual_activity	lay	성생활|성관계|성 관계|파트너와|콘돔|성 접촉
+HX:sexual_activity	med	성접촉|성 접촉|성관계력|성교
+HX:sexual_activity	syn	sexual activity|sexually active|sexual contact|intercourse
+HX:unprotected_sex	ko	무방비 성관계
+HX:unprotected_sex	en	unprotected intercourse
+HX:unprotected_sex	lay	콘돔 없이|콘돔을 사용하지 않|콘돔을 안 쓰|콘돔을 쓰지 않|피임 없이|피임을 안 하|콘돔은 가끔
+HX:unprotected_sex	med	무방비 성관계|비보호 성관계|다수의 성 파트너|다수 성 파트너
+HX:unprotected_sex	syn	unprotected intercourse|unprotected sex|multiple sexual partners
+HX:unprotected_sex	parents	HX:sexual_activity
+HX:occupational_exposure	ko	직업적 노출
+HX:occupational_exposure	en	occupational exposure
+HX:occupational_exposure	lay	석면|분진|먼지를 많이|건설 현장|광산|페인트|화학 약품|유기 용제|용접|탄광|새를 키우|비둘기
+HX:occupational_exposure	med	직업적 노출|분진 노출|석면 노출|유해 물질 노출
+HX:occupational_exposure	syn	occupational exposure|asbestos|silica|dust exposure|bird exposure
+HX:tick_bite	ko	진드기 노출
+HX:tick_bite	en	tick bite
+HX:tick_bite	lay	진드기|벌레에 물|벌레 물린|가피|검은 딱지|쥐를 만|들쥐|풀숲
+HX:tick_bite	med	진드기 물림|가피|진드기 교상|교상|동물 교상
+HX:tick_bite	syn	tick bite|eschar|insect bite|animal bite|rodent exposure
+HX:raw_food	ko	날음식 섭취
+HX:raw_food	en	raw food ingestion
+HX:raw_food	lay	회를 먹|날것을 먹|민물고기|생선회|덜 익은|날계란|상한 음식|오래된 음식|굴을 먹|조개를 먹|육회|생고기|같이 먹은|회식|뷔페
+HX:raw_food	med	날음식 섭취|생식|식중독 노출|오염된 음식
+HX:raw_food	syn	raw food|raw fish|undercooked meat|food exposure|contaminated food|seafood
+HX:family_history_generic	ko	가족력
+HX:family_history_generic	en	family history
+HX:family_history_generic	med	가족력|유전력
+HX:family_history_generic	syn	family history
+HX:family_history_generic	flags	cue
+
+# ---------------------------------------------------------------- quality / timing modifiers (figurative forms are the point)
+QUAL:sudden_onset	ko	갑작스러운 발병
+QUAL:sudden_onset	en	sudden onset
+QUAL:sudden_onset	lay	갑자기|갑작스럽|갑작스레|갑작스러|별안간|느닷없이|번개처럼|순식간에|벼락처럼|갑자기 시작
+QUAL:sudden_onset	med	급성 발병|돌발|급작스러운|급작스레|돌발성|급발생|순간적
+QUAL:sudden_onset	syn	sudden onset|abrupt|acute onset|sudden
+QUAL:sudden_onset	flags	fig
+QUAL:worst_ever	ko	생애 최악의 통증
+QUAL:worst_ever	en	worst ever pain
+QUAL:worst_ever	lay	태어나서 처음|인생 최악|살면서 가장 심|이렇게 아픈 건 처음|이렇게 아픈 적은 처음|난생 처음|10점 만점에 10|죽을 것 같이 아|죽을 만큼 아|최악의
+QUAL:worst_ever	med	최악의 통증|극심한 통증|생애 최악
+QUAL:worst_ever	syn	worst ever|worst pain|excruciating
+QUAL:worst_ever	flags	fig
+QUAL:tearing	ko	찢어지는 양상
+QUAL:tearing	en	tearing pain
+QUAL:tearing	lay	찢어지|찢기는|찢는|찢어질|뜯기는|뜯어지|칼로 찢|찢어내는|뜯어내는
+QUAL:tearing	med	찢어지는 통증|열상성 통증|찢어지는 듯한
+QUAL:tearing	syn	tearing|ripping|tearing pain
+QUAL:tearing	flags	fig
+QUAL:squeezing	ko	쥐어짜는 양상
+QUAL:squeezing	en	squeezing pain
+QUAL:squeezing	lay	조이듯|쥐어짜듯|짓누르듯|쥐어짜|짓누르|짓눌|조이는|조여|꽉 조|누르는 듯|무거운 돌|바위로 누르|코끼리가 올라|꽉 막힌 듯|압박하는
+QUAL:squeezing	med	압박성|압박감|쥐어짜는 듯한|조이는 듯한|조임
+QUAL:squeezing	syn	squeezing|pressure-like|crushing|pressure|tightness
+QUAL:squeezing	flags	fig
+QUAL:stabbing	ko	찌르는 양상
+QUAL:stabbing	en	stabbing pain
+QUAL:stabbing	lay	찌르|콕콕|쿡쿡|바늘로 찌르|칼로 찌르|송곳|날카롭|칼로 베|베이는
+QUAL:stabbing	med	자통|찌르는 듯한|날카로운 통증|예리한 통증
+QUAL:stabbing	syn	stabbing|sharp|knife-like|lancinating
+QUAL:stabbing	flags	fig
+QUAL:burning	ko	타는 듯한 양상
+QUAL:burning	en	burning pain
+QUAL:burning	lay	타는 듯|타는 것 같|불에 덴 듯|불에 데인|화끈화끈|후끈|불타는|불이 난 것
+QUAL:burning	med	작열감|작열통|화끈거림|타는 듯한 통증
+QUAL:burning	syn	burning|burning pain|burning sensation
+QUAL:burning	flags	fig
+QUAL:colicky	ko	산통 양상
+QUAL:colicky	en	colicky pain
+QUAL:colicky	lay	쥐어짜다 풀렸다|아팠다 괜찮았다|왔다 갔다 하는 통증|파도처럼|주기적으로 심해|싸르르
+QUAL:colicky	med	산통|경련성 통증|간헐적 산통|주기적 통증|산통성
+QUAL:colicky	syn	colicky|colic|crampy|cramping|intermittent cramping
+QUAL:colicky	flags	fig
+QUAL:radiation	ko	방사통
+QUAL:radiation	en	radiating pain
+QUAL:radiation	lay	뻗치|뻗쳐|뻗어|퍼지|퍼져|퍼졌|타고 내려|이어져|번지|내려가는 느낌|뻗친
+QUAL:radiation	med	방사통|방사|연관통|방사되
+QUAL:radiation	syn	radiating|radiation|radiates|referred pain
+QUAL:radiation	flags	fig
+QUAL:radiation_back	ko	등으로 방사
+QUAL:radiation_back	en	radiating to the back
+QUAL:radiation_back	lay	등으로 뻗|등 쪽으로 뻗|등까지 뻗|등으로 퍼|등까지 퍼|등 쪽으로 방사|등으로 방사|등까지 아프|등까지 아파|등 뒤로 뻗|등으로 이어|등 쪽으로 퍼|등쪽까지
+QUAL:radiation_back	med	등으로 방사|배부 방사|등쪽 방사
+QUAL:radiation_back	syn	radiating to the back|radiates to the back|back radiation
+QUAL:radiation_back	re	(?<![가-힣])등(?:으로|까지|쪽으로|쪽까지| 쪽으로| 뒤로)[^.,]{0,10}(뻗|퍼|방사|이어|내려|번지|아프|아파|찢)
+QUAL:radiation_back	parents	QUAL:radiation
+QUAL:radiation_back	flags	fig
+QUAL:radiation_arm	ko	팔·턱으로 방사
+QUAL:radiation_arm	en	radiating to the arm or jaw
+QUAL:radiation_arm	lay	왼팔로 뻗|왼쪽 팔로 뻗|팔로 뻗|팔까지 뻗|어깨로 뻗|어깨까지 뻗|턱으로 뻗|턱까지 뻗|턱까지 아|목으로 뻗|왼팔이 저리|왼쪽 팔이 저리
+QUAL:radiation_arm	med	좌측 상지 방사|턱 방사|어깨 방사|상지 방사통
+QUAL:radiation_arm	syn	radiating to the left arm|radiating to the jaw|radiating to the shoulder
+QUAL:radiation_arm	re	(왼팔|오른팔|왼쪽 팔|오른쪽 팔|팔|어깨|턱|목|손가락)(?:으로|로|까지|쪽으로|쪽까지)[^.,]{0,10}(뻗|퍼|방사|이어|내려|번지|저리|아프|아파)
+QUAL:radiation_arm	parents	QUAL:radiation
+QUAL:radiation_arm	flags	fig
+QUAL:exertional	ko	운동 시 악화
+QUAL:exertional	en	exertional
+QUAL:exertional	lay	움직이면 심해|걸으면 심해|계단을 오르면|계단을 오를 때|운동하면|운동할 때|힘을 쓰면|활동하면|몸을 쓰면|일을 하면 심해
+QUAL:exertional	med	운동 시 악화|노작성|운동 유발|활동 시 악화
+QUAL:exertional	syn	exertional|on exertion|exercise-induced
+QUAL:exertional	re	(움직이|움직일|걸으|걸을|운동|활동|계단|힘을 쓰|일할|뛰)[^.,]{0,10}(심해|악화|더 아|나빠|심하)
+QUAL:exertional	flags	fig
+QUAL:rest_relief	ko	휴식 시 호전
+QUAL:rest_relief	en	relieved by rest
+QUAL:rest_relief	lay	쉬면 나아|쉬면 좋아|쉬면 괜찮|쉬고 나면 좋아|쉬고 나면 나아|쉬고 나면 훨씬|휴식하면|안정을 취하면|가만히 있으면 나아|멈추면 나아|쉬면 사라
+QUAL:rest_relief	med	휴식 시 호전|안정 시 호전|휴식 후 호전
+QUAL:rest_relief	syn	relieved by rest|better with rest|improves with rest
+QUAL:rest_relief	flags	fig
+QUAL:positional	ko	체위 관련
+QUAL:positional	en	positional
+QUAL:positional	lay	체위를 바꾸|체위를 바꿀|누울 때 더|앞으로 구부리면|앞으로 숙이면 나아|구부리면 나아|자세를 바꾸|자세를 바꿀|고개를 돌리|고개를 돌릴|누우면 더|일어나면 더|일어날 때|앉으면 나아|앞으로 숙이면|몸을 숙이면|돌아누울|돌아 누울|고개를 숙이|몸을 움직이면
+QUAL:positional	med	체위성|체위 변화|체위 관련|자세 변화 시|기립 시
+QUAL:positional	syn	positional|postural|orthostatic|position-dependent
+QUAL:positional	flags	fig
+QUAL:nocturnal	ko	야간 악화
+QUAL:nocturnal	en	worse at night
+QUAL:nocturnal	re	(?:밤에|밤이면|야간에|새벽에)[^,;]{0,8}?(?:더 |특히 )?(?:심해|악화|아파|아프|심하)
+QUAL:nocturnal	lay	밤에 더|밤에 심해|밤마다|밤이면|새벽에 심|밤에 특히|자려고 누우면|밤에 잘 때
+QUAL:nocturnal	med	야간 악화|야간 통증|야간에 악화|야간성
+QUAL:nocturnal	syn	nocturnal|worse at night|night pain
+QUAL:nocturnal	flags	fig
+QUAL:postprandial	ko	식후 악화
+QUAL:postprandial	en	postprandial
+QUAL:postprandial	lay	먹고 나면|밥 먹고|식사 후|먹으면 더|기름진 음식|먹은 뒤|먹고 나서|밥을 먹고|식후에|음식을 먹으면
+QUAL:postprandial	med	식후 악화|식후 통증|식후|식사 관련
+QUAL:postprandial	syn	postprandial|after meals|after eating|food-related
+QUAL:postprandial	flags	fig
+QUAL:pain_migration	ko	통증 이동
+QUAL:pain_migration	en	migratory pain
+QUAL:pain_migration	lay	통증이 옮겨|아픈 곳이 옮겨|아픈 데가 옮겨|오른쪽 아래로 내려|오른쪽 아랫배로 이동|오른쪽 아랫배로 옮겨|아픈 부위가 옮|점점 오른쪽 아래로
+QUAL:pain_migration	med	통증 이동|이동성 통증|통증의 이동
+QUAL:pain_migration	syn	migratory pain|pain migration|periumbilical pain migrating to rlq
+QUAL:pain_migration	re	(배꼽|명치|윗배|상복부)[^.]{0,25}(오른쪽 아래|우하복부|오른쪽 아랫배|오른쪽 하복부)[^.,]{0,10}(옮|이동|내려)
+QUAL:pain_migration	flags	fig
+QUAL:progressive	ko	점진적 악화
+QUAL:progressive	en	progressive
+QUAL:progressive	lay	점점 심해|점점 더|갈수록|계속 심해|악화되|점점 나빠|날이 갈수록|점점 커|점점 늘어
+QUAL:progressive	med	진행성|점진적 악화|진행하는|악화 추세
+QUAL:progressive	syn	progressive|worsening|progressively worse|getting worse
+QUAL:progressive	flags	fig
+
+# ---------------------------------------------------------------- lab abnormalities read by findings.py's own value parser
+LAB:wbc_high	ko	백혈구 증가
+LAB:wbc_high	en	leukocytosis
+LAB:wbc_high	lay	백혈구 수치가 높|백혈구가 높|염증 세포가 많
+LAB:wbc_high	med	백혈구 증가|백혈구 상승|백혈구증가|백혈구증가증|백혈구 수 증가|백혈구 증가증|호중구 증가|좌방 이동|호중구증가증
+LAB:wbc_high	syn	leukocytosis|elevated wbc|neutrophilia|left shift|high white count
+LAB:wbc_high	re	(백혈구|wbc)[^.,]{0,8}(상승|증가|높|↑)
+LAB:wbc_low	ko	백혈구 감소
+LAB:wbc_low	en	leukopenia
+LAB:wbc_low	lay	백혈구 수치가 낮|백혈구가 낮
+LAB:wbc_low	med	백혈구 감소|백혈구감소|백혈구감소증|백혈구 수 감소|호중구 감소|호중구감소증|과립구 감소|무과립구증
+LAB:wbc_low	syn	leukopenia|neutropenia|low wbc|agranulocytosis
+LAB:wbc_low	re	(백혈구|wbc|호중구|(?<![a-z])anc(?![a-z]))[^.,]{0,8}(감소|저하|낮|↓)
+LAB:hb_low	ko	빈혈
+LAB:hb_low	en	anemia
+LAB:hb_low	lay	피가 모자라|빈혈이 있|빈혈 수치|혈색소가 낮|헤모글로빈이 낮
+LAB:hb_low	med	빈혈|혈색소 감소|헤모글로빈 감소|혈색소 저하|헤모글로빈 저하|철결핍성 빈혈|대구성 빈혈|소구성 빈혈|정구성 빈혈
+LAB:hb_low	syn	anemia|anaemia|low hemoglobin|iron deficiency anemia|microcytic anemia|macrocytic anemia
+LAB:hb_low	re	(혈색소|헤모글로빈|(?<![a-z])hg?b(?![a-z0-9]))[^.,]{0,8}(감소|저하|낮|↓)
+LAB:plt_low	ko	혈소판 감소
+LAB:plt_low	en	thrombocytopenia
+LAB:plt_low	lay	혈소판 수치가 낮|혈소판이 낮|혈소판이 적
+LAB:plt_low	med	혈소판 감소|혈소판감소|혈소판감소증|혈소판 감소증|범혈구감소증|범혈구 감소
+LAB:plt_low	syn	thrombocytopenia|low platelets|pancytopenia
+LAB:plt_low	re	(혈소판|plt|platelet)[^.,]{0,8}(감소|저하|낮|↓)
+LAB:plt_high	ko	혈소판 증가
+LAB:plt_high	en	thrombocytosis
+LAB:plt_high	med	혈소판 증가|혈소판증가증|혈소판 증가증|혈소판 상승
+LAB:plt_high	syn	thrombocytosis|elevated platelets
+LAB:plt_high	re	(혈소판|plt|platelet)[^.,]{0,8}(증가|상승|높|↑)
+LAB:na_low	ko	저나트륨혈증
+LAB:na_low	en	hyponatremia
+LAB:na_low	med	저나트륨혈증|저나트륨|나트륨 저하|나트륨 감소|저나트륨 혈증
+LAB:na_low	syn	hyponatremia|hyponatraemia|low sodium
+LAB:na_low	re	(나트륨|sodium)[^.,]{0,8}(감소|저하|낮|↓)
+LAB:na_high	ko	고나트륨혈증
+LAB:na_high	en	hypernatremia
+LAB:na_high	med	고나트륨혈증|고나트륨|나트륨 상승|나트륨 증가
+LAB:na_high	syn	hypernatremia|high sodium
+LAB:na_high	re	(나트륨|sodium)[^.,]{0,8}(증가|상승|높|↑)
+LAB:k_low	ko	저칼륨혈증
+LAB:k_low	en	hypokalemia
+LAB:k_low	med	저칼륨혈증|저칼륨|칼륨 저하|칼륨 감소|저칼륨 혈증
+LAB:k_low	syn	hypokalemia|hypokalaemia|low potassium
+LAB:k_low	re	(칼륨|potassium)[^.,]{0,8}(감소|저하|낮|↓)
+LAB:k_high	ko	고칼륨혈증
+LAB:k_high	en	hyperkalemia
+LAB:k_high	med	고칼륨혈증|고칼륨|칼륨 상승|칼륨 증가|고칼륨 혈증
+LAB:k_high	syn	hyperkalemia|hyperkalaemia|high potassium
+LAB:k_high	re	(칼륨|potassium)[^.,]{0,8}(증가|상승|높|↑)
+LAB:glucose_high	ko	고혈당
+LAB:glucose_high	en	hyperglycemia
+LAB:glucose_high	lay	혈당이 높|혈당이 올라|당이 높|당 수치가 높
+LAB:glucose_high	med	고혈당|혈당 상승|고혈당증|혈당 증가|공복혈당장애|당뇨병성 케톤산증
+LAB:glucose_high	syn	hyperglycemia|elevated glucose|high blood sugar
+LAB:glucose_high	re	(혈당|glucose|포도당)[^.,]{0,8}(상승|증가|높|↑)
+LAB:glucose_low	ko	저혈당
+LAB:glucose_low	en	hypoglycemia
+LAB:glucose_low	lay	혈당이 낮|혈당이 떨어|당이 떨어|저혈당 증상
+LAB:glucose_low	med	저혈당|혈당 저하|저혈당증|혈당 감소
+LAB:glucose_low	syn	hypoglycemia|low blood sugar|low glucose
+LAB:glucose_low	re	(혈당|glucose|포도당)[^.,]{0,8}(감소|저하|낮|↓)
+LAB:cr_high	ko	크레아티닌 상승
+LAB:cr_high	en	elevated creatinine
+LAB:cr_high	lay	신장 수치가 높|콩팥 수치가 높|신장 기능이 나쁘
+LAB:cr_high	med	크레아티닌 상승|크레아티닌 증가|신기능 저하|신기능 악화|질소혈증|급성 신손상|급성 신부전|급성 콩팥 손상|신장 기능 저하|사구체여과율 감소|사구체 여과율 감소
+LAB:cr_high	syn	elevated creatinine|azotemia|acute kidney injury|aki|renal impairment|decreased gfr
+LAB:cr_high	re	(크레아티닌|creatinine|(?<![a-z])cr(?![a-z]))[^.,]{0,8}(상승|증가|높|↑)
+LAB:bun_high	ko	혈중 요소질소 상승
+LAB:bun_high	en	elevated bun
+LAB:bun_high	med	bun 상승|요소질소 상승|혈중요소질소 상승|bun 증가
+LAB:bun_high	syn	elevated bun|high bun|uremia
+LAB:bun_high	re	((?<![a-z])bun(?![a-z])|요소질소)[^.,]{0,8}(상승|증가|높|↑)
+LAB:ast_alt_high	ko	간효소 상승
+LAB:ast_alt_high	en	elevated transaminases
+LAB:ast_alt_high	lay	간 수치가 높|간수치가 높|간 수치가 올라|간수치가 올라|간 기능 수치가 높
+LAB:ast_alt_high	med	간효소 상승|간수치 상승|간 수치 상승|트랜스아미나제 상승|아미노전이효소 상승|간기능 이상|간기능 검사 이상|간 기능 이상|ast 상승|alt 상승
+LAB:ast_alt_high	syn	elevated transaminases|transaminitis|elevated liver enzymes|abnormal lfts|elevated ast|elevated alt
+LAB:ast_alt_high	re	((?<![a-z])(?:ast|alt|got|gpt)(?![a-z])|간효소|간 효소|간수치|간 수치|트랜스아미나제)[^.,]{0,10}(상승|증가|높|↑)
+LAB:bilirubin_high	ko	고빌리루빈혈증
+LAB:bilirubin_high	en	hyperbilirubinemia
+LAB:bilirubin_high	med	빌리루빈 상승|고빌리루빈혈증|빌리루빈 증가|총빌리루빈 상승|직접 빌리루빈 상승|간접 빌리루빈 상승|고빌리루빈 혈증
+LAB:bilirubin_high	syn	hyperbilirubinemia|elevated bilirubin|high bilirubin
+LAB:bilirubin_high	re	(빌리루빈|bilirubin|t\.?bil)[^.,]{0,8}(상승|증가|높|↑)
+LAB:bilirubin_high	parents	SYM:jaundice
+LAB:albumin_low	ko	저알부민혈증
+LAB:albumin_low	en	hypoalbuminemia
+LAB:albumin_low	med	저알부민혈증|알부민 감소|알부민 저하|저알부민
+LAB:albumin_low	syn	hypoalbuminemia|low albumin
+LAB:albumin_low	re	(알부민|albumin)[^.,]{0,8}(감소|저하|낮|↓)
+LAB:crp_high	ko	CRP 상승
+LAB:crp_high	en	elevated crp
+LAB:crp_high	lay	염증 수치가 높|염증 수치가 올라|염증수치가 높|염증이 있다고
+LAB:crp_high	med	crp 상승|c반응단백 상승|c-반응성 단백 상승|염증 수치 상승|염증수치 상승|염증 표지자 상승|crp 증가|c-반응단백 상승
+LAB:crp_high	syn	elevated crp|high crp|elevated c-reactive protein|raised inflammatory markers
+LAB:crp_high	re	(crp|c-?반응 ?단백|c-?반응성 ?단백|염증 ?수치|염증 ?표지)[^.,]{0,8}(상승|증가|높|↑)
+LAB:esr_high	ko	적혈구침강속도 상승
+LAB:esr_high	en	elevated esr
+LAB:esr_high	med	esr 상승|적혈구침강속도 상승|적혈구 침강 속도 상승|혈침 상승|esr 증가
+LAB:esr_high	syn	elevated esr|high esr|elevated sedimentation rate
+LAB:esr_high	re	(esr|적혈구 ?침강 ?속도|혈침)[^.,]{0,8}(상승|증가|높|↑)
+LAB:hco3_low	ko	중탄산염 감소
+LAB:hco3_low	en	low bicarbonate
+LAB:hco3_low	med	중탄산 감소|중탄산염 감소|중탄산 저하|hco3 감소|hco3 저하
+LAB:hco3_low	syn	low bicarbonate|low hco3
+LAB:hco3_low	re	(hco3|중탄산)[^.,]{0,8}(감소|저하|낮|↓)
+LAB:inr_high	ko	INR 연장
+LAB:inr_high	en	elevated inr
+LAB:inr_high	med	inr 상승|inr 연장|pt 연장|응고 시간 연장|프로트롬빈 시간 연장|응고 장애|응고장애|혈액 응고 장애
+LAB:inr_high	syn	elevated inr|prolonged pt|coagulopathy|prolonged prothrombin time
+LAB:inr_high	re	(inr|(?<![a-z])pt(?![a-z])|프로트롬빈 ?시간)[^.,]{0,8}(상승|증가|연장|높|↑)
+LAB:eos_high	ko	호산구 증가
+LAB:eos_high	en	eosinophilia
+LAB:eos_high	med	호산구 증가|호산구증가|호산구증가증|호산구 증가증|호산구 상승
+LAB:eos_high	syn	eosinophilia|elevated eosinophils
+LAB:eos_high	re	(호산구|eosinophil|(?<![a-z])eos(?![a-z]))[^.,]{0,8}(상승|증가|높|↑)
+LAB:urine_blood	ko	요잠혈 양성
+LAB:urine_blood	en	urine occult blood positive
+LAB:urine_blood	med	요잠혈 양성|잠혈 양성|요잠혈|소변 잠혈 양성|현미경적 혈뇨|적혈구뇨
+LAB:urine_blood	syn	urine occult blood|microscopic hematuria|urine blood positive
+LAB:urine_blood	parents	SYM:hematuria
+LAB:proteinuria	ko	단백뇨
+LAB:proteinuria	en	proteinuria
+LAB:proteinuria	lay	소변에 단백|소변에서 단백
+LAB:proteinuria	med	단백뇨|요단백 양성|소변 단백 양성|알부민뇨|미세알부민뇨|요단백
+LAB:proteinuria	syn	proteinuria|albuminuria|urine protein positive|microalbuminuria
+LAB:proteinuria	re	(요단백|소변 ?단백|뇨단백)[^.,]{0,8}(양성|검출|증가|\+)
+LAB:glycosuria	ko	요당 양성
+LAB:glycosuria	en	glycosuria
+LAB:glycosuria	med	요당 양성|요당|당뇨 양성|소변 당 양성
+LAB:glycosuria	syn	glycosuria|urine glucose positive
+
+# ---------------------------------------------------------------- generic past-history statements
+HX:birth_history	ko	출생력
+HX:birth_history	en	birth history
+HX:birth_history	lay	만삭으로 태어|자연분만으로 태어|제왕절개로 태어|문제없이 태어|건강하게 태어|이른둥이로 태어
+HX:birth_history	med	출생력|출생 체중|출생체중|재태 연령|재태연령|분만력|주산기력
+HX:birth_history	syn	birth history|birth weight|gestational age at birth|perinatal history
+HX:birth_history	re	(임신|재태) ?[0-9]+ ?주(?:에|째에|만에)?[^.]{0,15}(태어|출생|분만|낳)
+HX:obstetric_history	ko	산과력
+HX:obstetric_history	en	obstetric history
+HX:obstetric_history	lay	아이를 낳|출산을 했|출산도|애를 낳
+HX:obstetric_history	med	산과력|분만력|출산력|경산부|초산부|다산부|유산력|자연 유산|인공 유산|제왕절개 분만|질식 분만
+HX:obstetric_history	syn	obstetric history|parity|gravida|para|g2p2|g1p1|g3p3|miscarriage
+HX:obstetric_history	re	임신(?:은|을)? ?[0-9]+ ?(?:번|회)
+HX:obstetric_history	re	(?<![a-z])g[0-9]p[0-9]
+HX:pmh	ko	과거 병력
+HX:pmh	en	past medical history
+HX:pmh	lay	지병|앓던 병|앓던 질환|앓은 병|앓은 질환|앓았던 병|아팠던 적|아픈 적|아팠거나|큰 병|병원에 다닌 적|치료받던 병|치료받은 병|다니는 병원|진단받은 병
+HX:pmh	med	특별한 질환|다른 질환|앓던 질환|심각한 질환|큰 질환|진단받은 질환|앓은 질환|과거력|과거 병력|기저질환|기저 질환|병력|기왕력|과거 질환|내과적 질환|기저 병력
+HX:pmh	syn	past medical history|pmh|medical history|comorbidities|underlying disease
+HX:pmh	flags	cue
+
+# ---------------------------------------------------------------- concepts named by safety keyword tuples
+SIGN:peripheral_emboli	ko	심내막염 말초 징후
+SIGN:peripheral_emboli	en	peripheral stigmata of endocarditis
+SIGN:peripheral_emboli	med	선상 출혈|손톱 밑 출혈|손톱 아래 출혈|손톱밑 출혈|제인웨이 병변|제인웨이|오슬러 결절|오슬러|결막 점상 출혈|결막 점상출혈|로스 반점
+SIGN:peripheral_emboli	syn	splinter hemorrhage|splinter hemorrhages|janeway lesions|janeway|osler nodes|osler|conjunctival petechiae|roth spots
+SIGN:tenosynovitis	ko	건초염 소견
+SIGN:tenosynovitis	en	tenosynovitis
+SIGN:tenosynovitis	med	핑켈스타인 검사 양성|핑켈스타인 양성|핑켈스타인|건초염|건막염|힘줄염|건염|점액낭염|활액낭염
+SIGN:tenosynovitis	syn	finkelstein test positive|finkelstein|tenosynovitis|tendinitis|tendonitis|bursitis
+HX:implanted_device	ko	체내 이식 기기
+HX:implanted_device	en	implanted device
+HX:implanted_device	lay	심장에 기계|몸에 금속|금속 조각|쇳조각|쇳가루|금속 파편|총알
+HX:implanted_device	med	심박동기|심장 박동기|인공 심박동기|페이스메이커|제세동기|이식형 제세동기|인공와우|인공 와우|신경자극기|신경 자극기|인슐린 펌프|동맥류 클립|금속 이물|약물 주입 펌프|이식형 심장
+HX:implanted_device	syn	pacemaker|defibrillator|icd|cochlear implant|neurostimulator|insulin pump|aneurysm clip|shrapnel|metal fragment|metallic foreign body|crt-d|crt-p
+SIGN:peritoneal_signs	ko	복막 자극 징후
+SIGN:peritoneal_signs	en	peritoneal signs
+SIGN:peritoneal_signs	lay	배가 판자처럼~|배 전체가 딱딱
+SIGN:peritoneal_signs	med	복막 자극 징후|복막자극징후|복막 자극 증상|판상 경직|전반적 복막염|범발성 복막염|복막염 소견|복막 자극
+SIGN:peritoneal_signs	syn	peritoneal signs|peritonism|rigid abdomen|generalized peritonitis|diffuse peritonitis|peritonitis
+SIGN:peritoneal_signs	parents	SIGN:guarding
+HX:placenta_previa	ko	전치태반
+HX:placenta_previa	en	placenta previa
+HX:placenta_previa	med	전치태반|전치 태반|저위태반|저위 태반|태반 조기 박리|태반조기박리
+HX:placenta_previa	syn	placenta previa|placenta praevia|low-lying placenta|placental abruption
+HX:bleeding_disorder	ko	출혈 질환
+HX:bleeding_disorder	en	bleeding disorder
+HX:bleeding_disorder	lay	피가 잘 안 멈추는 병|피가 잘 안 굳는
+HX:bleeding_disorder	med	혈우병|폰빌레브란트병|폰 빌레브란트|응고병|응고 인자 결핍|파종성 혈관내 응고|혈소판 감소증 병력|출혈성 질환
+HX:bleeding_disorder	syn	hemophilia|haemophilia|von willebrand disease|von willebrand|bleeding disorder|coagulation factor deficiency|dic
+SIGN:cardiac_arrest	ko	심정지
+SIGN:cardiac_arrest	en	cardiac arrest
+SIGN:cardiac_arrest	lay	심장이 멈|숨을 안 쉬
+SIGN:cardiac_arrest	med	심정지|심폐소생술|무맥성|심실세동|심장 정지|호흡 정지
+SIGN:cardiac_arrest	syn	cardiac arrest|cpr|pulseless|ventricular fibrillation|unresponsive
+HX:cns_disease	ko	중추신경계 질환 병력
+HX:cns_disease	en	central nervous system disease history
+HX:cns_disease	lay	머리 수술|뇌 수술을|머리에 관을
+HX:cns_disease	med	뇌수술|뇌 수술|개두술|뇌농양|뇌 농양|수두증|뇌실 션트|vp 션트|뇌실복강 션트|뇌전이|뇌 전이|두개내 종괴|뇌종양 병력
+HX:cns_disease	syn	brain mass|brain abscess|hydrocephalus|vp shunt|ventriculoperitoneal shunt|brain metastasis|craniotomy|mass lesion
+ECG:lbbb	ko	심전도: 좌각차단
+ECG:lbbb	en	ECG: left bundle branch block
+ECG:lbbb	med	좌각차단|좌각 차단|좌각 블록|새로운 좌각차단|우각차단|우각 차단|각차단
+ECG:lbbb	syn	left bundle branch block|lbbb|new lbbb|right bundle branch block|rbbb|bundle branch block
+SIGN:pulsatile_mass	ko	박동성 종괴
+SIGN:pulsatile_mass	en	pulsatile mass
+SIGN:pulsatile_mass	lay	배에서 맥박이 뛰|배에서 뭔가 뛰|배가 벌떡벌떡
+SIGN:pulsatile_mass	med	박동성 종괴|박동성 복부 종괴|박동성 덩이|확장성 박동
+SIGN:pulsatile_mass	syn	pulsatile mass|pulsatile abdominal mass|expansile pulsation
+
+# ---------------------------------------------------------------- extra surface forms for knowledge/kb_tests.py concepts
+# (labels, KB links and result detection come from kb_tests; these rows only add wording)
+ECG:ecg_stemi	med	st 상승|st분절 상승|st 분절 상승|st상승|병적 q파|병적 q|q파|st분절상승 심근경색
+ECG:ecg_stemi	syn	st elevation|stemi|pathologic q waves|st-elevation
+ECG:ecg_st_depression	med	st 하강|st분절 하강|st 분절 하강|st 저하|t파 역전|t파 도치|t파 이상|st-t 변화|허혈성 변화|허혈성 st
+ECG:ecg_st_depression	syn	st depression|t wave inversion|st-t changes|ischemic changes
+ECG:ecg_af	med	심방세동 리듬|불규칙적으로 불규칙한 리듬|p파 소실
+ECG:ecg_af	syn	atrial fibrillation on ecg|absent p waves|irregularly irregular rhythm
+IMG:free_air	med	유리 공기|자유 공기|복강 내 공기|복강내 공기|횡격막 아래 공기|횡격막하 공기|횡격막 하 공기|기복증|복강 내 유리 가스|천공
+IMG:free_air	syn	free air|pneumoperitoneum|free gas|subdiaphragmatic air|perforation
+LAB:blood_culture_pos	med	균혈증|혈액배양 양성|혈액 배양 양성|혈액 배양에서 균|혈액배양에서 균|패혈증
+LAB:blood_culture_pos	syn	bacteremia|positive blood culture|blood culture positive|sepsis
+LAB:hcg_pos	med	임신 반응 검사|임신 검사|임신검사|임신 반응|임신반응|소변 임신|hcg 양성|임신 테스트|임테기
+LAB:hcg_pos	syn	positive pregnancy test|positive hcg|pregnancy test|beta-hcg
+LAB:hcg_pos	flags	cue
+LAB:troponin_high	lay	심장 효소 수치가 높|심장 수치가 높
+LAB:troponin_high	med	심근효소 상승|심근 효소 상승|심장 효소 상승|트로포닌 상승|트로포닌 양성
+LAB:troponin_high	syn	elevated troponin|troponin positive|cardiac enzymes elevated
