@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Callable
 
-from doctor_agent.knowledge.clinical_rules import Citation, age_years
+from doctor_agent.knowledge.clinical_rules import Citation, ReadText, after_family_heading, age_years
 
 MET, NOT_MET, UNKNOWN = "met", "not_met", "unknown"
 _STATE_KO = {MET: "충족", NOT_MET: "불충족", UNKNOWN: "미확인"}
@@ -46,6 +46,10 @@ _NEGATIONS = ("없", "않", "아니", "기보다", "안 됨", "음성", "(-)", "
 _PRE_NEGATIONS = ("no ", "not ", "denies ", "denied ", "without ", "negative for ", "absence of ")
 _CLAUSE_BREAKS = (".", "!", "\n", ",", ";", "고 ", "며 ", "면서", "는데", "지만", " but ", " and ", "→")
 _NEG_WINDOW = 25
+# layer reading (Doc._reading) only for keyword-like matches without their own result word
+_LAYER_MAX_MATCH = 20
+_OWN_RESULT = re.compile(r"없|않|아니|음성|양성|정상|negative|positive|normal|\(-\)|\(\+\)|\+|↑|↓|상승|저하|감소|증가")
+
 _DUR = re.compile(r"(\d+(?:\.\d+)?)\s*(시간|일|주|개월|달|년|hours?|hrs?|days?|weeks?|months?|years?)(?![a-z])")
 _DUR_DAYS = {"시간": 1 / 24, "일": 1, "주": 7, "개월": 30, "달": 30, "년": 365, "hour": 1 / 24, "hours": 1 / 24,
              "hr": 1 / 24, "hrs": 1 / 24, "day": 1, "days": 1, "week": 7, "weeks": 7, "month": 30, "months": 30,
@@ -79,6 +83,7 @@ class Doc:
     def __init__(self, text: str):
         self.raw = text or ""
         self.text = prepare(text)
+        self._rt: ReadText | None = None  # parsed lazily by the normalisation layer, once per Doc
 
     def _line(self, pos: int) -> str:
         start = self.text.rfind("\n", 0, pos) + 1
@@ -101,17 +106,51 @@ class Doc:
         head = self.text[max(0, start - 15):start]
         return any(n in head for n in _PRE_NEGATIONS)
 
+    def _reading(self, start: int, end: int) -> str:
+        """One match: "aff", "neg" or "skip" (uncertain, hypothetical, or about a relative).
+
+        2026-09-27: a short match without its own negation/result word is read by the normalisation layer when the
+        layer has a finding there (list negation across commas, idioms, persistence, hedges keep "affirmed";
+        "모르겠어요" and questions are "skip", never "neg"; relatives are "skip"). Ledger "- 음성" lines, long
+        matches ("혈액 배양 ... 양성") and matches that carry their own result word ("ana 음성") keep the window rule."""
+        if self._line(start).startswith("- 음성"):
+            return "neg"
+        span = self.text[start:end]
+        if end - start <= _LAYER_MAX_MATCH and not _OWN_RESULT.search(span):
+            hits = self._read.findings_at(start, end)
+            if hits:
+                if after_family_heading(self.text, start):  # "가족력: 루푸스"
+                    return "skip"
+                mine = [f for f in hits if f.subject == "patient"]
+                if any(f.polarity == "present" and not f.hypothetical for f in mine):
+                    return "aff"
+                if not mine or any(f.polarity == "uncertain" or f.hypothetical for f in mine):
+                    return "skip"
+                return "neg"
+        return "neg" if self._negated(start, end) else "aff"
+
+    @property
+    def _read(self) -> ReadText:
+        if self._rt is None:
+            self._rt = ReadText(self.text)
+        return self._rt
+
     def state(self, patterns: tuple[str, ...]) -> tuple[str, str]:
-        """MET if any match is affirmed; NOT_MET if matches exist and all are negated; else UNKNOWN."""
-        negated = ""
+        """MET if any match is affirmed; NOT_MET if matches exist and all are negated (none uncertain); else
+        UNKNOWN."""
+        negated, unsure = "", False
         for p in patterns:
             for m in re.finditer(p, self.text):
                 if self._skipped(m.start()):
                     continue
-                if not self._negated(m.start(), m.end()):
+                r = self._reading(m.start(), m.end())
+                if r == "aff":
                     return MET, m.group(0).strip()
-                negated = negated or m.group(0).strip()
-        return (NOT_MET, negated) if negated else (UNKNOWN, "")
+                if r == "neg":
+                    negated = negated or m.group(0).strip()
+                else:
+                    unsure = True
+        return (NOT_MET, negated) if negated and not unsure else (UNKNOWN, "")
 
     def values(self, num: "Num") -> list[float]:
         out = []

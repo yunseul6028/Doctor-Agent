@@ -545,6 +545,12 @@ def _relative_before(t: str, idx: int, rx: re.Pattern = _RE_RELATIVE) -> bool:
     return not any(m.start() >= rel[-1] for m in _RE_SELF.finditer(head))
 
 
+def after_family_heading(text: str, pos: int) -> bool:
+    """True when a family-history heading ("가족력:", "가족 중", "family history of") precedes pos in its sentence
+    and no self word ("저는", "제가") comes after it."""
+    return _relative_before((text or "").lower(), pos, _RE_FAMILY_HISTORY)
+
+
 # Occurrence status: "pos" (affirmed, hedged or not), "unc" (uncertain / hypothetical: never counts as denied),
 # "neg" (denied for the patient), "other" (about a relative or another person: neither the patient's nor denied)
 POS, UNC, NEG, OTHER = "pos", "unc", "neg", "other"
@@ -569,13 +575,29 @@ class ReadText(str):
         if self._parsed is None:
             from doctor_agent.nlp import normalize, parse
             parts, spans, off = [], [], 0
+            self._line_off = []
             for line in str(self).split("\n"):
                 n = normalize(line)
                 spans += [(off + f.start, off + f.end, f) for f in parse(line, self.source)]
                 parts.append(n)
+                self._line_off.append(off)
                 off += len(n) + 1
             self._parsed = ("\n".join(parts), spans)
         return self._parsed
+
+    def findings_at(self, start: int, end: int) -> list:
+        """Layer findings overlapping [start, end) of this (unnormalised) text; a list-scope negation that does not
+        end its sentence is left out (see _usable)."""
+        from doctor_agent.nlp import normalize
+        norm, spans = self.parsed()
+        raw = str(self)
+
+        def to_norm(pos: int) -> int:
+            ls = raw.rfind("\n", 0, pos) + 1
+            return self._line_off[raw.count("\n", 0, ls)] + len(normalize(raw[ls:pos] + "x")) - 1
+
+        s, e = to_norm(start), to_norm(end)
+        return [f for fs, fe, f in spans if fs < e and s < fe and _usable(norm, fe, f)]
 
 
 def _as_read(text, source: str = "patient") -> ReadText:
