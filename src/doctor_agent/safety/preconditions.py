@@ -35,11 +35,15 @@ from typing import Callable
 
 from doctor_agent.agent.text import similarity
 from doctor_agent.knowledge.clinical_rules import (
+    NEG,
+    POS,
+    UNC,
     Citation,
+    ReadText,
     age_years,
     detect_categories,
     duration_level,
-    negated,
+    keyword_statuses,
 )
 from doctor_agent.safety.protocols import G_CHEST_PAIN, G_MENINGITIS
 
@@ -148,13 +152,6 @@ CITATIONS: tuple[Citation, ...] = (
 # --------------------------------------------------------------------------------------------
 
 _UNAVAILABLE = "제공되지 않습니다"
-_FAMILY = ("아버지", "어머니", "부모", "아빠", "엄마", "형이", "형은", "형도", "누나", "언니", "오빠", "동생", "할머니",
-           "할아버지", "가족", "삼촌", "이모", "고모", "외삼촌", "셨", "family", "mother", "father", "brother", "sister",
-           "sibling", "parent")
-# zero-width split after clause ends, so the text itself is kept intact ("교통사고 직후")
-_RE_CLAUSE = re.compile(r"(?<=[.\n!?;,])|(?<=고 )|(?<=며 )|(?<=는데 )|(?<=지만 )")
-
-
 # negations that clinical_rules.negated() does not know ("항응고제는 안 먹어요", "전치태반 아님")
 _RE_EXTRA_NEG = re.compile(r"(?<![가-힣])안\s*(먹|드|복용|받|맞|써|쓰|피우|마시)|아님")
 
@@ -187,20 +184,35 @@ def _list_negated(t: str, kw: str) -> bool:
     return True
 
 
+def _statuses(text: str, kw: str) -> list[str]:
+    """Occurrence statuses of kw (clinical_rules.keyword_statuses: the normalisation layer, legacy fallback). A
+    keyword the layer has no finding for also gets the sentence-final list negation above."""
+    st = keyword_statuses(text, kw, detail=True)
+    if st and not any(layer for _, layer in st) and _list_negated(str(text or "").lower(), kw):
+        return [NEG if s == POS else s for s, _ in st]
+    return [s for s, _ in st]
+
+
 def _neg(text: str, kw: str) -> bool:
-    return negated(text, kw) or _list_negated((text or "").lower(), kw)
+    """Denied for the patient (at least one denial, no affirmed or uncertain mention; relatives ignored)."""
+    st = _statuses(text, kw)
+    return NEG in st and not (POS in st or UNC in st)
 
 
 def _affirmed(text: str, keywords: tuple[str, ...]) -> bool:
-    t = (text or "").lower()
-    return any(k in t and not _neg(t, k) for k in keywords)
+    """Affirmed for the patient: present (hedged too) or uncertain. Relatives' mentions never count."""
+    rt = text if isinstance(text, ReadText) else ReadText(text or "")
+    t = rt.lower()
+    return any(k in t and any(s in (POS, UNC) for s in _statuses(rt, k)) for k in keywords)
 
 
-def _self_only(text: str) -> str:
-    """Drop clauses about relatives (family history must not trigger the patient's own risk factors) and
-    normalise extra negations to a form negated() recognises."""
-    text = _RE_EXTRA_NEG.sub(lambda m: "아니 " + (m.group(1) or ""), text)
-    return "".join(c if not any(f in c for f in _FAMILY) else ". " for c in _RE_CLAUSE.split(text))
+def _self_only(text: str) -> ReadText:
+    """The case text for risk-factor matching: extra negations normalised ("안 먹어요" → "아니 먹어요") for the
+    legacy fallback. Relatives are no longer cut out here: the normalisation layer attributes each finding to its
+    subject ("아버지가 뇌졸중" → family), and keywords without a lexicon finding get the relative-before check of
+    clinical_rules.keyword_statuses (2026-09-27; the old clause cut also dropped the patient's own findings in any
+    clause with an honorific "셨")."""
+    return ReadText(_RE_EXTRA_NEG.sub(lambda m: "아니 " + (m.group(1) or ""), text or ""))
 
 
 _RE_FEMALE = re.compile(r"여성|여자|여아|소녀|female|woman|girl|\d+\s*세\s*여|\d+\s*[/ ]?\s*f\b|\bf\s*/\s*\d+")
@@ -320,7 +332,7 @@ _PREMENOPAUSE = ("폐경 전", "폐경전", "폐경은 아직", "폐경이 아�
 
 def _preg_weeks(ctx: Ctx) -> int | None:
     for m in _RE_PREG_WEEKS.finditer(ctx.facts):
-        if _neg(ctx.facts, m.group(0)):
+        if not _affirmed(ctx.facts, (m.group(0),)):
             continue
         return int(next(g for g in m.groups() if g))
     return None
@@ -481,7 +493,7 @@ def _lp_ct_risks(ctx: Ctx) -> list[str]:
     if ctx.affirmed(_AMS) or any(3 <= g < 15 for g in gcs):
         found.append("의식 변화")
     seizure_text = re.sub(r"발작성|발작적|(발작|경련)\s*(처럼|같이|같은|듯)|(근육|복부|위|배|장|다리|종아리|안면|얼굴|눈꺼풀)\s*경련"
-                          r"|(서맥|빈맥|부정맥|심방세동|기침|천식|공황|불안|통증)\s*발작", "", ctx.facts)
+                          r"|(서맥|빈맥|부정맥|심방세동|기침|천식|공황|불안|통증|증상|호흡곤란|쌕쌕거림)\s*발작", "", ctx.facts)
     if _affirmed(seizure_text, _SEIZURE):
         found.append("새로 생긴 경련")
     if ctx.affirmed(_IMMUNO):
@@ -639,13 +651,13 @@ _RE_ORBIT_XRAY = re.compile(r"(안와|눈|orbit)[^.;\n]{0,8}?(x-?ray|엑스|x\s*
 
 
 def _eval_mri_safety(ctx: Ctx, c: str) -> Finding | None:
-    fb = next((m.group(0) for m in _RE_ORBIT_FB.finditer(ctx.facts) if not _neg(ctx.facts, m.group(0))), None)
+    fb = next((m.group(0) for m in _RE_ORBIT_FB.finditer(ctx.facts) if _affirmed(ctx.facts, (m.group(0),))), None)
     if fb and not (ctx.requested(_RE_ORBIT_XRAY) or _RE_ORBIT_XRAY.search(ctx.raw)):
         return Finding("block", "눈(안와)에 금속 이물이 들어갔을 가능성이 있어, MRI 전에 안와 X-ray로 금속 이물을 먼저 "
                                 "배제해야 합니다(자기장에 의한 이물 이동·실명 위험).",
                        ("TEST", "안와 X-ray(금속 이물 확인)"))
     t = ctx.facts
-    if any(re.search(k, t) and not _neg(t, re.search(k, t).group(0)) for k in _CIED):
+    if any(re.search(k, t) and _affirmed(t, (re.search(k, t).group(0),)) for k in _CIED):
         return Finding("warn", "심장 박동기/제세동기: MRI 호환(MR-conditional) 여부와 기기·리드 정보를 확인하고, "
                                "심장 기기 담당팀과 프로토콜을 정한 뒤 시행하세요.",
                        ("ASK", "심장 박동기(또는 제세동기)의 종류와 MRI 호환 여부, 삽입 시기를 알고 계신가요?"))
