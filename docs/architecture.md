@@ -11,7 +11,7 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
              ▼
         Policy.next_action (agent/policy.py)
              │ hints ◄── safety/protocols.py        can't-miss dx + pending minimum checks (26 categories)
-             │       ◄── knowledge/clinical_rules.py ≤2 applicable decision rules (12 rules)
+             │       ◄── knowledge/clinical_rules.py ≤2 applicable decision rules (24 rules)
              │       ◄── agent/kb_hints.py ◄── knowledge/kb.py (+ kb_curated.py, kb_tests.py, data/kb/)
              ▼
         CaseState (agent/state.py): findings ledger + DDx ledger (agent/ledger.py), turns, reviews
@@ -35,7 +35,7 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 | `agent/runtime.py` | `CaseBudget` (wall clock), `GuardedLLM` (failure cap, watchdog, deadlines, gpt-oss options, prompt-size stats). |
 | `llm/client.py`, `llm/harmony.py` | `OpenAICompatClient` (retries, 429 wait, billing detection, length retry, structured output), `DummyLLM`; harmony-format cleanup. |
 | `safety/protocols.py` | Chief-complaint safety protocols (can't-miss diagnoses + minimum checks with citations). `safety/rules.py` is a backward-compatible wrapper (`red_flags_for`). |
-| `knowledge/clinical_rules.py` | 12 decision rules, category detection from the chief complaint, duration/age parsing, negation handling. |
+| `knowledge/clinical_rules.py` | 24 decision rules, category detection from the chief complaint, duration/age parsing, negation handling. |
 | `knowledge/kb.py`, `kb_curated.py`, `kb_tests.py` | Knowledge base runtime (stdlib only, CPU), our matching tables, curated test-result → disease links. |
 | `knowledge/retriever.py` | Generic `BM25Retriever`, not used by the agent (kb.py has its own weighted BM25). |
 
@@ -103,8 +103,10 @@ learned later (triggers, predicates).
   ≥ 6 weeks, hearing loss, adult neck mass, bleeding tendency, chronic limb weakness, infant bilious vomiting.
 - A check can be limited by `acute_only`, `min_duration`, `min_age`, negation-aware `triggers` or one of 19 named
   `predicates` (e.g. sepsis suspicion, neonate, unilateral leg, postmenopausal bleeding, current pregnancy).
-- `knowledge/clinical_rules.py`: **12 rules** — Wells PE, PERC, HEART, ADD-RS, qSOFA, CURB-65, Centor, Ottawa SAH,
-  Canadian CT Head, ABCD2, Alvarado, BISAP — each with citation/DOI. `Rule.applies_to` = (category or rule keyword)
+- `knowledge/clinical_rules.py`: **24 rules** — Wells PE, PERC, HEART, ADD-RS, qSOFA, CURB-65, Centor, Ottawa SAH,
+  Canadian CT Head, ABCD2, Alvarado, BISAP; added 2026-09-27: PECARN head (<2 y, ≥2 y), NEXUS, Canadian C-spine,
+  SF Syncope, Canadian Syncope Risk Score, Glasgow-Blatchford, Kocher, PAS, sPESI, PECARN febrile infant,
+  McIsaac — each with citation/DOI. `Rule.applies_to` = (category or rule keyword)
   AND `requires_any` AND NOT `excludes_any` AND duration below `chronic_cutoff` AND age ≥ `min_age`;
   `Rule.applicability` states which population sentence of the original abstract each condition comes from.
 - Coverage on the 267 `data/cases_aug` cases (initial info only): 198 match a category, 173 have ≥ 1 applicable

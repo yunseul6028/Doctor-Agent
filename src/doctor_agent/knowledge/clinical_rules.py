@@ -23,6 +23,15 @@ Applicability (2026-09-26)
   complaints lasting >= 2 weeks. 13 more categories were added on 2026-09-26 (syncope, palpitations,
   hemoptysis/chronic cough, jaundice, joint, back pain, rash, chronic pruritus, edema, amenorrhea/abnormal
   vaginal bleeding, fatigue, cognitive decline, psychiatric); their checks live in safety/protocols.py.
+
+2026-09-27: 12 more rules (PECARN head <2 / >=2 y, NEXUS, Canadian C-spine, SF Syncope, Canadian Syncope Risk
+Score, Glasgow-Blatchford, Kocher, Pediatric Appendicitis Score, sPESI, PECARN febrile infant, McIsaac).
+Applicability gained max_age / max_age_days (pediatric rules need a stated pediatric age or a child word),
+veto_any (always excludes, even over a rule keyword) and rule_age_years() ("3살", "18개월 된 아기").
+Adult-only rules (min_age >= 15) are skipped for child words. detect_categories() is unchanged.
+Not encoded: Ranson / Glasgow-Imrie (48-h scores; BISAP covers early severity), NIHSS (15-item exam scale,
+too long for the prompt), CHA2DS2-VASc (not diagnostic), Rochester / Step-by-Step (criteria not verifiable
+in accessible abstracts; PECARN febrile infant rule used instead).
 """
 from __future__ import annotations
 
@@ -314,6 +323,35 @@ def age_days(text: str) -> float | None:
     return None
 
 
+# Rule applicability only (not used by detect_categories/safety): ages in months ("18개월 된 아기") and "N살".
+# A bare "3개월" is a duration ("3개월 전 머리를 부딪혔어요"), so months need an age marker after them.
+_RE_AGE_MONTHS = re.compile(
+    r"(\d+)\s*개월\s*(된|짜리|째 되는|\s?(남아|여아|아기|아이|영아|유아|환아|아들|딸|남자아이|여자아이))"
+    r"|(\d+)[- ]months?[- ]old")
+_RE_AGE_SAL = re.compile(r"(?<![0-9])(\d{1,2})\s*살")
+# Child words: a pediatric patient when no age is stated (the parent is usually the one speaking)
+_CHILD_WORDS: tuple[str, ...] = (
+    "소아", "남아", "여아", "환아", "아기", "어린이", "유아", "영아", "신생아", "우리 아이", "아이가", "아이는", "아이의",
+    "남자아이", "여자아이", "초등학생", "유치원", "child", "toddler", "infant", "newborn", "baby", "kid ",
+)
+ADULT_RULE_MIN_AGE = 15  # rules with min_age >= this are adult-only: skipped for "아기", "소아" etc.
+
+
+def rule_age_years(text: str) -> float | None:
+    """Age in years for rule applicability: "생후 N일/주/개월", "N개월 된/남아", "N살", then age_years()."""
+    t = (text or "").lower()
+    d = age_days(t)
+    if d is not None and d > 0:
+        return d / 365.25
+    m = _RE_AGE_MONTHS.search(t)
+    if m:
+        return float(m.group(1) or m.group(4)) / 12
+    m = _RE_AGE_SAL.search(t)
+    if m:
+        return float(m.group(1))
+    return age_years(t)
+
+
 # Posterior-circulation stroke screen for acute dizziness (our heuristic, not from a cited rule): age >= 60 or a
 # vascular risk factor, unless the story is clearly BPPV-like (positional AND recurrent/weeks-long).
 _VASCULAR_RF = ("고혈압", "혈압약", "당뇨", "심방세동", "뇌졸중", "뇌경색", "뇌출혈", "중풍", "hypertension",
@@ -500,7 +538,8 @@ class Item:
 
     @property
     def max_points(self) -> float:
-        return max(p for _, p in self.options) if self.options else self.points
+        # a negative binary item (e.g. CSRS vasovagal predisposition -1) contributes at most 0
+        return max(p for _, p in self.options) if self.options else max(self.points, 0.0)
 
 
 @dataclass(frozen=True)
@@ -540,12 +579,20 @@ class Rule:
     chronic_cutoff: int = 0  # exclude when duration_level(text) >= this (1 = >=2 weeks, 2 = months+); 0 = never
     min_age: float | None = None  # exclude when a stated age is below this
     applicability: str = ""  # source of the conditions above
+    # 2026-09-27 additions
+    max_age: float | None = None  # pediatric rule: age must be < max_age (years); needs a stated age or child word
+    max_age_days: float | None = None  # infant rule: age in days must be <= this (from "생후 N일/주/개월", "신생아")
+    veto_any: tuple[str, ...] = ()  # always excluded when affirmed, even when a rule keyword matched
 
     def applies_to(self, text: str) -> bool:
         """Chief complaint is inside the rule's validated population.
 
         Match = (category or rule keyword) AND requires_any AND NOT excludes_any (unless a rule keyword is present,
-        e.g. "명치에서 시작해 오른쪽 아랫배로" keeps Alvarado) AND duration below chronic_cutoff AND age >= min_age.
+        e.g. "명치에서 시작해 오른쪽 아랫배로" keeps Alvarado) AND NOT veto_any (affirmed) AND duration below
+        chronic_cutoff AND age inside [min_age, max_age) / <= max_age_days.
+        Age comes from rule_age_years() ("45세", "3살", "18개월 된 아기", "생후 5주"). When no age is stated,
+        a child word ("소아", "아기", "남아", ...) counts as pediatric: rules with min_age >= 15 are skipped, and
+        pediatric rules (max_age) need either a stated pediatric age or such a word.
         """
         t = (text or "").lower()
         kw = any(k in t for k in self.keywords)
@@ -555,10 +602,28 @@ class Rule:
             return False
         if not kw and any(k in t for k in self.excludes_any):
             return False
-        if self.chronic_cutoff and duration_level(t) >= self.chronic_cutoff:
+        if self.veto_any and contains_affirmed(t, self.veto_any):
             return False
-        age = age_years(t)
-        return not (self.min_age is not None and age is not None and age < self.min_age)
+        # "18개월 된 아기" is an age, not a months-long complaint
+        if self.chronic_cutoff and duration_level(_RE_AGE_MONTHS.sub(" ", t)) >= self.chronic_cutoff:
+            return False
+        age = rule_age_years(t)
+        child = age is None and any(k in t for k in _CHILD_WORDS)
+        if self.min_age is not None:
+            if age is not None and age < self.min_age:
+                return False
+            if child and self.min_age >= ADULT_RULE_MIN_AGE:
+                return False
+        if self.max_age is not None:
+            if age is None and not child:
+                return False
+            if age is not None and age >= self.max_age:
+                return False
+        if self.max_age_days is not None:
+            d = age_days(t)
+            if d is None or d > self.max_age_days:
+                return False
+        return True
 
     @property
     def max_score(self) -> float:
@@ -669,6 +734,70 @@ C_BISAP = Citation(
     "The early prediction of mortality in acute pancreatitis: a large population-based study",
     "Gut", 2008, "57(12):1698-1703", doi="10.1136/gut.2008.152702", pmid="18519429", verified=True,
 )
+# 2026-09-27 additions (bibliographic data checked against PubMed E-utilities efetch, 2026-09-27)
+C_PECARN_HEAD = Citation(
+    "Kuppermann N, Holmes JF, Dayan PS, et al.",
+    "Identification of children at very low risk of clinically-important brain injuries after head trauma: "
+    "a prospective cohort study",
+    "Lancet", 2009, "374(9696):1160-1170", doi="10.1016/S0140-6736(09)61558-0", pmid="19758692", verified=True,
+)
+C_NEXUS = Citation(
+    "Hoffman JR, Mower WR, Wolfson AB, Todd KH, Zucker MI.",
+    "Validity of a set of clinical criteria to rule out injury to the cervical spine in patients with blunt "
+    "trauma",
+    "N Engl J Med", 2000, "343(2):94-99", doi="10.1056/NEJM200007133430203", pmid="10891516", verified=True,
+)
+C_CCSR = Citation(
+    "Stiell IG, Wells GA, Vandemheen KL, et al.",
+    "The Canadian C-spine rule for radiography in alert and stable trauma patients",
+    "JAMA", 2001, "286(15):1841-1848", doi="10.1001/jama.286.15.1841", pmid="11597285", verified=True,
+)
+C_SFSR = Citation(
+    "Quinn JV, Stiell IG, McDermott DA, Sellers KL, Kohn MA, Wells GA.",
+    "Derivation of the San Francisco Syncope Rule to predict patients with short-term serious outcomes",
+    "Ann Emerg Med", 2004, "43(2):224-232", doi="10.1016/s0196-0644(03)00823-0", pmid="14747812", verified=True,
+)
+C_CSRS = Citation(
+    "Thiruganasambandamoorthy V, Kwong K, Wells GA, et al.",
+    "Development of the Canadian Syncope Risk Score to predict serious adverse events after emergency "
+    "department assessment of syncope",
+    "CMAJ", 2016, "188(12):E289-E298", doi="10.1503/cmaj.151469", pmid="27378464", verified=True,
+)
+C_GBS = Citation(
+    "Blatchford O, Murray WR, Blatchford M.",
+    "A risk score to predict need for treatment for upper-gastrointestinal haemorrhage",
+    "Lancet", 2000, "356(9238):1318-1321", doi="10.1016/S0140-6736(00)02816-6", pmid="11073021", verified=True,
+)
+C_KOCHER = Citation(
+    "Kocher MS, Zurakowski D, Kasser JR.",
+    "Differentiating between septic arthritis and transient synovitis of the hip in children: an "
+    "evidence-based clinical prediction algorithm",
+    "J Bone Joint Surg Am", 1999, "81(12):1662-1670", doi="10.2106/00004623-199912000-00002", pmid="10608376",
+    verified=True,
+)
+C_PAS = Citation(
+    "Samuel M.",
+    "Pediatric appendicitis score",
+    "J Pediatr Surg", 2002, "37(6):877-881", doi="10.1053/jpsu.2002.32893", pmid="12037754", verified=True,
+)
+C_SPESI = Citation(
+    "Jiménez D, Aujesky D, Moores L, et al.",
+    "Simplification of the pulmonary embolism severity index for prognostication in patients with acute "
+    "symptomatic pulmonary embolism",
+    "Arch Intern Med", 2010, "170(15):1383-1389", doi="10.1001/archinternmed.2010.199", pmid="20696966",
+    verified=True,
+)
+C_PECARN_FI = Citation(
+    "Kuppermann N, Dayan PS, Levine DA, et al.",
+    "A Clinical Prediction Rule to Identify Febrile Infants 60 Days and Younger at Low Risk for Serious "
+    "Bacterial Infections",
+    "JAMA Pediatr", 2019, "173(4):342-351", doi="10.1001/jamapediatrics.2018.5501", pmid="30776077", verified=True,
+)
+C_MCISAAC = Citation(
+    "McIsaac WJ, White D, Tannenbaum D, Low DE.",
+    "A clinical score to reduce unnecessary antibiotic use in patients with sore throat",
+    "CMAJ", 1998, "158(1):75-83", pmid="9475915", verified=True,
+)
 
 # --------------------------------------------------------------------------------------------
 # Rules
@@ -680,6 +809,28 @@ _TRAUMA = ("외상", "다친", "다쳤", "부딪", "넘어지", "넘어져", "�
 _RECURRENT = ("반복", "재발", "평소", "자주", "recurrent", "usual headache")
 _NON_RLQ = ("명치", "윗배", "상복부", "심와부", "옆구리", "왼쪽", "좌측", "좌하복부", "epigastr", "flank", "left",
             "upper")
+# 2026-09-27 vocabularies
+_HEAD_INJURY = ("머리를 부딪", "머리를 박", "머리를 다쳤", "머리를 다친", "머리 부상", "두부 외상", "머리 외상",
+                "넘어지면서 머리", "떨어져서 머리", "떨어지면서 머리", "머리부터 떨어", "머리를 찧", "head injury",
+                "head trauma", "hit his head", "hit her head", "hit my head", "hit their head")
+# neck pain/injury words (" 목이" with a space so "손목이 아파요" does not match; "목이 아파요" alone is a sore throat
+# in Korean, so the neck rules also require a trauma word)
+_NECK = ("뒷목", " 목이 아", " 목이 뻐근", " 목이 안 돌", "목 통증", "목을 다", "목을 삐", "목 부상", "목뼈", "경추",
+         "whiplash", "neck pain", "neck injury", "neck trauma", "c-spine", "cervical spine")
+_BLUNT_TRAUMA = ("교통사고", "추돌", "충돌", "사고", "넘어", "떨어", "추락", "낙상", "부딪", "다쳤", "다친", "외상", "맞았",
+                 "trauma", "injur", "collision", "crash", "fall", "fell")
+_SEIZURE_INTOX = ("경련", "뇌전증", "seizure", "convuls", "만취", "intoxicat")
+_UGIB = ("토혈", "피를 토", "피가 섞인 구토", "피 섞인 구토", "구토에 피", "토한 것에 피", "커피 찌꺼기", "커피색 구토",
+         "흑색변", "흑변", "검은 변", "검은색 변", "변이 검", "짜장면 같은 변", "짜장 같은 변", "타르 같은 변", "타르변", "hematemesis",
+         "haematemesis", "melena", "melaena", "coffee-ground", "coffee ground", "black stool", "tarry stool",
+         "upper gi bleed", "위장관 출혈", "상부위장관 출혈")
+_HIP_LIMP = ("고관절", "엉덩이 관절", "사타구니", "절뚝", "다리를 절", "다리를 저", "걷지 않으려", "걸으려 하지 않",
+             "걷기를 거부", "걷지 못", "딛지 못", "딛지 않", "체중을 싣지", "hip", "limp", "refuses to walk",
+             "won't walk", "not bearing weight", "non-weight-bearing")
+_SORE_THROAT = ("인후통", "목이 따", "목 따가", "목구멍", "편도", "삼키기", "sore throat", "pharyngitis", "tonsil")
+# PE already confirmed: severity (sPESI), not the diagnostic Wells/PERC
+_PE_CONFIRMED = ("폐색전증 진단", "폐색전증으로 진단", "폐색전증 확진", "폐동맥 색전증 진단", "폐색전증이 확인",
+                 "diagnosed with pulmonary embol", "confirmed pulmonary embol", "pulmonary embolism was confirmed")
 
 _INF = float("inf")
 
@@ -710,7 +861,7 @@ RULES: tuple[Rule, ...] = (
             Threshold(4.5, _INF, ">4", "PE 가능성 높음", "D-dimer만으로 배제하지 말고 영상검사로 확인"),
         ),
         citation=C_WELLS_PE, verification="primary",
-        chronic_cutoff=2, min_age=18,
+        chronic_cutoff=2, min_age=18, veto_any=_PE_CONFIRMED,
         applicability="Wells 2000 abstract: patients with suspected PE (prospective cohort). Excluding "
         "months-long complaints and children is our proxy for 'acute suspicion' in the adult derivation cohort.",
         note="7 items, points, 3-tier (<2, 2-6, >6) and 2-tier (<=4 / >4) cut points all stated in the "
@@ -738,7 +889,7 @@ RULES: tuple[Rule, ...] = (
             Threshold(1, _INF, "1개 이상", "PERC 양성", "배제 불가 → D-dimer 또는 Wells 평가"),
         ),
         citation=C_PERC, verification="primary",
-        chronic_cutoff=2, min_age=18,
+        chronic_cutoff=2, min_age=18, veto_any=_PE_CONFIRMED,
         applicability="Kline 2004 abstract: ED patients evaluated for suspected PE, applied to low-risk "
         "(gestalt) patients only. Months-long complaints and children excluded (our proxy; adult ED cohort).",
         note="8 criteria from the PubMed abstract (age <50, pulse <100, SaO2 >94%, no unilateral leg swelling, "
@@ -1032,6 +1183,357 @@ RULES: tuple[Rule, ...] = (
         note="5 variables and the <1% / >20% range from the abstract. The commonly used '>=3 = severe' cut "
         "point is from later validation papers and is deliberately not encoded here.",
     ),
+    # ---------------------------------------------------------------------------------------- 2026-09-27
+    Rule(
+        id="pecarn_head_lt2", short="PECARN 두부(2세 미만)", name_ko="PECARN 소아 두부 외상 규칙(2세 미만)",
+        name_en="PECARN pediatric head trauma rule, age <2 years",
+        purpose="2세 미만 두부 외상에서 뇌 CT 필요 여부 판단",
+        population="외상 24시간 이내, GCS 14–15인 2세 미만 소아",
+        categories=(),
+        keywords=_HEAD_INJURY,
+        method="tiers",
+        groups=(("intermediate", "중간 위험 인자"), ("high", "고위험 인자")),
+        items=(
+            Item("ams_gcs", "GCS 14 이하 또는 의식 변화(보챔, 처짐, 반응 느림)", group="high"),
+            Item("palpable_fx", "만져지는 두개골 골절", group="high"),
+            Item("nonfrontal_hematoma", "이마 외 부위(뒤통수·정수리·옆머리) 두피 혈종", group="intermediate"),
+            Item("loc_ge5s", "5초 이상 의식 소실", group="intermediate"),
+            Item("severe_mechanism", "심한 손상 기전(차량 사고 중 튕겨나감·전복·동승자 사망, 헬멧 없이 차량에 치임, "
+                 "0.9 m 초과 추락, 빠른 물체에 머리 맞음)", group="intermediate"),
+            Item("not_acting_normally", "보호자가 보기에 평소와 다르게 행동", group="intermediate"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "해당 없음", "매우 저위험", "CT 불필요(적용 대상군에 한함)", rule_out=True),
+            Threshold(1, 1, "중간 위험 인자", "중간 위험", "관찰 또는 뇌 CT 중 임상 판단"),
+            Threshold(2, 2, "고위험 인자", "고위험", "뇌 CT 권고"),
+        ),
+        citation=C_PECARN_HEAD, verification="secondary",
+        max_age=2, chronic_cutoff=1,
+        applicability="Kuppermann 2009 abstract: children younger than 18 years within 24 h of head trauma with "
+        "GCS 14-15; separate rule for <2 years. Needs a head-injury phrase and a stated age <2 years or an "
+        "infant/child word; >=2-week-old injuries excluded (our proxy for 'within 24 h').",
+        note="The 6 very-low-risk criteria for <2 years are in the PubMed abstract (NPV 100%, sensitivity 100% in "
+        "validation). The split into high-risk (CT) vs intermediate (observation vs CT) factors and the severe-"
+        "mechanism definition (fall >0.9 m) come from the paper's figure, cross-checked in open-access reviews "
+        "(PMC13328899, PMC13335041) because the full text is paywalled.",
+    ),
+    Rule(
+        id="pecarn_head_ge2", short="PECARN 두부(2세 이상)", name_ko="PECARN 소아 두부 외상 규칙(2–17세)",
+        name_en="PECARN pediatric head trauma rule, age >=2 years",
+        purpose="2–17세 두부 외상에서 뇌 CT 필요 여부 판단",
+        population="외상 24시간 이내, GCS 14–15인 2–17세 소아",
+        categories=(),
+        keywords=_HEAD_INJURY,
+        method="tiers",
+        groups=(("intermediate", "중간 위험 인자"), ("high", "고위험 인자")),
+        items=(
+            Item("ams_gcs", "GCS 14 이하 또는 의식 변화(처짐, 같은 질문 반복, 반응 느림)", group="high"),
+            Item("basilar_fx_signs", "두개저 골절 징후(고막 뒤 혈종, 너구리 눈, 귀 뒤 멍, 뇌척수액 이루·비루)",
+                 group="high"),
+            Item("any_loc", "의식 소실(시간 무관)", group="intermediate"),
+            Item("vomiting", "구토", group="intermediate"),
+            Item("severe_mechanism", "심한 손상 기전(차량 사고 중 튕겨나감·전복·동승자 사망, 헬멧 없이 차량에 치임, "
+                 "1.5 m 초과 추락, 빠른 물체에 머리 맞음)", group="intermediate"),
+            Item("severe_headache", "심한 두통", group="intermediate"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "해당 없음", "매우 저위험", "CT 불필요(적용 대상군에 한함)", rule_out=True),
+            Threshold(1, 1, "중간 위험 인자", "중간 위험", "관찰 또는 뇌 CT 중 임상 판단"),
+            Threshold(2, 2, "고위험 인자", "고위험", "뇌 CT 권고"),
+        ),
+        citation=C_PECARN_HEAD, verification="secondary",
+        min_age=2, max_age=18, chronic_cutoff=1,
+        applicability="Kuppermann 2009 abstract: children younger than 18 years within 24 h of head trauma with "
+        "GCS 14-15; separate rule for >=2 years. Needs a head-injury phrase and a stated age 2-17 or a child "
+        "word (with no age, both PECARN variants apply); >=2-week-old injuries excluded (our proxy).",
+        note="The 6 very-low-risk criteria for >=2 years are in the PubMed abstract (NPV 99.95%, sensitivity 96.8% "
+        "in validation). High vs intermediate split and the severe-mechanism definition (fall >1.5 m) from the "
+        "paper's figure via open-access reviews (PMC13328899, PMC13335041).",
+    ),
+    Rule(
+        id="nexus", short="NEXUS", name_ko="NEXUS 경추 영상 기준", name_en="NEXUS low-risk criteria (C-spine)",
+        purpose="둔상 환자에서 경추 영상검사 없이 경추 손상 배제",
+        population="둔상 후 경추 손상이 의심되는 환자",
+        categories=(),
+        keywords=_NECK,
+        items=(
+            Item("midline_tenderness", "경추 정중선(뒷목 가운데 뼈) 압통"),
+            Item("focal_neuro", "국소 신경학적 결손"),
+            Item("altered_alertness", "의식·각성 저하"),
+            Item("intoxication", "음주·약물 중독 상태"),
+            Item("distracting_injury", "주의를 분산시키는 심한 통증의 다른 손상"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0개", "저위험", "경추 영상검사 불필요(적용 대상군에 한함)", rule_out=True),
+            Threshold(1, _INF, "1개 이상", "배제 불가", "경추 영상검사(CT 등)"),
+        ),
+        citation=C_NEXUS, verification="primary",
+        requires_any=_BLUNT_TRAUMA, chronic_cutoff=1,
+        applicability="Hoffman 2000 abstract: 34,069 patients who underwent C-spine radiography after blunt "
+        "trauma. Needs a neck word and a trauma word (Korean '목이 아파요' alone means sore throat); >=2-week "
+        "complaints excluded (our proxy for the acute ED visit).",
+        note="All 5 criteria (no midline tenderness, no focal deficit, normal alertness, no intoxication, no "
+        "painful distracting injury) and sensitivity 99.0% / NPV 99.8% from the PubMed abstract. Items are "
+        "phrased as risk-present, so score = number of failed criteria.",
+    ),
+    Rule(
+        id="ccsr", short="Canadian C-spine", name_ko="캐나다 경추 규칙", name_en="Canadian C-Spine Rule",
+        purpose="의식 명료하고 활력징후가 안정된 외상 성인에서 경추 영상검사 필요 여부 판단",
+        population="머리·목 둔상 후 GCS 15, 활력징후 안정된 16세 이상",
+        categories=(),
+        keywords=_NECK,
+        items=(
+            Item("age_ge_65", "나이 65세 이상(고위험)"),
+            Item("dangerous_mechanism", "위험한 손상 기전(고위험: 높은 곳 추락, 고속 차량 사고·전복·튕겨나감 등)"),
+            Item("paresthesia", "팔다리 감각 이상(고위험)"),
+            Item("no_low_risk_factor", "저위험 인자가 하나도 없음(단순 후방 추돌, 응급실에서 앉아 있음, 수상 후 걸어 다님, "
+                 "목 통증이 나중에 시작, 경추 정중선 압통 없음)"),
+            Item("cannot_rotate", "목을 좌우 45도 능동 회전 불가(저위험 인자가 있을 때만 확인)"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0개", "영상 불필요", "경추 영상검사 불필요(적용 대상군에 한함)", rule_out=True),
+            Threshold(1, _INF, "1개 이상", "영상 필요", "경추 영상검사"),
+        ),
+        citation=C_CCSR, verification="primary",
+        requires_any=_BLUNT_TRAUMA, chronic_cutoff=1, min_age=16,
+        applicability="Stiell 2001 abstract: adults with blunt trauma to the head/neck, stable vital signs and "
+        "GCS 15. Needs a neck word and a trauma word; age <16 / child words and >=2-week complaints excluded "
+        "(16 is reviewer knowledge; abstract says 'adults').",
+        note="The 3 questions (high-risk factors age >=65 / dangerous mechanism / paresthesias; low-risk "
+        "factors allowing range-of-motion testing; active 45-degree rotation) and 100% sensitivity from the "
+        "PubMed abstract. Flattened into 5 risk-present items: any one = imaging (equivalent to the 3-step "
+        "flow). Dangerous-mechanism examples are reviewer knowledge.",
+    ),
+    Rule(
+        id="sfsr", short="SF Syncope", name_ko="샌프란시스코 실신 규칙", name_en="San Francisco Syncope Rule",
+        purpose="실신 환자의 7일 내 중대한 결과(사망, 부정맥, 심근경색, 폐색전증, 출혈 등) 위험 선별",
+        population="응급실에 온 실신·실신 전 증상 환자",
+        categories=("syncope",),
+        keywords=(),
+        items=(
+            Item("chf_history", "울혈성 심부전 병력"),
+            Item("hct_lt_30", "헤마토크릿 30% 미만"),
+            Item("abnormal_ecg", "심전도 이상"),
+            Item("dyspnea", "숨참 호소"),
+            Item("sbp_lt_90", "수축기 혈압 90 mmHg 미만"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0개", "저위험", "단기 중대한 결과 위험 낮음(단독 배제 도구로 쓰지 말 것)", rule_out=True),
+            Threshold(1, _INF, "1개 이상", "고위험", "중대한 원인 평가·입원 고려"),
+        ),
+        citation=C_SFSR, verification="primary",
+        excludes_any=_SEIZURE_INTOX, chronic_cutoff=1,
+        applicability="Quinn 2004 abstract: ED patients presenting with syncope or near syncope. Seizure, "
+        "intoxication and >=2-week recurrent courses excluded (our proxy for the index ED visit).",
+        note="5 predictors (CHESS) and 96% sensitivity / 62% specificity from the PubMed abstract (derivation "
+        "study; later external validations reported lower sensitivity, hence the caution in the low band).",
+    ),
+    Rule(
+        id="csrs", short="Canadian Syncope", name_ko="캐나다 실신 위험 점수", name_en="Canadian Syncope Risk Score",
+        purpose="실신 후 30일 내 중대한 사건(부정맥, 심근경색, 구조적 심질환, 폐색전증, 출혈, 사망) 위험 분류",
+        population="실신 24시간 이내 응급실에 온 16세 이상",
+        categories=("syncope",),
+        keywords=(),
+        items=(
+            Item("vasovagal_predisposition", "미주신경성 소인(덥고 붐비는 곳, 오래 서 있기, 공포·감정·통증으로 유발)",
+                 -1.0),
+            Item("heart_disease", "심장질환 병력(관상동맥질환, 심방세동·조동, 심부전, 판막질환)"),
+            Item("sbp_abnormal", "응급실 수축기 혈압 90 미만 또는 180 mmHg 초과", 2.0),
+            Item("troponin_high", "트로포닌 상승(정상 99백분위수 초과)", 2.0),
+            Item("qrs_axis", "QRS 축 이상(-30도 미만 또는 100도 초과)"),
+            Item("qrs_gt_130", "QRS 폭 130 ms 초과"),
+            Item("qtc_gt_480", "QTc 480 ms 초과", 2.0),
+            Item("ed_diagnosis", "응급실 판단", options=(("판단 보류", 0), ("미주신경성 실신", -2), ("심장성 실신", 2))),
+        ),
+        thresholds=(
+            Threshold(-3, -2, "−3~−2", "매우 저위험", "30일 중대한 사건 위험 매우 낮음"),
+            Threshold(-1, 0, "−1~0", "저위험", "대개 귀가 가능"),
+            Threshold(1, 3, "1–3", "중간 위험", "추가 평가·관찰"),
+            Threshold(4, 5, "4–5", "고위험", "입원 관찰 고려"),
+            Threshold(6, 11, "6–11", "매우 고위험", "입원·심장 감시"),
+        ),
+        citation=C_CSRS, verification="secondary",
+        excludes_any=_SEIZURE_INTOX, chronic_cutoff=1, min_age=16,
+        applicability="Thiruganasambandamoorthy 2016 abstract: adults (>=16 y) with syncope presenting within "
+        "24 h. Seizure/intoxication and >=2-week courses excluded (our proxy for 'within 24 h').",
+        note="9 predictors and the -3..11 range (0.4% to 83.6% 30-day risk) from the PubMed abstract. Points "
+        "and the 5 risk bands from an open-access secondary source (West J Emerg Med 2025, PMC12591636, Table 1 "
+        "citing the original); that table prints QTc >480 ms as +1, but only +2 reproduces the published "
+        "-3..11 range (a web summary of the 2020 validation page, PMC7091474, also gave +2), so +2 is used. "
+        "Original full text not accessible.",
+    ),
+    Rule(
+        id="gbs", short="Glasgow-Blatchford", name_ko="Glasgow-Blatchford 상부위장관 출혈 점수",
+        name_en="Glasgow-Blatchford bleeding score",
+        purpose="상부위장관 출혈에서 치료(수혈·내시경 지혈·수술) 필요 위험 분류",
+        population="토혈·흑색변 등 상부위장관 출혈로 온 성인(내시경 전)",
+        categories=(),
+        keywords=_UGIB,
+        items=(
+            Item("urea", "혈중 요소(mmol/L; 괄호는 BUN mg/dL)",
+                 options=(("6.5 미만(<18)", 0), ("6.5–7.9(18–22)", 2), ("8–9.9(22–28)", 3), ("10–24.9(28–70)", 4),
+                          ("25 이상(≥70)", 6))),
+            Item("hemoglobin", "헤모글로빈(g/dL)",
+                 options=(("남 13 이상·여 12 이상", 0), ("남 12–12.9·여 10–11.9", 1), ("남 10–11.9", 3),
+                          ("10 미만", 6))),
+            Item("sbp", "수축기 혈압(mmHg)", options=(("110 이상", 0), ("100–109", 1), ("90–99", 2), ("90 미만", 3))),
+            Item("pulse_ge_100", "맥박 100회/분 이상"),
+            Item("melena", "흑색변"),
+            Item("syncope", "실신", 2.0),
+            Item("hepatic_disease", "간질환", 2.0),
+            Item("cardiac_failure", "심부전", 2.0),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0", "저위험", "외래 관리 고려(Stanley 2009)", rule_out=True),
+            Threshold(1, 23, "1 이상", "치료 필요 가능", "입원·조기 내시경 평가(점수 높을수록 위험)"),
+        ),
+        citation=C_GBS, verification="secondary",
+        veto_any=("객혈", "기침할 때", "기침하면서", "기침하다", "hemoptysis", "coughing up"), chronic_cutoff=1, min_age=16,
+        applicability="Blatchford 2000 abstract: patients admitted for upper-GI haemorrhage (UK adults). Needs "
+        "hematemesis/melena words; hemoptysis vetoed; age <16 (our proxy for the adult cohort) and >=2-week "
+        "courses excluded.",
+        note="The 8 variables are in the Blatchford 2000 abstract; point values are not (full text paywalled) and "
+        "were cross-checked in two open-access tables (PMC13544648, PMC12522279). The score-0 low-risk band is "
+        "from Stanley 2009 Lancet abstract (PMID 19091393). Later guidelines use <=1; not encoded.",
+    ),
+    Rule(
+        id="kocher", short="Kocher", name_ko="Kocher 기준(소아 고관절 화농성 관절염)",
+        name_en="Kocher criteria",
+        purpose="소아 급성 고관절 통증에서 화농성 관절염과 일과성 활막염 구별",
+        population="급성으로 고관절을 아파하거나 절뚝이는 소아",
+        categories=(),
+        keywords=_HIP_LIMP,
+        items=(
+            Item("fever_history", "발열 병력"),
+            Item("non_weight_bearing", "아픈 다리에 체중을 싣지 못함"),
+            Item("esr_ge_40", "적혈구 침강 속도 40 mm/h 이상"),
+            Item("wbc_gt_12000", "백혈구 12,000/µL 초과"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0개", "매우 낮음", "화농성 관절염 확률 0.2% 미만"),
+            Threshold(1, 1, "1개", "낮음", "화농성 관절염 확률 3%"),
+            Threshold(2, 2, "2개", "중간", "화농성 관절염 확률 40% → 관절 초음파·천자 고려"),
+            Threshold(3, 3, "3개", "높음", "화농성 관절염 확률 93% → 관절 천자"),
+            Threshold(4, 4, "4개", "매우 높음", "화농성 관절염 확률 99.6% → 관절 천자"),
+        ),
+        citation=C_KOCHER, verification="primary",
+        veto_any=_TRAUMA + ("넘어진", "넘어졌", "골절", "삐었", "fracture", "sprain"), chronic_cutoff=1, max_age=18,
+        applicability="Kocher 1999 abstract: children with an acutely irritable hip. Needs a hip/limp word and a "
+        "stated age <18 or a child word; trauma (affirmed) and >=2-week courses excluded (our proxy for 'acute').",
+        note="4 predictors and per-count probabilities (<0.2 / 3.0 / 40.0 / 93.1 / 99.6%) from the PubMed "
+        "abstract. The original uses a history of fever; the later >38.5 C modification (Caird 2006) is not "
+        "encoded.",
+    ),
+    Rule(
+        id="pas", short="PAS", name_ko="소아 충수염 점수", name_en="Pediatric Appendicitis Score",
+        purpose="소아 급성 복통에서 충수염 가능성 추정",
+        population="1–17세, 7일 미만 급성 복통 소아",
+        categories=("abdominal_pain",),
+        keywords=("충수", "맹장", "appendic", "오른쪽 아랫배", "우하복부", "right lower", "rlq"),
+        items=(
+            Item("cough_hop_tenderness", "기침·타진·뛰기 시 우하복부 통증", 2.0),
+            Item("anorexia", "식욕부진"),
+            Item("fever", "발열(38°C 초과)"),
+            Item("nausea_vomiting", "오심·구토"),
+            Item("rlq_tenderness", "우하복부 압통", 2.0),
+            Item("leukocytosis", "백혈구 10,000/µL 초과"),
+            Item("neutrophilia", "호중구 7,500/µL 초과"),
+            Item("migration", "통증이 우하복부로 이동"),
+        ),
+        thresholds=(
+            Threshold(0, 2, "0–2", "가능성 낮음", "충수염 가능성 낮음(검증 연구에서 충수염의 2.4%만 해당)"),
+            Threshold(3, 6, "3–6", "불확실", "관찰·초음파 등 추가 검사"),
+            Threshold(7, 10, "7–10", "가능성 높음", "충수염 가능성 높음 → 외과 협진"),
+        ),
+        citation=C_PAS, verification="primary",
+        chronic_cutoff=1, min_age=1, max_age=18,
+        applicability="Samuel 2002 abstract: children 4-15 y with pain suggestive of appendicitis; Goldman 2008 "
+        "(PMID 18534219) validated it in unselected children 1-17 y with abdominal pain <7 days, which we follow. "
+        "Needs a stated age 1-17 or a child word; >=2-week pain excluded (our proxy for <7 days).",
+        note="8 variables and points (2 for the two physical signs, total 10) from the Samuel abstract; the fever "
+        ">38 C, WBC >10,000 and neutrophil >7,500 cut-offs and the <=2 / 3-6 / >=7 bands from the Goldman 2008 "
+        "abstract.",
+    ),
+    Rule(
+        id="spesi", short="sPESI", name_ko="간이 폐색전증 중증도 지수", name_en="simplified PESI",
+        purpose="확진된 급성 폐색전증의 30일 사망 위험 분류(진단 도구 아님)",
+        population="급성 증상성 폐색전증으로 확진된 환자",
+        categories=(),
+        keywords=_PE_CONFIRMED,
+        items=(
+            Item("age_gt_80", "나이 80세 초과"),
+            Item("cancer", "암"),
+            Item("cardiopulmonary", "만성 심폐질환(심부전 또는 만성 폐질환)"),
+            Item("hr_ge_110", "심박수 110회/분 이상"),
+            Item("sbp_lt_100", "수축기 혈압 100 mmHg 미만"),
+            Item("sao2_lt_90", "산소포화도 90% 미만"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0", "저위험", "30일 사망률 1.0%", rule_out=True),
+            Threshold(1, 6, "1 이상", "고위험", "30일 사망률 10.9% → 입원·우심실 평가"),
+        ),
+        citation=C_SPESI, verification="secondary",
+        min_age=18,
+        applicability="Jimenez 2010 abstract: patients with acute symptomatic PE (derivation outpatients, RIETE "
+        "validation). Only when PE is stated as diagnosed/confirmed, so it never competes with Wells/PERC "
+        "(which are vetoed by the same phrases). Adults only (our proxy).",
+        note="The 6 variables and 30-day mortality 1.0% (score 0) vs 10.9% (>=1) are in the PubMed abstract; the "
+        "cut-offs (age >80, HR >=110, SBP <100, SaO2 <90%) are not and were cross-checked in open-access papers "
+        "(PMC13302099, PMC11681475). Full text paywalled.",
+    ),
+    Rule(
+        id="pecarn_febrile_infant", short="PECARN 발열 영아", name_ko="PECARN 발열 영아 저위험 규칙",
+        name_en="PECARN febrile infant rule",
+        purpose="생후 60일 이하 발열 영아에서 중증 세균 감염(요로감염, 균혈증, 세균성 뇌수막염) 저위험군 식별",
+        population="이전에 건강했던 생후 60일 이하 발열 영아",
+        categories=("fever",),
+        keywords=(),
+        items=(
+            Item("ua_positive", "소변검사 이상(백혈구 에스테라제·아질산염 양성 또는 소변 백혈구 증가)"),
+            Item("anc_gt_4090", "절대 호중구 수 4,090/µL 초과"),
+            Item("pct_gt_1_71", "프로칼시토닌 1.71 ng/mL 초과"),
+        ),
+        thresholds=(
+            Threshold(0, 0, "0개", "저위험", "중증 세균 감염 가능성 낮음(음성 예측도 99.6%)", rule_out=True),
+            Threshold(1, _INF, "1개 이상", "저위험 아님", "혈액·소변 배양, 뇌척수액 검사 고려, 입원·항생제"),
+        ),
+        citation=C_PECARN_FI, verification="primary",
+        max_age_days=60,
+        applicability="Kuppermann 2019 abstract: previously healthy febrile infants 60 days and younger. Needs "
+        "fever and an infant age <=60 days ('생후 N일/주/개월' or '신생아'); '영아' alone (up to 1 year) is not enough.",
+        note="3 criteria (negative urinalysis, ANC <=4090/uL, procalcitonin <=1.71 ng/mL) and NPV 99.6% / "
+        "sensitivity 97.7% from the PubMed abstract. Items phrased as risk-present. The urinalysis definition "
+        "is reviewer knowledge. Rochester / Step-by-Step were not encoded (criteria not in accessible abstracts).",
+    ),
+    Rule(
+        id="mcisaac", short="McIsaac", name_ko="McIsaac 점수(수정 Centor)", name_en="McIsaac (modified Centor) score",
+        purpose="인후통에서 A군 사슬알균 인두염 확률 추정(나이 보정)",
+        population="새로 생긴 상기도 감염·인후통으로 온 3세 이상",
+        categories=(),
+        keywords=_SORE_THROAT,
+        items=(
+            Item("fever_gt_38", "체온 38°C 초과"),
+            Item("no_cough", "기침 없음"),
+            Item("tender_anterior_nodes", "앞목 림프절 비대·압통"),
+            Item("tonsil_swelling_exudate", "편도 부종 또는 삼출물"),
+            Item("age", "나이", options=(("3–14세", 1), ("15–44세", 0), ("45세 이상", -1))),
+        ),
+        thresholds=(
+            Threshold(-1, 0, "0 이하", "매우 낮음", "A군 사슬알균 양성 8%"),
+            Threshold(1, 1, "1", "낮음", "양성 14%"),
+            Threshold(2, 2, "2", "중간", "양성 23% → 신속항원검사·배양"),
+            Threshold(3, 3, "3", "높음", "양성 37% → 신속항원검사·배양"),
+            Threshold(4, 5, "4 이상", "매우 높음", "양성 55%"),
+        ),
+        citation=C_MCISAAC, verification="secondary",
+        chronic_cutoff=1, min_age=3,
+        applicability="McIsaac 1998 abstract: patients aged 3 to 76 with a new upper respiratory infection "
+        "(sore throat). Age <3 and >=2-week complaints excluded.",
+        note="Abstract confirms the 0-4 score and the age-appropriate design but not the items. Items and age "
+        "points (3-14 +1, 15-44 0, >=45 -1) cross-checked in open-access sources (PMC12731270 Table 1); per-score "
+        "GAS-positive rates (<=0: 8, 1: 14, 2: 23, 3: 37, >=4: 55%) from the Fine 2012 validation abstract "
+        "(PMID 22566485, 206,870 patients >=3 y). Original full text (scanned PDF) not accessible.",
+    ),
 )
 
 RULES_BY_ID: dict[str, Rule] = {r.id: r for r in RULES}
@@ -1050,7 +1552,7 @@ def rules_for(text: str) -> list[Rule]:
 def _item_text(item: Item) -> str:
     if item.options:
         return f"{item.text}(" + "/".join(f"{lab} {_fmt(p)}" for lab, p in item.options) + ")"
-    return f"{item.text} +{_fmt(item.points)}"
+    return f"{item.text} {'+' if item.points >= 0 else ''}{_fmt(item.points)}"
 
 
 def render_for_prompt(rules: list[Rule]) -> str:
