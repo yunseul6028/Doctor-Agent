@@ -574,15 +574,16 @@ class ReadText(str):
 
     def parsed(self):
         """(normalised text, [(start, end, finding)]) with offsets into the normalised text. Each line is parsed on
-        its own (normalize() folds newlines into spaces, and a line break ends a sentence in case files: "b-hcg 양성
+        its own (a line break ends a sentence in case files; parsing per line keeps offsets simple: "b-hcg 양성
         \\n hbsag 음성" must not be one list)."""
         if self._parsed is None:
             from doctor_agent.nlp import normalize, parse
+            from doctor_agent.nlp.findings import spans_of
             parts, spans, off = [], [], 0
             self._line_off = []
             for line in str(self).split("\n"):
                 n = normalize(line)
-                spans += [(off + f.start, off + f.end, f) for f in parse(line, self.source)]
+                spans += [(off + a, off + b, f) for f in parse(line, self.source) for a, b in spans_of(f)]
                 parts.append(n)
                 self._line_off.append(off)
                 off += len(n) + 1

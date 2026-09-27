@@ -273,3 +273,11 @@ def test_existing_refinement_rules_still_apply_without_criteria_decision():
     assert not _refinement_problem("양극성 장애", "양극성 II형 장애", "경조증 4일, 입원 없음", case)
     assert _refinement_problem("양극성 장애", "양극성 II형 장애", "", case) == "근거 인용 없음"
     assert _refinement_problem("대장암", "상행결장암", "조직검사 선암", "대장내시경 조직검사 선암")
+
+
+def test_ra_joint_count_phrases_do_not_crash():
+    from doctor_agent.knowledge import diagnostic_criteria as dc
+
+    for text in ("손 관절 6개가 붓고 아파요. 8주째입니다.", "6개 관절이 부었어요", "관절 12곳 압통"):
+        res = dc.evaluate("ra_2010", text)
+        assert res is not None

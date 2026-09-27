@@ -554,8 +554,8 @@ _SMALL_JOINTS = (r"손가락\s?(마디|관절)?", r"손목", r"중수지", r"근
 
 
 def _ra_count(doc: Doc) -> tuple[str, str]:
-    vals = doc.values(Num(pattern=r"(\d+)\s?(개|곳)[^\n\d]{0,4}관절", lo=1, hi=80, agg="max"))
-    vals += doc.values(Num(pattern=r"관절[^\n\d]{0,6}(\d+)\s?(개|곳)", lo=1, hi=80))
+    vals = doc.values(Num(pattern=r"(?P<v>\d+)\s?(개|곳)[^\n\d]{0,4}관절", lo=1, hi=80, agg="max"))
+    vals += doc.values(Num(pattern=r"관절[^\n\d]{0,6}(?P<v>\d+)\s?(개|곳)", lo=1, hi=80))
     if vals:
         return MET, _fmt(max(vals))
     return UNKNOWN, ""
