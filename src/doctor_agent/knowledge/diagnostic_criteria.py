@@ -48,7 +48,7 @@ _CLAUSE_BREAKS = (".", "!", "\n", ",", ";", "고 ", "며 ", "면서", "는데", 
 _NEG_WINDOW = 25
 # layer reading (Doc._reading) only for keyword-like matches without their own result word
 _LAYER_MAX_MATCH = 20
-_OWN_RESULT = re.compile(r"없|않|아니|음성|양성|정상|negative|positive|normal|\(-\)|\(\+\)|\+|↑|↓|상승|저하|감소|증가")
+_OWN_RESULT = re.compile(r"없|않|아니|음성|양성|정상|negative|positive|normal|\(-\)|\(\+\)|\+")
 
 _DUR = re.compile(r"(\d+(?:\.\d+)?)\s*(시간|일|주|개월|달|년|hours?|hrs?|days?|weeks?|months?|years?)(?![a-z])")
 _DUR_DAYS = {"시간": 1 / 24, "일": 1, "주": 7, "개월": 30, "달": 30, "년": 365, "hour": 1 / 24, "hours": 1 / 24,

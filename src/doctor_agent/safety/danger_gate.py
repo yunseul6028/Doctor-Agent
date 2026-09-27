@@ -191,7 +191,9 @@ def polarity(text: str, kw: str) -> str | None:
     reading stays conservative for a rule-out gate: an occurrence is affirmed when either reader affirms it (the
     layer adds hedged / uncertain / persisting findings: "열이 안 떨어져요", "경련했는지 모르겠어요"), negated only when
     both negate it, and dropped when the layer attributes it to a relative ("어머니가 폐색전증")."""
-    t, k = _norm(text), kw.lower()
+    # a ReadText is taken as already normalised (a _Turn text or _Ctx.facts): parsed once for many keywords
+    t = text if isinstance(text, ReadText) else ReadText(_norm(text))
+    k = kw.lower()
     idxs = [m.start() for m in re.finditer(re.escape(k), t)]
     if not idxs:
         return None
@@ -436,6 +438,7 @@ class Probe:
         return out
 
     def _classify(self, seg: str, t: _Turn, hit: bool) -> tuple[str | None, tuple[str, ...]]:
+        seg = ReadText(seg)  # already normalised; parsed once for all targets
         pos = tuple(k for k in self.target if k in seg and polarity(seg, k) == "pos")
         if pos:
             return "abnormal", pos
