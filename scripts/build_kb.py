@@ -6,8 +6,10 @@
     python scripts/build_kb.py --refresh       # re-download every input
 
 Inputs (git-ignored) go to data/external/kb_raw/. Every source and its license is listed in SOURCES below and in
-docs/licenses.md. The Human Phenotype Ontology is deliberately NOT used (its license forbids altering file content,
-and our KB reorganises and translates it).
+docs/licenses.md. The Human Phenotype Ontology file is deliberately NOT used (its license forbids altering file
+content, and our KB reorganises and translates it); Orphanet's CC BY 4.0 HPO-coded phenotype annotations are used and
+re-keyed to KB terms (map_orpha / orpha_terms). The HIRA patients-per-KCD-code table (KOGL type 1) becomes
+data/kb/kcd3_prev.tsv.gz for a prevalence prior. Neither step uses an LLM.
 
 LLM use (offline only, KB_LLM_* in .env, falls back to LLM_*): Korean labels for English terms, short Korean question
 wording for DDXPlus evidences, and extraction of symptoms/tests + a one-line Korean summary from public-domain
@@ -85,6 +87,27 @@ SOURCES = {
         "attribution": "Courtesy of MedlinePlus from the National Library of Medicine. Symptoms/tests extracted and "
                        "summarised in Korean by an LLM (see data/labels/kb_build_meta.json).",
     },
+    "Orphanet": {
+        "title": "Orphadata Science: rare disease phenotypes with frequency classes (en_product4.xml) and "
+                 "nomenclature + cross-references (en_product1.xml)",
+        "license": "CC BY 4.0",
+        "license_url": "https://sciences.orphadata.com/phenotypes/",
+        "url": "https://www.orphadata.com/data/xml/en_product4.xml",
+        "attribution": "Orphadata Science: Free access data from Orphanet. (c) INSERM 1999. Available on "
+                       "http://sciences.orphadata.com/. Data version 2026-06-23 (release July 2026). Changes: "
+                       "phenotype annotations re-keyed to KB terms (via English label or the Wikidata HPO-id "
+                       "bridge), frequency classes kept as codes; Orphanet disorder names/synonyms and exact "
+                       "ICD-10/OMIM mappings used for profiles. The Human Phenotype Ontology file itself is not used.",
+    },
+    "HIRA-stats": {
+        "title": "건강보험심사평가원_주부상병(3단) 성별 연령군별 건강보험 진료 통계_20251231 (patients per KCD "
+                 "3-character code x sex x 5-year age group, 2025)",
+        "license": "KOGL Type 1 (공공누리 제1유형: 출처표시)",
+        "license_url": "https://www.data.go.kr/data/15118806/fileData.do",
+        "url": "https://www.data.go.kr/data/15118806/fileData.do",
+        "attribution": "출처: 건강보험심사평가원, 주부상병(3단) 성별 연령군별 건강보험 진료 통계 (공공데이터포털). "
+                       "환자수만 발췌해 질환 빈도 사전확률로 사용.",
+    },
     "curated": {
         "title": "Our own tables: CURATED_SYN (build time), src/doctor_agent/knowledge/kb_curated.py (runtime "
                  "synonyms, phrase patterns, generic-term stop list, vital/lab thresholds, diagnosis-name spelling "
@@ -113,6 +136,12 @@ WD_QUERIES = {
     "wd_labels.tsv": ("SELECT ?e ?p ?l WHERE { { ?e wdt:P699 [] } UNION { ?e wdt:P780 [] } UNION { [] wdt:P780 ?e } "
                       "UNION { [] wdt:P923 ?e } VALUES ?p { rdfs:label skos:altLabel } ?e ?p ?l . "
                       "FILTER(LANG(?l) = \"en\" || LANG(?l) = \"ko\") }"),
+    # bridges for Orphanet: Orphanet disorder ids of Wikidata diseases, and HPO ids of Wikidata items (CC0) with their
+    # labels (so phenotype annotations can be re-keyed to KB/Wikidata terms without using the HPO file)
+    "wd_orpha.tsv": "SELECT ?d ?orpha WHERE { ?d wdt:P1550 ?orpha }",
+    "wd_hpo.tsv": "SELECT ?e ?hpo WHERE { ?e wdt:P3841 ?hpo }",
+    "wd_hpo_labels.tsv": ("SELECT ?e ?p ?l WHERE { ?e wdt:P3841 [] . VALUES ?p { rdfs:label skos:altLabel } ?e ?p ?l . "
+                          "FILTER(LANG(?l) = \"en\" || LANG(?l) = \"ko\") }"),
 }
 
 
@@ -126,20 +155,23 @@ def _get(url: str, data: bytes | None = None, headers: dict | None = None) -> by
         return r.read()
 
 
-def _hira() -> bytes:
-    page = "https://www.data.go.kr/data/15067467/fileData.do"
+def _hira(pk: str = "15067467", head: str = "상병기호") -> bytes:
+    """File download from data.go.kr (HIRA datasets; the page must state 공공누리 제1유형)."""
+    page = f"https://www.data.go.kr/data/{pk}/fileData.do"
     body = _get(page).decode("utf-8", "replace")
-    m = re.search(r"fn_fileDataDown\('15067467', '([^']+)'", body)
+    m = re.search(rf"fn_fileDataDown\('{pk}', '([^']+)'", body)
     if not m:
         raise RuntimeError("HIRA page layout changed: download id not found")
-    form = urllib.parse.urlencode({"publicDataDetailPk": m.group(1), "publicDataPk": "15067467", "atchFileId": "",
+    if "제 1유형" not in body:
+        raise RuntimeError(f"data.go.kr {pk}: license is no longer KOGL type 1")
+    form = urllib.parse.urlencode({"publicDataDetailPk": m.group(1), "publicDataPk": pk, "atchFileId": "",
                                    "fileDetailSn": "1", "publicDataTyCode": "PR0051"}).encode()
     info = json.loads(_get("https://www.data.go.kr/tcs/dss/selectFileDataDownload.do", form, {"Referer": page}))
     url = (f"https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId={info['atchFileId']}"
            f"&fileDetailSn={info['fileDetailSn']}&dataNm=kcd")
     raw = _get(url, headers={"Referer": page})
-    if not raw[:40].decode("cp949", "replace").startswith("상병기호"):
-        raise RuntimeError("HIRA download is not the expected CSV")
+    if not raw[:60].decode("cp949", "replace").startswith(head):
+        raise RuntimeError(f"HIRA download {pk} is not the expected CSV")
     return raw
 
 
@@ -151,6 +183,9 @@ def download(refresh: bool) -> dict:
         "hira_kcd.csv": _hira,
         "doid.obo": lambda: _get("https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/main/src/ontology/doid.obo"),
         "mplus_topics.xml": lambda: _get(SOURCES["MedlinePlus"]["url"]),
+        "orpha_product4.xml": lambda: _get("https://www.orphadata.com/data/xml/en_product4.xml"),
+        "orpha_product1.xml": lambda: _get("https://www.orphadata.com/data/xml/en_product1.xml"),
+        "hira_kcd3_stats.csv": lambda: _hira("15118806", "진료년도"),
     }
     for name, q in WD_QUERIES.items():
         targets[name] = (lambda q=q: _get("https://query.wikidata.org/sparql?" + urllib.parse.urlencode({"query": q}),
@@ -299,6 +334,98 @@ def parse_mplus() -> tuple[dict, str]:
             "summary": _strip_html(summ),
         }
     return out, root.get("date-generated", "")
+
+
+# Orphanet frequency classes → short codes stored in profiles (field orpha_freq). EX = excluded (0%).
+ORPHA_FREQ = {"Obligate": "O", "Very frequent": "VF", "Frequent": "F", "Occasional": "OC", "Very rare": "VR",
+              "Excluded": "EX"}
+ORPHA_FREQ_RANK = {"O": 5, "VF": 4, "F": 3, "OC": 2, "VR": 1, "EX": 0}
+
+
+def _orpha_root(name: str):
+    root = ET.parse(RAW / name).getroot()
+    lic = root.findtext("Availability/Licence/ShortIdentifier") or ""
+    if lic != "CC-BY-4.0":
+        raise RuntimeError(f"{name}: unexpected license {lic!r} (expected CC-BY-4.0)")
+    return root
+
+
+def parse_orpha() -> dict:
+    """Orphadata product 1 (names, synonyms, cross-references with mapping relation) and product 4 (HPO-coded
+    phenotype annotations with frequency class). Returns {"dis": {orphacode: {...}}, "pheno": {orphacode: [(hpo id,
+    label, freq code, diagnostic criterion)]}, "version": date}."""
+    r1 = _orpha_root("orpha_product1.xml")
+    dis = {}
+    for d in r1.iter("Disorder"):
+        code = d.findtext("OrphaCode")
+        if not code:
+            continue
+        xref = []
+        for x in d.iter("ExternalReference"):
+            rel = (x.findtext("DisorderMappingRelation/Name") or "").split(" ", 1)[0]
+            xref.append((x.findtext("Source") or "", (x.findtext("Reference") or "").strip(), rel))
+        dis[code] = {"name": d.findtext("Name") or "", "syn": [s.text for s in d.iter("Synonym") if s.text],
+                     "type": d.findtext("DisorderType/Name") or "", "xref": xref}
+    r4 = _orpha_root("orpha_product4.xml")
+    pheno = {}
+    for st in r4.iter("HPODisorderSetStatus"):
+        d = st.find("Disorder")
+        code = d.findtext("OrphaCode")
+        rows = []
+        for a in d.iter("HPODisorderAssociation"):
+            fname = a.findtext("HPOFrequency/Name") or ""
+            freq = next((v for k, v in ORPHA_FREQ.items() if fname.startswith(k)), "")
+            if not freq:
+                continue
+            rows.append((a.findtext("HPO/HPOId"), a.findtext("HPO/HPOTerm") or "", freq,
+                         bool(a.findtext("DiagnosticCriteria/Name"))))
+        if rows:
+            pheno[code] = rows
+            if code not in dis:
+                dis[code] = {"name": d.findtext("Name") or "", "syn": [], "type": d.findtext("DisorderType/Name") or "",
+                             "xref": []}
+    return {"dis": dis, "pheno": pheno, "version": r4.get("date", "")[:10]}
+
+
+def parse_wd_bridges() -> dict:
+    """Wikidata (CC0): Orphanet id → disease items, HPO id → items, and en/ko labels of the HPO-id items."""
+    orpha = defaultdict(set)
+    for d, o in _tsv_rows("wd_orpha.tsv"):
+        orpha[o.strip().strip('"')].add(_qid(d))
+    hpo = defaultdict(set)
+    for e, h in _tsv_rows("wd_hpo.tsv"):
+        hpo[h.strip().strip('"')].add(_qid(e))
+    labels = defaultdict(lambda: {"en": "", "ko": "", "en_alt": [], "ko_alt": []})
+    for e, p, lit in _tsv_rows("wd_hpo_labels.tsv"):
+        m = re.match(r'"(.*)"@(en|ko)$', lit)
+        if not m:
+            continue
+        text, lang = m.group(1).replace('\\"', '"'), m.group(2)
+        rec = labels[_qid(e)]
+        if p.endswith("#label>"):
+            rec[lang] = text
+        elif text not in rec[lang + "_alt"]:
+            rec[lang + "_alt"].append(text)
+    return {"orpha": orpha, "hpo": hpo, "labels": labels}
+
+
+def parse_prevalence() -> dict:
+    """HIRA 2025 patients per KCD 3-character code (main + secondary diagnoses) by sex and 5-year age group:
+    {code: [male counts x 18 age groups, female counts x 18]} (age group 0 = 0-4 y, ..., 17 = 85+)."""
+    rows = list(csv.reader(io.StringIO((RAW / "hira_kcd3_stats.csv").read_bytes().decode("cp949"))))
+    head, rows = rows[0], rows[1:]
+    ci = {h: i for i, h in enumerate(head)}
+    out: dict[str, list[int]] = {}
+    for r in rows:
+        code, sex, band = r[ci["상병코드"]].strip(), r[ci["성별"]].strip(), r[ci["연령군"]].strip()
+        m = re.match(r"(\d+)_", band)
+        if not code or sex not in ("남", "여") or not m:
+            continue
+        g = int(m.group(1)) - 1
+        if not 0 <= g < 18:
+            continue
+        out.setdefault(code, [0] * 36)[g + (18 if sex == "여" else 0)] += int(r[ci["환자수"]] or 0)
+    return out
 
 
 # ------------------------------------------------------------------------------------------------
@@ -576,14 +703,102 @@ def add_test_links(profiles: list[dict], terms: dict) -> dict:
             "test_link_refs_with_pmid": sum(1 for *_x, ref in kb_tests.links() if kb_tests.REFS[ref]["pmid"])}
 
 
+def map_orpha(orpha: dict, do: dict, wd: dict, bridges: dict, uf: UF, match_name) -> dict:
+    """Join each Orphanet disorder that has phenotype annotations to one existing disease group, trying in order:
+    DO xref ORDO:<code>, Wikidata P1550, exact (E) OMIM mapping ↔ DO MIM xref, exact English name (primary name or a
+    synonym of ≥ 6 chars). A code route counts only when it points at a single group. Unjoined disorders get their
+    own node. Returns {orphacode: joined root or None}."""
+    do_orpha, do_omim = defaultdict(set), defaultdict(set)
+    for d, t in do.items():
+        for x in t["xref"]:
+            if x.startswith("ORDO:"):
+                do_orpha[x[5:]].add("DO:" + d)
+            elif x.startswith("MIM:"):
+                do_omim[x[4:]].add("DO:" + d)
+    out = {}
+    for oc in sorted(orpha["pheno"], key=int):
+        rec = orpha["dis"][oc]
+        routes = [
+            do_orpha.get(oc, set()),
+            {"WD:" + q for q in bridges["orpha"].get(oc, ()) if q in wd["diseases"]},
+            {n for s, ref, rel in rec["xref"] if s == "OMIM" and rel == "E" for n in do_omim.get(ref, ())},
+        ]
+        hit = None
+        for nodes in routes:
+            roots = {uf.find(n) for n in nodes}
+            if len(roots) == 1:
+                hit = roots.pop()
+                break
+        if hit is None:
+            hit = match_name(*[n for n in [rec["name"], *rec["syn"]] if len(norm_en(n)) >= 6])
+        node = "ORPHA:" + oc
+        uf.find(node)
+        if hit:
+            uf.union(hit, node)
+        out[oc] = hit
+    return out
+
+
+def orpha_terms(orpha: dict, codes: set[str], bridges: dict, kcd: dict, terms: dict, en_ix: dict, add_term
+                ) -> tuple[dict, dict]:
+    """HPO id → KB term id for the phenotypes of the given Orphanet disorders. An existing KB term is reused when the
+    Orphanet label (or its Wikidata-bridged item's label, or a simple plural/singular variant) equals a KB term label;
+    otherwise a new term "HP:<id>" is added with the Wikidata English label when bridged (else Orphanet's label) and
+    a Korean label only from Wikidata or an exact English-name match in the KCD master (no LLM)."""
+    kcd_en: dict[str, str] = {}
+    for c in sorted(kcd, key=lambda c: (len(c), c)):
+        if c[0] in "VWXYZU":  # external causes, contact factors, special codes
+            continue
+        for e in kcd[c]["en"][:1]:
+            kcd_en.setdefault(norm_en(e), c)
+            # "Hepatomegaly, NEC" / "Ataxia, unspecified" also stand for the bare English term
+            bare = re.sub(r",\s*(unspecified|nec|not elsewhere classified)$", "", e.strip(), flags=re.I)
+            if bare != e.strip():
+                kcd_en.setdefault(norm_en(bare), c)
+    labels = bridges["labels"]
+    hpo_lab = {hid: lab for oc in codes for hid, lab, _f, _d in orpha["pheno"].get(oc, [])}
+    out, st = {}, defaultdict(int)
+    for hid in sorted(hpo_lab):
+        lab = hpo_lab[hid]
+        qs = sorted(bridges["hpo"].get(hid, ()))
+        cands = [lab] + [labels[q]["en"] for q in qs if labels[q]["en"]]
+        keys = []
+        for c in cands:
+            k = norm_en(c)
+            keys += [k, k[:-1] if k.endswith("s") else k + "s"]
+        # an alias-only match (e.g. a Wikidata alias "skin ulcer" on "abscess") is trusted only when Wikidata has no
+        # item of its own for this HPO id; a match on the term's own label, or on the bridged item, always counts
+        bridged = {"WD:" + q for q in qs}
+        tid = next((en_ix[k] for k in keys if k in en_ix and en_ix[k] in terms
+                    and (not qs or en_ix[k] in bridged or norm_en(terms[en_ix[k]]["en"]) == k)), None)
+        if tid:
+            out[hid] = tid
+            st["hpo_to_existing_term"] += 1
+            continue
+        wd_en = next((labels[q]["en"] for q in qs if labels[q]["en"]), "")
+        ko, ko_src = next(((labels[q]["ko"], "WD") for q in qs if _HANGUL.search(labels[q]["ko"])), ("", ""))
+        if not ko and norm_en(lab) in kcd_en:
+            ko = re.sub(r"^(상세불명의|달리 분류되지 않은|기타)\s*", "", kcd[kcd_en[norm_en(lab)]]["ko"][0])
+            ko_src = "KCD"
+        syn = [a for q in qs for a in labels[q]["ko_alt"][:4] + labels[q]["en_alt"][:4]]
+        tid = add_term("HP:" + hid.split(":", 1)[1], wd_en or lab, "", syn if qs else [], "WD" if wd_en else "Orphanet")
+        if ko and not terms[tid]["ko"]:
+            terms[tid]["ko"], terms[tid]["src"]["ko"] = ko, ko_src
+        out[hid] = tid
+        st["hpo_new_term" + ("_ko_" + ko_src if ko else "_en_only")] += 1
+    return out, dict(st)
+
+
 def assemble(cache: LLMCache, files: dict) -> dict:
     do, do_version = parse_do()
     wd = parse_wd()
     kcd = parse_kcd()
     ddx_cond, ddx_ev = parse_ddx()
     mplus, mplus_date = parse_mplus()
+    orpha = parse_orpha()
+    bridges = parse_wd_bridges()
     print(f"parsed DO {len(do)}, WD diseases {len(wd['diseases'])}, KCD codes {len(kcd)}, DDXPlus {len(ddx_cond)}, "
-          f"MedlinePlus {len(mplus)}")
+          f"MedlinePlus {len(mplus)}, Orphanet disorders with phenotypes {len(orpha['pheno'])}")
 
     uf = UF()
     for d in do:
@@ -643,6 +858,10 @@ def assemble(cache: LLMCache, files: dict) -> dict:
         if hit:
             uf.union(hit, "MP:" + tid)
             mplus_map[tid] = hit
+
+    # Orphanet disorders with phenotype annotations: join an existing disease (DO ORDO xref → Wikidata P1550 →
+    # exact OMIM mapping → exact English name), else become a new profile "ORPHA:<code>"
+    orpha_map = map_orpha(orpha, do, wd, bridges, uf, match_name)
 
     groups: dict[str, list[str]] = defaultdict(list)
     for node in list(uf.p):
@@ -729,6 +948,10 @@ def assemble(cache: LLMCache, files: dict) -> dict:
             terms[tid]["syn"] = [x for x in syns if x != terms[tid]["ko"]] + [x for x in terms[tid]["syn"] if x not in syns]
             terms[tid]["src"]["curated"] = "curated"
 
+    # Orphanet phenotypes (HPO-coded) → KB terms. No LLM: labels come from Orphanet (English), Wikidata (en/ko,
+    # CC0) and exact English-name matches in the KCD master (Korean). Added after the LLM translation step on purpose.
+    hpo_tid, hpo_stats = orpha_terms(orpha, {c for c in orpha_map}, bridges, kcd, terms, en_ix, add_term)
+
     # merge terms that ended up with the same Korean label (fever/fevers, cough variants) into one concept
     rank = lambda tid: (not tid.startswith("WD:"), not tid.startswith("DDX:"), len(terms[tid]["en"]), tid)
     by_ko: dict[str, list[str]] = defaultdict(list)
@@ -739,6 +962,8 @@ def assemble(cache: LLMCache, files: dict) -> dict:
         tids.sort(key=rank)
         for tid in tids:
             canon[tid] = tids[0] if key else tid
+        if not key:  # no Korean label: nothing to merge (used to pour every unlabelled term into one head's synonyms)
+            continue
         head = terms[tids[0]]
         for tid in tids[1:]:
             t = terms[tid]
@@ -755,7 +980,8 @@ def assemble(cache: LLMCache, files: dict) -> dict:
         wds = sorted(n[3:] for n in nodes if n.startswith("WD:"))
         ddxs = sorted(n[4:] for n in nodes if n.startswith("DDX:"))
         mps = sorted(n[3:] for n in nodes if n.startswith("MP:"))
-        if not (dos or wds or ddxs):
+        ors = sorted((n[6:] for n in nodes if n.startswith("ORPHA:")), key=int)
+        if not (dos or wds or ddxs or ors):
             continue
         p = {"id": root.replace("DO:", "", 1) if root.startswith("DO:") else root, "names_en": [], "names_ko": [],
              "codes": {}, "symptoms": {}, "risk": {}, "tests": {}}
@@ -836,6 +1062,37 @@ def assemble(cache: LLMCache, files: dict) -> dict:
                     p["symptoms"].setdefault(tid, set()).add("MedlinePlus+LLM")
                 for tid in mp_tids[m]["tests"]:
                     p["tests"].setdefault(tid, set()).add("MedlinePlus+LLM")
+        freq: dict[str, str] = {}
+        for oc in ors:
+            rec = orpha["dis"][oc]
+            name("names_en", rec["name"], "Orphanet")
+            for s in rec["syn"][:6]:
+                name("names_en", s, "Orphanet")
+            code("orpha", oc, "Orphanet")
+            for src, ref, rel in rec["xref"]:
+                if src == "OMIM" and rel == "E":
+                    code("omim", ref, "Orphanet")
+                elif src == "ICD-10" and rel == "E" and ref:
+                    code("icd10", ref, "Orphanet")
+                elif src == "ICD-10" and rel == "NTBT" and ref:
+                    # the disorder is narrower than the code: keep the code, not the (broader) KCD name
+                    code("icd10_broad", ref, "Orphanet")
+            for hid, _lab, fq, _dc in orpha["pheno"].get(oc, []):
+                tid = hpo_tid.get(hid)
+                if not tid:
+                    continue
+                tid = canon.get(tid, tid)
+                if ORPHA_FREQ_RANK[fq] > ORPHA_FREQ_RANK.get(freq.get(tid, ""), -1):
+                    freq[tid] = fq
+        own_names = {norm_en(n) for n, _ in p["names_en"]} | {re.sub(r"\s+", "", n) for n, _ in p["names_ko"]}
+        for tid in [t for t in freq if norm_en(terms[t]["en"]) in own_names
+                    or (terms[t]["ko"] and re.sub(r"\s+", "", terms[t]["ko"]) in own_names)]:
+            del freq[tid]  # the disease itself listed as its own phenotype ("Zollinger-Ellison syndrome")
+        for tid, fq in freq.items():
+            if fq != "EX":
+                p["symptoms"].setdefault(tid, set()).add("Orphanet")
+        if freq:
+            p["orpha_freq"] = [[tid, fq] for tid, fq in sorted(freq.items())]
         # KCD: exact code matches of ICD-10 codes (WHO ICD-10 and ICD-10-CM share the category structure)
         for icd, _src in p["codes"].get("icd10", []):
             k = kcd_code(icd)
@@ -843,6 +1100,10 @@ def assemble(cache: LLMCache, files: dict) -> dict:
                 code("kcd", k, "KCD")
                 for n in kcd[k]["ko"][:3]:
                     name("names_ko", n, "KCD")
+        for icd, _src in p["codes"].get("icd10_broad", []):
+            k = kcd_code(icd)
+            if k in kcd and all(k != c for c, _ in p["codes"].get("kcd", [])):
+                code("kcd_broad", k, "KCD")
         # a KCD name whose English equals our English name goes first (it is the standard Korean name)
         en_set = {norm_en(n) for n, _ in p["names_en"]}
         std = [n for n in p["names_ko"] if n[1] == "KCD" and any(
@@ -869,7 +1130,7 @@ def assemble(cache: LLMCache, files: dict) -> dict:
         if not p["names_ko"] and p["names_en"] and p["names_en"][0][0] in ko_names:
             p["names_ko"].append([ko_names[p["names_en"][0][0]], "LLM"])
 
-    used = {tid for p in profiles for f in ("symptoms", "risk", "tests") for tid, _ in p[f]}
+    used = {tid for p in profiles for f in ("symptoms", "risk", "tests", "orpha_freq") for tid, _ in p.get(f, [])}
     terms = {tid: t for tid, t in terms.items() if tid in used}
     for t in terms.values():
         t["syn"] = t["syn"][:14]
@@ -888,18 +1149,34 @@ def assemble(cache: LLMCache, files: dict) -> dict:
         "medlineplus_mapped": len(mplus_map),
         "kcd_codes": len(kcd),
         **test_stats,
+        "orphanet_disorders": len(orpha_map),
+        "orphanet_joined_existing": sum(1 for v in orpha_map.values() if v),
+        "profiles_orphanet_only": sum(1 for p in profiles if p["id"].startswith("ORPHA:")),
+        "profiles_with_orpha_freq": sum(1 for p in profiles if p.get("orpha_freq")),
+        "orpha_freq_links": sum(len(p.get("orpha_freq", [])) for p in profiles),
+        "orpha_excluded_links": sum(1 for p in profiles for _t, f in p.get("orpha_freq", []) if f == "EX"),
+        **hpo_stats,
+        "terms_orphanet_new": sum(1 for tid in terms if tid.startswith("HP:")),
+        "terms_orphanet_new_with_korean": sum(1 for tid, t in terms.items() if tid.startswith("HP:") and t["ko"]),
     }
-    versions = {"DO": do_version, "MedlinePlus": mplus_date, "files": files,
+    prev = parse_prevalence()
+    stats["prevalence_kcd3_codes"] = len(prev)
+    stats["profiles_with_prevalence"] = sum(1 for p in profiles if any(c[:3] in prev for c, _ in
+                                                                      p["codes"].get("kcd", [])))
+    versions = {"DO": do_version, "MedlinePlus": mplus_date, "Orphanet": orpha["version"], "files": files,
                 "built": dt.date.today().isoformat()}
     return {"profiles": profiles, "terms": terms, "kcd": kcd, "stats": stats, "versions": versions,
-            "ddx_map": ddx_map}
+            "ddx_map": ddx_map, "prev": prev}
 
 
 def write(kb: dict) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {"schema": 1, "sources": SOURCES, "versions": kb["versions"], "stats": kb["stats"],
             "test_refs": kb_tests.REFS,
-            "hpo": "Human Phenotype Ontology not included (license forbids altering file content)."}
+            "orpha_freq": {"O": "Obligate (100%)", "VF": "Very frequent (99-80%)", "F": "Frequent (79-30%)",
+                           "OC": "Occasional (29-5%)", "VR": "Very rare (<4-1%)", "EX": "Excluded (0%)"},
+            "hpo": "Human Phenotype Ontology files not included (license forbids altering file content); Orphanet "
+                   "(CC BY 4.0) HPO-coded annotations are re-keyed to KB terms."}
     body = {"meta": meta, "terms": kb["terms"], "diseases": kb["profiles"]}
     def gz(path: Path):  # mtime=0: identical inputs give byte-identical files (reproducible rebuilds)
         return io.TextIOWrapper(gzip.GzipFile(str(path), "wb", compresslevel=9, mtime=0), encoding="utf-8")
@@ -910,13 +1187,21 @@ def write(kb: dict) -> None:
         for code in sorted(kb["kcd"]):
             r = kb["kcd"][code]
             f.write(f"{code}\t{'|'.join(r['ko'][:4])}\t{r['en'][0] if r['en'] else ''}\t{r.get('sex', '')}\n")
-    lines = ["# data/kb sources and attribution", "",
+    with gz(OUT / "kcd3_prev.tsv.gz") as f:  # HIRA 2025 patients per KCD 3-char code: 18 male + 18 female age groups
+        f.write("code\tmale_0-4..85+\tfemale_0-4..85+\n")
+        for code in sorted(kb["prev"]):
+            v = kb["prev"][code]
+            f.write(f"{code}\t{','.join(map(str, v[:18]))}\t{','.join(map(str, v[18:]))}\n")
+    lines =["# data/kb sources and attribution", "",
              "Built by scripts/build_kb.py. See docs/licenses.md for the full license ledger.", ""]
     for k, s in SOURCES.items():
         lines.append(f"- **{k}**: {s['title']}. License: {s['license']}. {s['url']} — {s['attribution']}")
     lines += ["", f"Versions: DO {kb['versions']['DO']}; MedlinePlus XML {kb['versions']['MedlinePlus']}; "
-              f"built {kb['versions']['built']}.",
-              "Human Phenotype Ontology: not used."]
+              f"Orphadata {kb['versions']['Orphanet']}; built {kb['versions']['built']}.",
+              "Human Phenotype Ontology file (hp.obo) and HPO annotations (phenotype.hpoa): not used. Orphanet "
+              "phenotype annotations are HPO-coded; they are stored against KB term ids, with HPO ids only as "
+              "identifiers of terms that have no other KB equivalent.",
+              "kcd3_prev.tsv.gz: HIRA patients per KCD 3-character code by sex and age group (source HIRA-stats)."]
     (OUT / "SOURCES.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     for p in OUT.iterdir():
         print(f"  {p.name}: {p.stat().st_size / 1e6:.2f} MB")
@@ -939,19 +1224,26 @@ def main() -> None:
         print("DDXPlus conditions kept as standalone profiles:", unmapped)
     if cache.failures:
         print("LLM failures:", cache.failures[:10])
-    if cache.calls or not META.exists():
-        meta = json.loads(META.read_text(encoding="utf-8")) if META.exists() else {"runs": []}
+    meta = json.loads(META.read_text(encoding="utf-8")) if META.exists() else {"runs": []}
+    last = meta["runs"][-1] if meta["runs"] else {}
+    # log every build that calls the LLM, and every cache-only build whose output changed (new sources, new stats)
+    if cache.calls or not last or last.get("stats") != kb["stats"] or last.get("versions", {}).get("built") != \
+            kb["versions"]["built"]:
         cfg = cache.cfg
         meta["runs"].append({
             "date": dt.datetime.now().isoformat(timespec="seconds"),
-            "model": cfg.model if cfg else None, "temperature": cfg.temperature if cfg else None,
+            # cache-only build: the LLM outputs it uses come from the earlier runs' model
+            "model": cfg.model if cfg else next((r["model"] for r in reversed(meta["runs"]) if r.get("model")), None),
+            "temperature": cfg.temperature if cfg else None,
             "reasoning_effort": cfg.reasoning_effort if cfg else None, "workers": args.workers,
             "llm_calls": cache.calls, "failures": cache.failures,
+            "mode": "cache-only (--no-llm)" if args.no_llm else "llm",
             "prompts": {"term_ko": TERM_PROMPT, "ddx_evidence": EVID_PROMPT, "mplus_extract": MPLUS_PROMPT,
                         "disease_ko": NAME_PROMPT},
             "cache": str(CACHE.relative_to(ROOT)), "stats": kb["stats"], "versions": kb["versions"],
             "note": "Outputs are cached per item in the cache file; MedlinePlus extractions keep only English terms "
-                    "grounded in the source summary text (others are listed under 'dropped').",
+                    "grounded in the source summary text (others are listed under 'dropped'). Orphanet phenotypes, "
+                    "Wikidata HPO/Orphanet bridges and the HIRA prevalence table are processed without any LLM.",
         })
         META.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
 

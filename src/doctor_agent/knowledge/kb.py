@@ -1,7 +1,8 @@
 """Citable medical knowledge base (disease profiles) for the Doctor Agent. Content is owned by knowledge-rag.
 
 Built offline by scripts/build_kb.py from openly licensed sources (DDXPlus CC BY 4.0, HIRA KCD master KOGL-1,
-Disease Ontology CC0, Wikidata CC0, MedlinePlus public-domain summaries). Every field keeps its source tag; see
+Disease Ontology CC0, Wikidata CC0, MedlinePlus public-domain summaries, Orphadata CC BY 4.0 rare-disease phenotypes
+with frequency classes, HIRA 2025 patients per KCD code KOGL-1). Every field keeps its source tag; see
 data/kb/SOURCES.md and docs/licenses.md. Stdlib only, CPU only, no network, loaded lazily once per process.
 Nothing here depends on other cases (read-only static data).
 
@@ -17,7 +18,10 @@ API
 Finding → term matching uses the KB labels plus the curated tables in kb_curated.py (Korean synonyms, generic-term
 stop list, vitals/lab value parsing). Test/lab/imaging results ("리파아제 1,250 U/L", "AMA 양성", "CT: 충수 비후") are
 detected by kb_tests.detect() and scored through the curated profile field findings_from_tests (weight 3 = decisive);
-a normal result of a rule-out test ("트로포닌 음성") penalises the linked disease. Offline benchmark: scripts/eval_kb.py.
+a normal result of a rule-out test ("트로포닌 음성") penalises the linked disease. Orphanet phenotypes count by frequency
+class (profile field orpha_freq; "Excluded (0%)" findings penalise), and a mild Korean prevalence prior (HIRA patients
+for the profile's KCD code in the patient's sex/age group, kcd3_prev.tsv.gz) scales the symptom part of the score.
+Offline benchmark: scripts/eval_kb.py.
 """
 from __future__ import annotations
 
@@ -33,6 +37,7 @@ from doctor_agent.knowledge import kb_curated, kb_tests
 
 KB_DIR = Path(__file__).resolve().parents[3] / "data" / "kb"
 SRC_SHORT = {"DDXPlus": "DDXPlus", "DO": "DO", "WD": "Wikidata", "KCD": "KCD", "MedlinePlus": "MedlinePlus",
+             "Orphanet": "Orphanet",
              "MedlinePlus+LLM": "MedlinePlus", "LLM": "LLM번역", "curated": "curated"}
 
 _NON = re.compile(r"[^0-9a-z가-힣]")
@@ -50,6 +55,10 @@ _GENERIC_TESTS = {"medical history", "physical examination", "history", "physica
 # generic labels that would match almost any complaint
 _GENERIC = {"통증", "고통", "증상", "징후", "불편감", "이상", "pain", "aches", "ache", "symptom", "symptoms", "sign"}
 
+
+# Orphanet frequency class codes (profile field orpha_freq) → display label
+ORPHA_FREQ_KO = {"O": "항상(100%)", "VF": "매우 흔함(80-99%)", "F": "흔함(30-79%)", "OC": "가끔(5-29%)",
+                 "VR": "매우 드묾(1-4%)", "EX": "없음(0%)"}
 
 _PEDIATRIC = re.compile(r"소아|영아|신생아|유아기|childhood|infantile|neonatal|juvenile|pediatric|of infancy|newborn")
 _ELDERLY = re.compile(r"노인성|노년|senile")
@@ -116,6 +125,19 @@ class KnowledgeBase:
     TEST_SPREAD = 0.2  # a finding linked to n diseases counts 1 / (1 + TEST_SPREAD × (n - 1)) per disease
     TEST_NEG = 5.0   # penalty of a normal result of a rule-out ("R") link, × TEST_TW
     AGE_PEN = 0.3    # pediatric-named profile for an adult (or the reverse)
+    # Orphanet phenotype frequency classes (field orpha_freq) → feature weight of the "Orphanet" source
+    ORPHA_W = {"O": 0.6, "VF": 0.5, "F": 0.35, "OC": 0.15, "VR": 0.05}
+    ORPHA_JOIN = 1.0  # scale of ORPHA_W on profiles that also have symptoms from other sources
+    ORPHA_LEN = 0.25  # an Orphanet-only feature adds ORPHA_W × this to the BM25 profile length
+    EXCL_W = 1.0     # penalty (× idf) when a reported finding is "Excluded (0%)" for the disease in Orphanet
+    # Korean prevalence prior (HIRA 2025 patients per KCD 3-char code, by sex × age group): score ×
+    # (1 + PREV_W × clamp((log10(1 + patients) - PREV_REF) / PREV_SCALE, -1, 1)); no code → z = PREV_MISSING
+    PREV_W = 0.15   # dev sweep 0→0.8: top-10 up to 0.2, top-1 down beyond 0.1; mild value chosen
+    PREV_REF = 3.0
+    PREV_SCALE = 3.0
+    PREV_MISSING = -0.5
+    PREV_TESTS = False  # also scale the test-result part of the score
+    PREV_DEMO = True  # use the patient's sex × age-group counts (else all patients)
     FUZZY_MIN = 0.6  # minimum char-bigram Dice for a fuzzy name match (Korean) ...
     FUZZY_SURE = 0.7  # ... below which the first two characters must agree
     FUZZY_MIN_LATIN = 0.75
@@ -204,6 +226,7 @@ class KnowledgeBase:
         self._build_postings()
         self._build_test_postings()
         self._compute_prior()
+        self._load_prevalence()
         # age group from names ("childhood ...", "소아 ...", "senile ...")
         self._age: list[str] = []
         for d in self.diseases:
@@ -379,9 +402,19 @@ class KnowledgeBase:
     def profile(self, i: int) -> dict:
         d = self.diseases[i]
 
+        freq = dict(d.get("orpha_freq", ()))
+        frank = {"O": 5, "VF": 4, "F": 3, "OC": 2, "VR": 1}
+
         def feats(field):
-            return [{**self.term(t), "src": src} for t, src in sorted(
-                d.get(field, []), key=lambda x: (-len(x[1]), -self.idf.get(x[0], 0)))]
+            out = []
+            # several sources first, then Orphanet frequency class, then specificity
+            for t, src in sorted(d.get(field, []), key=lambda x: (-len(x[1]), -frank.get(freq.get(x[0], ""), 0),
+                                                                 -self.idf.get(x[0], 0))):
+                f = {**self.term(t), "src": src}
+                if t in freq and field == "symptoms":
+                    f["freq"] = ORPHA_FREQ_KO[freq[t]]
+                out.append(f)
+            return out
         out = {
             "id": d["id"],
             "name_ko": d["names_ko"][0][0] if d["names_ko"] else "",
@@ -395,6 +428,9 @@ class KnowledgeBase:
         for k in ("def", "summary_ko", "severity", "medlineplus", "parents"):
             if k in d:
                 out["definition" if k == "def" else k] = d[k]
+        excl = [t for t, f in freq.items() if f == "EX"]
+        if excl:  # Orphanet "Excluded (0%)": findings that argue against the disease
+            out["excluded"] = [{**self.term(t), "src": ["Orphanet"]} for t in sorted(excl)]
         srcs = {s for lst in ("names_ko", "names_en") for _, s in d[lst]}
         srcs |= {s for f in ("symptoms", "risk", "tests") for _, ss in d.get(f, []) for s in ss}
         srcs |= {s for x in d.get("findings_from_tests", []) for s in x[1]}
@@ -423,11 +459,62 @@ class KnowledgeBase:
         w = self.PRIOR
         for d in self.diseases:
             ddx = any(s == "DDXPlus" for _, s in d["names_en"])
-            rare = bool(d["codes"].get("orpha") or d["codes"].get("omim")) and not ddx and "medlineplus" not in d
+            # rare: rare-disease ids from DO/Wikidata, or an Orphanet-only profile (Orphanet joins do not count)
+            rare = ((any(s != "Orphanet" for kind in ("orpha", "omim") for _, s in d["codes"].get(kind, []))
+                     or d["id"].startswith("ORPHA:")) and not ddx and "medlineplus" not in d)
             nsrc = len({x for _, ss in d["symptoms"] for x in ss})
             self.prior.append(max(0.1, 1.0 + w["ddx"] * ddx + w["mplus"] * ("medlineplus" in d)
                                   + w["kcd"] * bool(d["codes"].get("kcd")) + w["rare"] * rare
                                   + w.get("nsrc", 0.0) * max(0, nsrc - 1)))
+
+    def _load_prevalence(self) -> None:
+        """HIRA patients per KCD 3-char code by sex × 5-year age group (kcd3_prev.tsv.gz) → per profile the codes to
+        read: its own KCD codes (max over them), else the broader codes Orphanet assigns (kcd_broad), whose count is
+        shared among the profiles that use that broad code."""
+        self.prev: dict[str, list[int]] = {}
+        path = self.kb_dir / "kcd3_prev.tsv.gz"
+        if path.exists():
+            with gzip.open(path, "rt", encoding="utf-8") as f:
+                next(f)
+                for line in f:
+                    code, male, female = line.rstrip("\n").split("\t")
+                    self.prev[code] = [int(x) for x in male.split(",")] + [int(x) for x in female.split(",")]
+        share: dict[str, int] = defaultdict(int)
+        for d in self.diseases:
+            if not d["codes"].get("kcd"):
+                for c in {c[:3] for c, _ in d["codes"].get("kcd_broad", [])}:
+                    share[c] += 1
+        self._prev_codes: list[tuple[tuple[str, float], ...]] = []
+        known = set(self.prev)
+        for d in self.diseases:
+            own = sorted({c[:3] for c, _ in d["codes"].get("kcd", [])} & known)
+            if own:
+                self._prev_codes.append(tuple((c, 1.0) for c in own))
+            else:
+                broad = sorted({c[:3] for c, _ in d["codes"].get("kcd_broad", [])} & known)
+                self._prev_codes.append(tuple((c, 1.0 / share[c]) for c in broad))
+
+    def prevalence(self, i: int, sex: str | None = None, age: float | None = None) -> float | None:
+        """HIRA 2025 patients with the profile's KCD code (main or secondary diagnosis), for the patient's sex and
+        age group when given; None when the profile has no KCD code."""
+        codes = self._prev_codes[i]
+        if not codes:
+            return None
+        sexes = [0] if sex == "남성" else [18] if sex == "여성" else [0, 18]
+        groups = [min(17, int(age // 5))] if age is not None and age >= 0 else list(range(18))
+        best = 0.0
+        for c, frac in codes:
+            v = self.prev[c]
+            best = max(best, frac * sum(v[s + g] for s in sexes for g in groups))
+        return best
+
+    def _prev_factor(self, i: int, sex: str | None, age: float | None) -> float:
+        if not self.PREV_W:
+            return 1.0
+        n = self.prevalence(i, sex, age) if self.PREV_DEMO else self.prevalence(i)
+        z = self.PREV_MISSING if n is None else max(-1.0, min(1.0, (math.log10(1 + n) - self.PREV_REF)
+                                                                / self.PREV_SCALE))
+        return 1.0 + self.PREV_W * z
 
     def _build_postings(self) -> None:
         """Symptom postings for candidates(). Weight of a feature = source-weighted count of the independent sources
@@ -436,12 +523,29 @@ class KnowledgeBase:
         self.dlen: list[int] = []
         lens = []
         sw = self.SRC_W
+        ow = self.ORPHA_W
+        self.xpost: dict[str, list[int]] = defaultdict(list)  # Orphanet "Excluded (0%)" term → diseases
         for i, d in enumerate(self.diseases):
             feats: dict[str, float] = {}
+            freq = dict(d.get("orpha_freq", ()))
+            own = {t for t, _ in d["symptoms"]}
+            oscale = self.ORPHA_JOIN if any(s != "Orphanet" for _t, ss in d["symptoms"] for s in ss) else 1.0
+            for t, f in freq.items():
+                if f == "EX" and t not in own and t not in self.stop:
+                    self.xpost[t].append(i)
+            length = 0.0
             for t, srcs in d["symptoms"] + d.get("risk", []):
                 if t in self.stop:
                     continue
-                feats[t] = max(feats.get(t, 0.0), sum(sw.get(s, 1.0) for s in srcs))
+                w = sum(sw.get(s, 1.0) for s in srcs if s != "Orphanet")
+                if "Orphanet" in srcs:
+                    ofw = ow.get(freq.get(t, ""), 0.0) * oscale
+                    w += ofw
+                    if len(srcs) == 1:
+                        length += ofw * self.ORPHA_LEN - 1.0
+                if w <= 0:
+                    continue
+                feats[t] = max(feats.get(t, 0.0), w)
             implied: dict[str, float] = {}
             for t, w in feats.items() if self.BACKOFF > 0 else ():
                 for g in self.implies.get(t, ()):
@@ -449,7 +553,8 @@ class KnowledgeBase:
                         implied[g] = max(implied.get(g, 0.0), w * self.BACKOFF)
             for t, w in list(feats.items()) + list(implied.items()):
                 self.post[t].append((i, w))
-            self.dlen.append(len(d["symptoms"]) or len(feats))  # risk factors do not dilute symptom matches
+            # risk factors do not dilute symptom matches; Orphanet-only features count by frequency weight
+            self.dlen.append(max(1.0, len(d["symptoms"]) + length) if d["symptoms"] else len(feats))
             if feats:
                 lens.append(self.dlen[-1])
         self.avg_len = sum(lens) / len(lens) if lens else 1.0
@@ -618,6 +723,7 @@ class KnowledgeBase:
         tpos, tneg = self.test_findings(findings, negatives)
         n_q = len(q_found | {f for fs in tpos.values() for f in fs})
         scores: dict[int, float] = defaultdict(float)
+        tscore: dict[int, float] = defaultdict(float)  # the part of scores that comes from test results
         hits: dict[int, set[str]] = defaultdict(set)
         k1, b = self.K1, self.B
         for concept in concepts:  # a concept adds its best-matching term per disease (no synonym double counting)
@@ -636,7 +742,9 @@ class KnowledgeBase:
             spread = 1.0 + self.TEST_SPREAD * (len(post) - 1)
             matched[tid] += fs
             for i, w, _r in post:
-                scores[i] += self.TEST_W * self.TEST_TW.get(w, 0.0) / spread
+                c = self.TEST_W * self.TEST_TW.get(w, 0.0) / spread
+                scores[i] += c
+                tscore[i] += c
                 hits[i].add(tid)
         negpen_t: dict[int, float] = defaultdict(float)
         for tid in tneg:
@@ -648,6 +756,10 @@ class KnowledgeBase:
             for i, w in self.post.get(t, ()):
                 if i in scores:
                     negpen[i] += self.idf[t] * min(w, 2.0)
+        for t in qw:  # a reported finding that Orphanet lists as "Excluded (0%)" for the disease
+            for i in self.xpost.get(t, ()):
+                if i in scores:
+                    negpen[i] += self.EXCL_W * self.idf.get(t, 1.0) / self.NEG_W
         sex_t = self._sex_table() if sex in ("남성", "여성") else None
         out = []
         a = self.COVER_A
@@ -655,6 +767,9 @@ class KnowledgeBase:
             if sex_t is not None and sex_t[i] and sex_t[i] != sex:
                 continue
             cover = len({f for t in hits[i] for f in matched[t]}) / max(n_q, 1)
+            # the prevalence prior scales the symptom part only: a decisive test result keeps a rare disease on top
+            pf = self._prev_factor(i, sex, age)
+            s = (s - tscore[i]) * pf + tscore[i] * (pf if self.PREV_TESTS else 1.0)
             score = s * (a + (1 - a) * cover) * self.prior[i] - self.NEG_W * negpen[i] - negpen_t[i]
             if age is not None and self._age[i] and ((self._age[i] == "child") != (age < 18)):
                 score *= self.AGE_PEN
@@ -686,7 +801,8 @@ class KnowledgeBase:
 
         def fs(d, field):
             return {t: s for t, s in d.get(field, [])}
-        out = {"a": self.profile(ia)["name_ko"] or dx_a, "b": self.profile(ib)["name_ko"] or dx_b}
+        pa, pb = self.profile(ia), self.profile(ib)
+        out = {"a": pa["name_ko"] or pa["name_en"] or dx_a, "b": pb["name_ko"] or pb["name_en"] or dx_b}
         for field, key in (("symptoms", "symptoms"), ("risk", "risk_factors"), ("tests", "tests")):
             fa, fb = fs(a, field), fs(b, field)
             order = lambda ts: sorted(ts, key=lambda t: -self.idf.get(t, 0))[:n]
@@ -805,7 +921,8 @@ class KnowledgeBase:
             parts = []
             if hit:
                 parts.append("일치: " + ", ".join(hit[:4]))
-            sx = [s["ko"] for s in p["symptoms"] if s["ko"] not in hit][:5]
+            sx = [s["ko"] for s in sorted(p["symptoms"], key=lambda s: not _HANGUL.search(s["ko"]))
+                  if s["ko"] not in hit][:5]  # Korean-labelled first (many Orphanet terms are English-only)
             if sx:
                 parts.append("전형 증상: " + ", ".join(sx))
             tf = [s["ko"] for s in p["findings_from_tests"] if s["weight"] >= 2][:3]
@@ -818,11 +935,14 @@ class KnowledgeBase:
                           for s in p[f][:5] for x in s["src"]})
             lines.append(head + " — " + " | ".join(parts) + (f" [{', '.join(src)}]" if src else ""))
         if len(rows) >= 2:
-            dsc = self.discriminators(rows[0][0]["id"], rows[1][0]["id"], n=3)
+            dsc = self.discriminators(rows[0][0]["id"], rows[1][0]["id"], n=12)
+
+            def ko3(xs):  # Korean-labelled features first (many Orphanet terms are English-only)
+                return ", ".join(x["ko"] for x in sorted(xs, key=lambda x: not _HANGUL.search(x["ko"]))[:3])
             if dsc and (dsc["symptoms_a_only"] or dsc["symptoms_b_only"]):
                 lines.append(f"감별 {dsc['a']} vs {dsc['b']}: " +
-                             f"{dsc['a']}만 — {', '.join(x['ko'] for x in dsc['symptoms_a_only']) or '없음'}; " +
-                             f"{dsc['b']}만 — {', '.join(x['ko'] for x in dsc['symptoms_b_only']) or '없음'}")
+                             f"{dsc['a']}만 — {ko3(dsc['symptoms_a_only']) or '없음'}; " +
+                             f"{dsc['b']}만 — {ko3(dsc['symptoms_b_only']) or '없음'}")
             if dsc and (dsc["test_findings_a_only"] or dsc["test_findings_b_only"]):
                 ta = ", ".join(x["ko"] for x in dsc["test_findings_a_only"][:2]) or "없음"
                 tb = ", ".join(x["ko"] for x in dsc["test_findings_b_only"][:2]) or "없음"
