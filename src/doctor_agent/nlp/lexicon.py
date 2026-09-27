@@ -50,7 +50,10 @@ def normalize(text: str | None) -> str:
     t = re.sub(r"(?<=\d),(?=\d{3}(?!\d))", "", t)
     t = t.replace("비정상", "이상")
     t = _KO_COUNT.sub(lambda m: _KO_NUM[m.group(1)] + m.group(2), t)
-    return re.sub(r"\s+", " ", t).strip()
+    # a line break ends a sentence (case files: "b-hcg 양성\nhbsag 음성" is two results, not one list), so a run of
+    # whitespace holding a newline becomes one "\n"; other runs become one space
+    t = re.sub(r"[^\S\n]*\n\s*", "\n", t)
+    return re.sub(r"[^\S\n]+", " ", t).strip()
 
 
 def _cls(ch: str) -> str | None:

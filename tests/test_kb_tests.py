@@ -18,6 +18,16 @@ needs_kb = pytest.mark.skipif(not kb.available(), reason="data/kb not built (pyt
 
 # --- detection and polarity (no KB needed) ---------------------------------------------------------
 
+def test_tsh_receptor_antibody_is_not_a_tsh_level():
+    got = kb_tests.detect("TSH 수용체 항체 양성")
+    assert got.get("trab_pos", (0,))[0] == 1
+    assert "tsh_high" not in got and "tsh_low" not in got
+    got = kb_tests.detect("TSH receptor antibody positive")
+    assert "tsh_high" not in got and "tsh_low" not in got
+    got = kb_tests.detect("TSH 0.01 mIU/L, TSH 수용체 항체 양성")  # a real TSH value next to it is still read
+    assert got.get("tsh_low", (0,))[0] == 1 and got.get("trab_pos", (0,))[0] == 1
+
+
 @pytest.mark.parametrize("text,fid,pol", [
     ("리파아제 1,250 U/L", "lipase_high", 1),
     ("Lipase 32 U/L (정상)", "lipase_high", -1),
@@ -128,9 +138,8 @@ def _rank(findings, name, negatives=None, k=10):
     (["발열", "옆구리 통증", "소변 아질산염 양성", "소변 WBC 원주"], "pyelonephritis", 2),
     (["호흡곤란", "흉막성 흉통", "CT 폐동맥 조영: 우폐동맥 충만결손"], "pulmonary embolism", 1),
     (["우하복부 통증", "복부 CT: 충수 직경 12mm로 비후, 주위 지방 침윤"], "appendicitis", 1),
-    # top 3 since the nlp migration (2026-09-28): "갑상선 비대" now matches goiter, which the Graves profile lacks (no
-    # symptom features), and kb_tests reads "TSH 수용체 항체 양성" as elevated TSH too, so hypothyroidism edges past
-    (["갑상선 비대", "체중 감소", "TSH 0.01 mIU/L", "TSH 수용체 항체 양성"], "Graves disease", 3),
+    # top 2 again since kb_tests stopped reading "TSH 수용체 항체 양성" as a TSH level (2026-09-28; top 3 in between)
+    (["갑상선 비대", "체중 감소", "TSH 0.01 mIU/L", "TSH 수용체 항체 양성"], "Graves disease", 2),
 ])
 def test_decisive_results_rank_the_disease(findings, dx, top):
     r = _rank(findings, dx)
