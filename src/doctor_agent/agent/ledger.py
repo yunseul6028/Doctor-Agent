@@ -13,6 +13,7 @@ FINDING_STATUS = {"양성": "양성", "positive": "양성", "있음": "양성", 
 DX_STATUS = {"유력": "유력", "active": "유력", "배제": "배제", "ruled out": "배제", "ruled_out": "배제",
              "위험": "위험", "cant_miss": "위험", "must_rule_out": "위험"}
 SAME_ITEM = 0.6
+UNVERIFIED_TAG = " (미확인)"  # appended to findings not found in what the environment said
 
 
 @dataclass
@@ -21,6 +22,8 @@ class Finding:
     status: str  # 양성 | 음성 | 결과없음
     detail: str = ""
     turn: int = 0
+    verified: bool | None = None  # set by agent/grounding.py: found (True) / not found (False) in the environment's text
+    span: str = ""  # evidence text that grounded it
 
 
 @dataclass
@@ -42,12 +45,15 @@ class FindingsLedger:
             else:
                 self.items.append(new)
 
-    def render(self) -> str:
+    def render(self, exclude_unverified: bool = False) -> str:
+        """Grouped by status. Findings the grounding check did not find in the environment's responses
+        (verified is False) are tagged "(미확인)", or left out when exclude_unverified is set."""
         if not self.items:
             return ""
         lines = []
         for status in ("양성", "음성", "결과없음"):
-            group = [f"{f.item}{f' ({f.detail})' if f.detail else ''}" for f in self.items if f.status == status]
+            group = [f"{f.item}{f' ({f.detail})' if f.detail else ''}{UNVERIFIED_TAG if f.verified is False else ''}"
+                     for f in self.items if f.status == status and not (exclude_unverified and f.verified is False)]
             if group:
                 lines.append(f"- {status}: " + "; ".join(group))
         return "\n".join(lines)
