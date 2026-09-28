@@ -1,0 +1,1017 @@
+{
+ "_note": "knowledge/specialty.py eight-id extension (heme_onc, renal_uro), 2026-09-28, eval/offline/eval_specialty.py, no LLM. Gold data/labels/specialty_gold_v2.jsonl hand-labelled by the knowledge-rag agent (Claude Opus 5.5) before any eight-id specialty_of output: 48 new names (40 heme_onc/renal_uro, 8 controls) + 14 corrected copies of v1 items (v1 file unchanged). first_pass = first eight-id implementation; final = after fixes made while reading the first-pass errors (optimistic on this gold). before = the six-id module (commit e03c65d). routing_old_vs_eight_gold = the six-id route() scored against the eight-id gold specialties (like-for-like). Routing replays local run files (eval/results, not in git; 224 non-dummy trajectories 2026-09-25/26). Timings on a shared machine.",
+ "before": {
+  "gold_v1": {
+   "n": 116,
+   "strict": 0.974,
+   "lenient": 1.0,
+   "per_label": {
+    "cardio": "13/13",
+    "gi_liver": "17/18",
+    "neuro": "15/15",
+    "none": "22/22",
+    "peds_obgyn": "10/11",
+    "resp_id": "20/20",
+    "rheum_immune": "16/17"
+   },
+   "errors": [
+    {
+     "name": "급성 류마티스열",
+     "gold": "rheum_immune",
+     "also": [
+      "cardio"
+     ],
+     "pred": "cardio",
+     "how": "kcd",
+     "code": "I00",
+     "kb_name": "류마티스열",
+     "lenient_ok": true
+    },
+    {
+     "name": "Clostridioides difficile infection",
+     "gold": "gi_liver",
+     "also": [
+      "resp_id"
+     ],
+     "pred": "resp_id",
+     "how": "keyword",
+     "code": "",
+     "kb_name": "",
+     "lenient_ok": true
+    },
+    {
+     "name": "영아 비후성 유문 협착증",
+     "gold": "peds_obgyn",
+     "also": [
+      "gi_liver"
+     ],
+     "pred": "gi_liver",
+     "how": "kcd",
+     "code": "K31.1",
+     "kb_name": "성인 비대성 유문협착",
+     "lenient_ok": true
+    }
+   ]
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 16,
+     "gi_liver": 14,
+     "none": 46,
+     "rheum_immune": 4,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "none": 32,
+     "rheum_immune": 14,
+     "neuro": 10
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 17,
+     "neuro": 7,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "none": 2,
+     "peds_obgyn": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "none": 97,
+    "rheum_immune": 19,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "cardio": 26
+   },
+   "outside_share": 0.363,
+   "outside_by_group": {
+    "heme_onc": 25,
+    "renal_uro": 13,
+    "other": 13,
+    "psych": 11,
+    "derm": 11,
+    "endo_metab": 10,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 182,
+    "keyword": 36,
+    "do": 11,
+    "override": 25,
+    "none": 13
+   }
+  },
+  "routing": {
+   "trajectories": 224,
+   "fired": 151,
+   "fired_share": 0.674,
+   "fired_correct": 130,
+   "fired_precision": 0.861,
+   "gold_in_six": 156,
+   "fired_gold_in_six": 139,
+   "fired_precision_gold_in_six": 0.935,
+   "final_snapshot_agreement": 0.825,
+   "fired_by_specialty": {
+    "gi_liver": 45,
+    "cardio": 31,
+    "resp_id": 21,
+    "neuro": 31,
+    "peds_obgyn": 4,
+    "rheum_immune": 19
+   },
+   "fire_turn_mean": 3.09,
+   "fired_on_wrong_final": 16,
+   "fired_on_wrong_final_correct_specialty": 11,
+   "route_time": {
+    "n": 1438,
+    "mean_ms": 0.94,
+    "p95_ms": 2.37,
+    "max_ms": 24.82
+   },
+   "resources_time": {
+    "n": 151,
+    "mean_ms": 11.63,
+    "p95_ms": 23.89,
+    "max_ms": 115.89
+   }
+  },
+  "routing_old_vs_eight_gold": {
+   "fired": 151,
+   "fired_correct": 130,
+   "fired_precision": 0.861,
+   "fired_gold_in_ids": 144,
+   "fired_precision_gold_in_ids": 0.903,
+   "final_snapshot_agreement": 0.825
+  }
+ },
+ "first_pass": {
+  "gold": {
+   "v1": {
+    "n": 116,
+    "strict": 0.897,
+    "lenient": 0.922,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "neuro": "15/15",
+     "none": "13/22",
+     "peds_obgyn": "10/11",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "급성 신손상",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N17",
+      "kb_name": "급성 신부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신우신염",
+      "gold": null,
+      "also": [
+       "resp_id"
+      ],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N10",
+      "kb_name": "급성 세뇨관-간질신장염",
+      "lenient_ok": false
+     },
+     {
+      "name": "요로결석",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N21.8",
+      "kb_name": "기타 하부요로결석",
+      "lenient_ok": false
+     },
+     {
+      "name": "IgA 신병증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N02",
+      "kb_name": "재발성 및 지속성 혈뇨",
+      "lenient_ok": false
+     },
+     {
+      "name": "철결핍성 빈혈",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D50",
+      "kb_name": "철결핍빈혈",
+      "lenient_ok": false
+     },
+     {
+      "name": "Acute myeloid leukemia",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C92.0",
+      "kb_name": "급성 골수성 백혈병",
+      "lenient_ok": false
+     },
+     {
+      "name": "호지킨 림프종",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C81",
+      "kb_name": "호지킨림프종",
+      "lenient_ok": false
+     },
+     {
+      "name": "면역성 혈소판 감소증",
+      "gold": null,
+      "also": [
+       "rheum_immune"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.6",
+      "kb_name": "상세불명의 혈소판감소증",
+      "lenient_ok": false
+     },
+     {
+      "name": "횡문근융해증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "override",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v1_corrected": {
+    "n": 116,
+    "strict": 0.966,
+    "lenient": 1.0,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "heme_onc": "4/4",
+     "neuro": "15/15",
+     "none": "12/12",
+     "peds_obgyn": "10/11",
+     "renal_uro": "5/6",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "저나트륨혈증",
+      "gold": "renal_uro",
+      "also": [
+       null
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     }
+    ]
+   },
+   "v2_new": {
+    "n": 48,
+    "strict": 0.917,
+    "lenient": 0.938,
+    "per_label": {
+     "gi_liver": "1/1",
+     "heme_onc": "20/21",
+     "none": "2/2",
+     "peds_obgyn": "1/1",
+     "renal_uro": "17/19",
+     "resp_id": "2/2",
+     "rheum_immune": "1/2"
+    },
+    "errors": [
+     {
+      "name": "Glucose-6-phosphate dehydrogenase deficiency",
+      "gold": "heme_onc",
+      "also": [],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "포도당-6-인산탈수소효소 결핍",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 요폐",
+      "gold": "renal_uro",
+      "also": [],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "당뇨병성 신증",
+      "gold": "renal_uro",
+      "also": [
+       null
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E14",
+      "kb_name": "상세불명의 당뇨병",
+      "lenient_ok": true
+     },
+     {
+      "name": "헤노흐-쇤라인 자반증",
+      "gold": "rheum_immune",
+      "also": [
+       "peds_obgyn"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.2",
+      "kb_name": "자반증",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "all": {
+    "n": 164,
+    "strict": 0.951,
+    "lenient": 0.982,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "18/19",
+     "heme_onc": "24/25",
+     "neuro": "15/15",
+     "none": "14/14",
+     "peds_obgyn": "11/12",
+     "renal_uro": "22/25",
+     "resp_id": "22/22",
+     "rheum_immune": "17/19"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "저나트륨혈증",
+      "gold": "renal_uro",
+      "also": [
+       null
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "Glucose-6-phosphate dehydrogenase deficiency",
+      "gold": "heme_onc",
+      "also": [],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "포도당-6-인산탈수소효소 결핍",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 요폐",
+      "gold": "renal_uro",
+      "also": [],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "당뇨병성 신증",
+      "gold": "renal_uro",
+      "also": [
+       null
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E14",
+      "kb_name": "상세불명의 당뇨병",
+      "lenient_ok": true
+     },
+     {
+      "name": "헤노흐-쇤라인 자반증",
+      "gold": "rheum_immune",
+      "also": [
+       "peds_obgyn"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.2",
+      "kb_name": "자반증",
+      "lenient_ok": false
+     }
+    ]
+   }
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 16,
+     "gi_liver": 14,
+     "none": 28,
+     "renal_uro": 5,
+     "rheum_immune": 4,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "heme_onc": 13,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "heme_onc": 8,
+     "renal_uro": 8,
+     "rheum_immune": 14,
+     "none": 16,
+     "neuro": 10
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 13,
+     "neuro": 7,
+     "heme_onc": 4,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "renal_uro": 1,
+     "peds_obgyn": 1,
+     "none": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "none": 58,
+    "renal_uro": 14,
+    "rheum_immune": 19,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "heme_onc": 25,
+    "cardio": 26
+   },
+   "outside_share": 0.217,
+   "outside_by_group": {
+    "other": 12,
+    "psych": 11,
+    "derm": 11,
+    "endo_metab": 10,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 180,
+    "keyword": 40,
+    "override": 25,
+    "none": 12,
+    "do": 10
+   }
+  }
+ },
+ "final": {
+  "gold": {
+   "v1": {
+    "n": 116,
+    "strict": 0.888,
+    "lenient": 0.914,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "neuro": "15/15",
+     "none": "12/22",
+     "peds_obgyn": "10/11",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "급성 신손상",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N17",
+      "kb_name": "급성 신부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신우신염",
+      "gold": null,
+      "also": [
+       "resp_id"
+      ],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N10",
+      "kb_name": "급성 세뇨관-간질신장염",
+      "lenient_ok": false
+     },
+     {
+      "name": "요로결석",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N21.8",
+      "kb_name": "기타 하부요로결석",
+      "lenient_ok": false
+     },
+     {
+      "name": "IgA 신병증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N02",
+      "kb_name": "재발성 및 지속성 혈뇨",
+      "lenient_ok": false
+     },
+     {
+      "name": "철결핍성 빈혈",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D50",
+      "kb_name": "철결핍빈혈",
+      "lenient_ok": false
+     },
+     {
+      "name": "Acute myeloid leukemia",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C92.0",
+      "kb_name": "급성 골수성 백혈병",
+      "lenient_ok": false
+     },
+     {
+      "name": "호지킨 림프종",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C81",
+      "kb_name": "호지킨림프종",
+      "lenient_ok": false
+     },
+     {
+      "name": "면역성 혈소판 감소증",
+      "gold": null,
+      "also": [
+       "rheum_immune"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.6",
+      "kb_name": "상세불명의 혈소판감소증",
+      "lenient_ok": false
+     },
+     {
+      "name": "저나트륨혈증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "횡문근융해증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "override",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v1_corrected": {
+    "n": 116,
+    "strict": 0.974,
+    "lenient": 1.0,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "heme_onc": "4/4",
+     "neuro": "15/15",
+     "none": "12/12",
+     "peds_obgyn": "10/11",
+     "renal_uro": "6/6",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     }
+    ]
+   },
+   "v2_new": {
+    "n": 48,
+    "strict": 1.0,
+    "lenient": 1.0,
+    "per_label": {
+     "gi_liver": "1/1",
+     "heme_onc": "21/21",
+     "none": "2/2",
+     "peds_obgyn": "1/1",
+     "renal_uro": "19/19",
+     "resp_id": "2/2",
+     "rheum_immune": "2/2"
+    },
+    "errors": []
+   },
+   "all": {
+    "n": 164,
+    "strict": 0.982,
+    "lenient": 1.0,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "18/19",
+     "heme_onc": "25/25",
+     "neuro": "15/15",
+     "none": "14/14",
+     "peds_obgyn": "11/12",
+     "renal_uro": "25/25",
+     "resp_id": "22/22",
+     "rheum_immune": "18/19"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     }
+    ]
+   }
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 16,
+     "gi_liver": 14,
+     "none": 29,
+     "renal_uro": 5,
+     "rheum_immune": 4,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "heme_onc": 12,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "heme_onc": 8,
+     "renal_uro": 8,
+     "rheum_immune": 14,
+     "none": 16,
+     "neuro": 10
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 13,
+     "neuro": 7,
+     "heme_onc": 4,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "renal_uro": 1,
+     "peds_obgyn": 1,
+     "none": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "none": 59,
+    "renal_uro": 14,
+    "rheum_immune": 19,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "heme_onc": 24,
+    "cardio": 26
+   },
+   "outside_share": 0.221,
+   "outside_by_group": {
+    "derm": 12,
+    "other": 12,
+    "psych": 11,
+    "endo_metab": 10,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 179,
+    "keyword": 39,
+    "override": 27,
+    "none": 12,
+    "do": 10
+   }
+  },
+  "routing": {
+   "trajectories": 224,
+   "fired": 180,
+   "fired_share": 0.804,
+   "fired_correct": 160,
+   "fired_precision": 0.889,
+   "gold_in_six": 193,
+   "fired_gold_in_six": 173,
+   "fired_precision_gold_in_six": 0.925,
+   "final_snapshot_agreement": 0.879,
+   "fired_by_specialty": {
+    "gi_liver": 46,
+    "cardio": 30,
+    "resp_id": 20,
+    "neuro": 32,
+    "renal_uro": 14,
+    "peds_obgyn": 4,
+    "rheum_immune": 20,
+    "heme_onc": 14
+   },
+   "fire_turn_mean": 3.09,
+   "fired_on_wrong_final": 18,
+   "fired_on_wrong_final_correct_specialty": 15,
+   "route_time": {
+    "n": 1438,
+    "mean_ms": 0.22,
+    "p95_ms": 0.45,
+    "max_ms": 8.52
+   },
+   "resources_time": {
+    "n": 180,
+    "mean_ms": 2.97,
+    "p95_ms": 5.86,
+    "max_ms": 33.67
+   }
+  }
+ }
+}

@@ -2,11 +2,12 @@
 
     python eval/offline/eval_specialty.py [--results DIR] [--json OUT] [--fuzzy] [-v]
 
-1. Gold accuracy of specialty_of on data/labels/specialty_gold_v1.jsonl (hand-labelled before any output was seen;
+1. Gold accuracy of specialty_of on data/labels/specialty_gold_v1.jsonl (six ids) and specialty_gold_v2.jsonl (eight
+   ids: new names + corrected copies of v1 items; each hand-labelled before any output was seen;
    labelling guide in docs/architecture.md "Specialty routing"). strict = predicted == label; lenient = predicted is
-   the label or one of its "also" alternatives (None counts as correct for names labelled outside the six).
+   the label or one of its "also" alternatives (None counts as correct when listed in "also").
 2. Specialty distribution of the gold diagnoses of data/cases_aug per source (diagnosis first, then aliases), and the
-   share outside the six by out-of-six bucket (which specialties to add next).
+   share outside the eight ids by bucket (which specialties to add next).
 3. Routing simulation on past runs (eval/results/run_*.json by default, doctor_model "dummy" skipped): the per-turn
    DDx snapshots are replayed through route(); a consult "fires" at the first snapshot taken after >= MIN_TURNS turns
    with share >= MIN_SHARE. Reports how often it fires and whether the routed specialty is the gold diagnosis's one.
@@ -33,8 +34,23 @@ from doctor_agent.env.interface import Action, ActionType  # noqa: E402
 from doctor_agent.knowledge import specialty as sp  # noqa: E402
 
 
-def gold_accuracy(verbose: bool) -> dict:
-    rows = [json.loads(x) for x in open(os.path.join(ROOT, "data/labels/specialty_gold_v1.jsonl"), encoding="utf-8")]
+def _load(name: str) -> list[dict]:
+    return [json.loads(x) for x in open(os.path.join(ROOT, "data/labels", name), encoding="utf-8") if x.strip()]
+
+
+def gold_sets() -> dict[str, list[dict]]:
+    """v1 as labelled (six ids), v1 with the v2 corrected copies applied, the v2 new names, and all of them."""
+    v1 = _load("specialty_gold_v1.jsonl")
+    v2p = os.path.join(ROOT, "data/labels/specialty_gold_v2.jsonl")
+    v2 = _load("specialty_gold_v2.jsonl") if os.path.exists(v2p) else []
+    corr = {r["name"]: r for r in v2 if r.get("source") == "v1_corrected"}
+    v1c = [corr.get(r["name"], r) for r in v1]
+    new = [r for r in v2 if r.get("source") == "v2_new"]
+    return {"v1": v1, "v1_corrected": v1c, "v2_new": new, "all": v1c + new}
+
+
+def gold_accuracy(verbose: bool, rows: list[dict] | None = None, tag: str = "gold") -> dict:
+    rows = rows if rows is not None else _load("specialty_gold_v1.jsonl")
     strict = lenient = 0
     by_label = collections.Counter()
     by_label_ok = collections.Counter()
@@ -55,8 +71,8 @@ def gold_accuracy(verbose: bool) -> dict:
     n = len(rows)
     out = {"n": n, "strict": round(strict / n, 3), "lenient": round(lenient / n, 3),
            "per_label": {k: f"{by_label_ok[k]}/{by_label[k]}" for k in sorted(by_label)}, "errors": errors}
-    print(f"[gold] n={n} strict={strict}/{n} ({strict / n:.1%}) lenient={lenient}/{n} ({lenient / n:.1%})")
-    print("[gold] per label:", out["per_label"])
+    print(f"[{tag}] n={n} strict={strict}/{n} ({strict / n:.1%}) lenient={lenient}/{n} ({lenient / n:.1%})")
+    print(f"[{tag}] per label:", out["per_label"])
     for e in errors if verbose else []:
         print("   ", e)
     return out
@@ -97,7 +113,7 @@ def distribution(verbose: bool) -> dict:
     for src, cnt in sorted(per_src.items()):
         print(f"   {src:15s} n={sum(cnt.values()):3d} " + " ".join(f"{k}={cnt[k]}" for k in (*sp.SPECIALTIES, 'none')))
     print(f"   {'all':15s} n={n:3d} " + " ".join(f"{k}={total[k]}" for k in (*sp.SPECIALTIES, 'none')))
-    print(f"[dist] outside the six: {outside}/{n} ({outside / n:.1%}); by bucket: {out_groups}")
+    print(f"[dist] outside the {len(sp.SPECIALTIES)} ids: {outside}/{n} ({outside / n:.1%}); by bucket: {out_groups}")
     print(f"[dist] resolved by: {dict(how)}")
     if verbose:
         for row in listing:
@@ -213,9 +229,10 @@ def simulate(results_dir: str, verbose: bool) -> dict:
            "fire_turn_mean": round(statistics.mean(fire_turns), 2) if fire_turns else None,
            "fired_on_wrong_final": wrong_fired, "fired_on_wrong_final_correct_specialty": wrong_fired_ok, "route_time": stats(t_route), "resources_time": stats(t_res),
            "examples_wrong": examples}
-    print(f"[route] trajectories={n_traj} (gold in six: {gold_in_six})  consult fires (>= {sp.MIN_TURNS} turns, share "
+    print(f"[route] trajectories={n_traj} (gold mapped to an id: {gold_in_six})  consult fires (>= {sp.MIN_TURNS} "
+          f"turns, share "
           f">= {sp.MIN_SHARE}): {pct(fired, n_traj)}")
-    print(f"[route] routed == gold specialty: {pct(fired_ok, fired)}; among gold-in-six: "
+    print(f"[route] routed == gold specialty: {pct(fired_ok, fired)}; among gold mapped to an id: "
           f"{pct(fired_ok_in_six, fired_gold_in_six)}; final snapshot agreement: {pct(final_ok, final_n)}")
     print(f"[route] fired by specialty: {dict(fired_by)}; mean firing turn {out['fire_turn_mean']}")
     print(f"[route] fired on cases whose final diagnosis was wrong: {wrong_fired}; routed to the gold specialty: "
@@ -237,7 +254,9 @@ def main() -> None:
     t0 = time.perf_counter()
     sp.warm()
     print(f"[load] KB + indexes {time.perf_counter() - t0:.2f}s")
-    res = {"gold": gold_accuracy(a.v), "distribution": distribution(a.v)}
+    gs = gold_sets()
+    res = {"gold": {k: gold_accuracy(a.v, rows, "gold " + k) for k, rows in gs.items() if rows},
+           "distribution": distribution(a.v)}
     if os.path.isdir(a.results):
         res["routing"] = simulate(a.results, a.v)
     else:

@@ -1,12 +1,13 @@
 """Specialty routing and evidence slicing for runtime specialist consults. Owned by knowledge-rag.
 
-Six specialty ids (fixed): cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn.
+Eight specialty ids (fixed): cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn, heme_onc, renal_uro
+(heme_onc and renal_uro added 2026-09-28, after the first six).
 
 API
-    specialty_of(dx_name)         -> one of the six ids | None   (diagnosis name, Korean/English free text)
+    specialty_of(dx_name)         -> one of the eight ids | None (diagnosis name, Korean/English free text)
     specialty_detail(dx_name)     -> {"specialty", "group", "how", "code", "name"}   (group also names buckets outside
-                                     the six: endo_metab, renal_uro, heme_onc, psych, derm, ent_eye, msk_ortho,
-                                     tox_trauma, symptom, other)
+                                     the eight: endo_metab, psych, derm, ent_eye, msk_ortho, tox_trauma, symptom,
+                                     other)
     route(state)                  -> (specialty | None, share, [Korean reasons])
     resources(specialty, state)   -> {"criteria", "rules", "protocols", "kb_candidates"} (each bounded; {} on error)
     render_resources(res, max_chars=700) -> short Korean text for a consult prompt
@@ -20,6 +21,17 @@ How a name is mapped (specialty_detail)
     Anything else → specialty None, group "other".
     peds_obgyn by name covers pregnancy (KCD O), perinatal (P), most congenital (Q) and female genital (N70-N98)
     conditions; children's and pregnant patients' other diseases are routed there by patient context (route).
+    heme_onc: blood diseases (D50-D77 except immune/vasculitic exceptions), haematological malignancies (C81-C96,
+    D45-D47), and malignant/in-situ/uncertain neoplasms of sites no other id owns (breast, head and neck, thyroid,
+    bone/soft tissue, melanoma, unknown primary). Solid tumours of an owned organ stay with the organ (site first:
+    lung → resp_id, colon/pancreas → gi_liver, CNS → neuro, gynaecological → peds_obgyn, kidney/bladder/prostate/
+    testis → renal_uro). Immunodeficiency (D80-D84, D71), D89 and IgA vasculitis (D69.0) stay rheum_immune; TTP (M31.1)
+    goes to heme_onc.
+    renal_uro: kidney and urinary tract (N00-N39), male genital (N40-N51, incl. testicular torsion N44), fluid/
+    electrolyte/acid-base disorders (E87), diabetic nephropathy (E1x.2), hypertensive kidney disease (I12),
+    rhabdomyolysis, congenital urinary/male genital anomalies (Q53-Q55, Q60-Q64), urinary symptoms (R30-R39).
+    Testicular torsion: renal_uro by name; for a child it is on PEDIATRIC_DX, so the child override sends a case
+    whose top-1 candidate is torsion to peds_obgyn (whose consult covers torsion); adults stay renal_uro.
 
 route(state) — the exact rule
     Candidates: live entries of state.ddx_ledger (status != 배제) in ranked order, else state.ddx; top TOP_K.
@@ -35,7 +47,7 @@ route(state) — the exact rule
                name has a pregnancy word.
                → peds_obgyn with share = relevant mass share, when the top-1 candidate is relevant or that share
                >= CONTEXT_SHARE (0.3). Otherwise the organ routing below applies (reason says why).
-    Organ routing: best = argmax share over the six (ties: fixed SPECIALTIES order); None when nothing maps.
+    Organ routing: best = argmax share over the eight (ties: fixed SPECIALTIES order); None when nothing maps.
     The caller decides when to consult (suggested: MIN_TURNS = 3 and share >= MIN_SHARE = 0.6).
 
 Stdlib only, CPU only, no network, deterministic. Per-case: nothing is stored between calls except the KB's own
@@ -46,9 +58,11 @@ from __future__ import annotations
 
 import re
 
-SPECIALTIES: tuple[str, ...] = ("cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn")
+SPECIALTIES: tuple[str, ...] = ("cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn", "heme_onc",
+                                "renal_uro")
 SPECIALTY_KO: dict[str, str] = {"cardio": "심장·혈관", "resp_id": "호흡기·감염", "gi_liver": "소화기·간담췌",
-                                "neuro": "신경", "rheum_immune": "류마티스·면역·알레르기", "peds_obgyn": "소아·산부인과"}
+                                "neuro": "신경", "rheum_immune": "류마티스·면역·알레르기", "peds_obgyn": "소아·산부인과",
+                                "heme_onc": "혈액·종양", "renal_uro": "신장·비뇨"}
 TOP_K = 5
 MIN_TURNS = 3        # suggested caller gate: consult only after this many turns ...
 MIN_SHARE = 0.6      # ... and when the routed specialty holds at least this share of the top-DDx mass
@@ -72,12 +86,22 @@ OVERRIDES: tuple[tuple[str, str | None, str], ...] = (
      r"|postpartum|ectopic|miscarriage|abortion|hyperemesis", "peds_obgyn", "peds_obgyn"),
     (r"신생아|미숙아|모유\s?황달|newborn|neonat|breast ?milk jaundice", "peds_obgyn", "peds_obgyn"),
     (r"수막염|뇌수막|뇌염|meningit|encephalit", "neuro", "neuro"),       # infectious codes (A39, A87, B37.5) → neuro
+    (r"뇌\s?정맥\s?동?\s?혈전|정맥동\s?혈전|cerebral venous|venous sinus thromb", "neuro", "neuro"),  # KB → I80
     (r"폐렴|늑막염|흉막염|폐섬유증|간질성\s?폐|pneumonia|pleurisy|pleuritis|pulmonary fibrosis|interstitial lung",
      "resp_id", "resp_id"),  # DO files interstitial lung disease under connective tissue disease
     (r"간염|혈색소증|혈색소침착|윌슨|장간막\s?허혈|hepatitis|hemochromatosis|haemochromatosis|wilson|mesenteric isch",
      "gi_liver", "gi_liver"),
+    # before sepsis: neutropenic fever/sepsis is a haematology-oncology emergency (D70 / R50 codes)
+    (r"호중구\s?감소|neutropeni", "heme_onc", "heme_onc"),
     (r"패혈증|균혈증|sepsis|septic|bacter[ae]mia", "resp_id", "resp_id"),
     (r"아나필락시스|혈청병|anaphyla|serum sickness", "rheum_immune", "rheum_immune"),
+    (r"횡문근\s?융해|rhabdomyoly", "renal_uro", "renal_uro"),           # M62.8/T79.6: the AKI risk is the problem
+    (r"종양\s?용해|tumou?r lysis", "heme_onc", "heme_onc"),             # E88.3
+    # added after the first gold-v2 pass (2026-09-28), each for a KB normalisation that lands in the wrong chapter:
+    (r"헤노흐|henoch|iga\s?혈관염|iga vasculitis", "rheum_immune", "rheum_immune"),  # KB → D69.2 "자반증"
+    (r"당뇨병?\s?성?\s?신증|당뇨병?\s?성?\s?콩팥병|diabetic (nephropathy|kidney)", "renal_uro", "renal_uro"),  # → E14
+    (r"용혈성\s?(빈혈|요독)|ha?emolytic (an[a]?emia|uremic|uraemic)|g6pd|glucose-6-phosphate|포도당-6-인산", "heme_onc",
+     "heme_onc"),  # G6PD deficiency: DO files it under carbohydrate metabolism
 )
 
 # KCD/ICD-10 code ranges → (specialty, group). A code matches an entry when its 3-character category lies in
@@ -89,29 +113,44 @@ KCD_TABLE: tuple[tuple[str, str, str | None, str], ...] = (
     ("M797", "M797", "rheum_immune", "rheum_immune"),  # fibromyalgia
     ("I776", "I776", "rheum_immune", "rheum_immune"),  # arteritis, unspecified
     ("R091", "R091", "resp_id", "resp_id"),            # pleurisy
-    ("D693", "D693", _O, "heme_onc"),
+    ("D690", "D690", "rheum_immune", "rheum_immune"),  # allergic purpura (IgA vasculitis / Henoch-Schoenlein)
+    ("M311", "M311", "heme_onc", "heme_onc"),          # thrombotic microangiopathy (TTP)
+    ("E883", "E883", "heme_onc", "heme_onc"),          # tumour lysis syndrome
+    ("E102", "E102", "renal_uro", "renal_uro"), ("E112", "E112", "renal_uro", "renal_uro"),  # diabetic nephropathy
+    ("E122", "E122", "renal_uro", "renal_uro"), ("E132", "E132", "renal_uro", "renal_uro"),
+    ("E142", "E142", "renal_uro", "renal_uro"),
+    ("D090", "D090", "renal_uro", "renal_uro"),        # carcinoma in situ of the bladder
     ("E28", "E28", "peds_obgyn", "peds_obgyn"),        # ovarian dysfunction (PCOS)
     # infectious
     ("A00", "A09", "gi_liver", "gi_liver"), ("A80", "A89", "neuro", "neuro"), ("B15", "B19", "gi_liver", "gi_liver"),
     ("A00", "B99", "resp_id", "resp_id"),
-    # neoplasms by site
+    # neoplasms by site (site first); what no organ id owns → heme_onc
     ("C15", "C26", "gi_liver", "gi_liver"), ("C30", "C39", "resp_id", "resp_id"), ("C45", "C45", "resp_id", "resp_id"),
-    ("C51", "C58", "peds_obgyn", "peds_obgyn"), ("C69", "C69", _O, "ent_eye"), ("C70", "C72", "neuro", "neuro"),
+    ("C44", "C44", _O, "derm"),                        # non-melanoma skin cancer
+    ("C51", "C58", "peds_obgyn", "peds_obgyn"), ("C60", "C68", "renal_uro", "renal_uro"),
+    ("C69", "C69", _O, "ent_eye"), ("C70", "C72", "neuro", "neuro"),
     ("D01", "D01", "gi_liver", "gi_liver"), ("D02", "D02", "resp_id", "resp_id"), ("D06", "D06", "peds_obgyn", "peds_obgyn"),
-    ("D12", "D13", "gi_liver", "gi_liver"), ("D25", "D28", "peds_obgyn", "peds_obgyn"), ("D32", "D33", "neuro", "neuro"),
+    ("D12", "D13", "gi_liver", "gi_liver"), ("D25", "D28", "peds_obgyn", "peds_obgyn"),
+    ("D29", "D30", "renal_uro", "renal_uro"), ("D32", "D33", "neuro", "neuro"),
     ("D37", "D37", "gi_liver", "gi_liver"), ("D38", "D38", "resp_id", "resp_id"), ("D39", "D39", "peds_obgyn", "peds_obgyn"),
-    ("D42", "D43", "neuro", "neuro"),
-    ("C00", "D49", _O, "heme_onc"),
-    # blood / immune
+    ("D40", "D41", "renal_uro", "renal_uro"), ("D42", "D43", "neuro", "neuro"),
+    # benign neoplasms of sites without an id: not an oncology problem
+    ("D16", "D16", _O, "msk_ortho"), ("D21", "D21", _O, "msk_ortho"), ("D22", "D23", _O, "derm"),
+    ("D34", "D35", _O, "endo_metab"), ("D44", "D44", _O, "endo_metab"), ("D10", "D36", _O, "other"),
+    ("C00", "D49", "heme_onc", "heme_onc"),
+    # blood / immune: immunodeficiency and D89 → rheum_immune, sarcoidosis → resp_id, the rest of D50-D89 → heme_onc
+    ("D71", "D71", "rheum_immune", "rheum_immune"),    # functional neutrophil disorders (CGD: immunodeficiency)
     ("D80", "D84", "rheum_immune", "rheum_immune"), ("D86", "D86", "resp_id", "resp_id"),
-    ("D89", "D89", "rheum_immune", "rheum_immune"), ("D50", "D89", _O, "heme_onc"),
+    ("D89", "D89", "rheum_immune", "rheum_immune"), ("D50", "D89", "heme_onc", "heme_onc"),
     # endocrine / metabolic
-    ("E84", "E84", "resp_id", "resp_id"), ("E00", "E90", _O, "endo_metab"),
+    ("E84", "E84", "resp_id", "resp_id"), ("E87", "E87", "renal_uro", "renal_uro"),  # fluid/electrolyte/acid-base
+    ("E00", "E90", _O, "endo_metab"),
     ("F00", "F99", _O, "psych"),
     ("G00", "G99", "neuro", "neuro"),
     ("H81", "H82", "neuro", "neuro"), ("H00", "H95", _O, "ent_eye"),
     # circulatory
-    ("I60", "I69", "neuro", "neuro"), ("I85", "I85", "gi_liver", "gi_liver"), ("I88", "I89", _O, "heme_onc"),
+    ("I60", "I69", "neuro", "neuro"), ("I85", "I85", "gi_liver", "gi_liver"), ("I12", "I12", "renal_uro", "renal_uro"),
+    ("I88", "I89", "heme_onc", "heme_onc"),            # lymphadenitis, lymphatic disorders
     ("I00", "I99", "cardio", "cardio"),
     ("J00", "J99", "resp_id", "resp_id"),
     ("K00", "K14", _O, "ent_eye"), ("K20", "K93", "gi_liver", "gi_liver"),
@@ -120,12 +159,16 @@ KCD_TABLE: tuple[tuple[str, str, str | None, str], ...] = (
     ("M00", "M19", "rheum_immune", "rheum_immune"), ("M30", "M36", "rheum_immune", "rheum_immune"),
     ("M45", "M46", "rheum_immune", "rheum_immune"), ("M60", "M60", "rheum_immune", "rheum_immune"),
     ("M00", "M99", _O, "msk_ortho"),
-    ("N70", "N98", "peds_obgyn", "peds_obgyn"), ("N00", "N99", _O, "renal_uro"),
+    ("N70", "N98", "peds_obgyn", "peds_obgyn"), ("N60", "N65", _O, "other"),  # breast disorders
+    ("N00", "N99", "renal_uro", "renal_uro"),          # kidney, urinary tract, male genital (N40-N51), N99
     ("O00", "O99", "peds_obgyn", "peds_obgyn"), ("P00", "P96", "peds_obgyn", "peds_obgyn"),
     # congenital by organ
     ("Q00", "Q07", "neuro", "neuro"), ("Q20", "Q28", "cardio", "cardio"), ("Q30", "Q34", "resp_id", "resp_id"),
-    ("Q38", "Q45", "gi_liver", "gi_liver"), ("Q60", "Q64", _O, "renal_uro"), ("Q65", "Q79", _O, "msk_ortho"),
+    ("Q38", "Q45", "gi_liver", "gi_liver"), ("Q53", "Q55", "renal_uro", "renal_uro"),
+    ("Q60", "Q64", "renal_uro", "renal_uro"), ("Q65", "Q79", _O, "msk_ortho"),
     ("Q85", "Q85", "neuro", "neuro"), ("Q00", "Q99", "peds_obgyn", "peds_obgyn"),
+    ("R30", "R39", "renal_uro", "renal_uro"),          # urinary symptoms (retention, dysuria, haematuria, ...)
+    ("R59", "R59", "heme_onc", "heme_onc"),            # enlarged lymph nodes
     ("R00", "R99", _O, "symptom"),
     ("T78", "T78", "rheum_immune", "rheum_immune"), ("S00", "T98", _O, "tox_trauma"), ("V01", "Y98", _O, "tox_trauma"),
     ("U07", "U07", "resp_id", "resp_id"),
@@ -147,14 +190,20 @@ DO_MAP: dict[str, tuple[str | None, str]] = {
     "DOID:848": ("rheum_immune", "rheum_immune"),    # arthritis
     "DOID:1575": ("rheum_immune", "rheum_immune"),   # rheumatic disease
     "DOID:65": ("rheum_immune", "rheum_immune"),     # connective tissue disease
+    "DOID:2531": ("heme_onc", "heme_onc"),           # hematologic cancer
+    "DOID:0060083": ("heme_onc", "heme_onc"),        # immune system cancer (else immune system disease wins)
+    "DOID:0060073": ("heme_onc", "heme_onc"),        # lymphatic system cancer
+    "DOID:74": ("heme_onc", "heme_onc"),             # hematopoietic system disease
+    "DOID:18": ("renal_uro", "renal_uro"),           # urinary system disease
+    "DOID:48": ("renal_uro", "renal_uro"),           # male reproductive system disease
+    "DOID:0060122": (None, "derm"),                  # integumentary system cancer (as KCD C44; melanoma has C43)
     # system-wide classes last: an organ class at the same depth wins (IPF: lung + autoimmune → resp_id)
     "DOID:417": ("rheum_immune", "rheum_immune"),    # autoimmune disease
     "DOID:0060056": ("rheum_immune", "rheum_immune"),  # hypersensitivity reaction disease
     "DOID:2914": ("rheum_immune", "rheum_immune"),   # immune system disease
     "DOID:0050117": ("resp_id", "resp_id"),          # disease by infectious agent
-    "DOID:18": (None, "renal_uro"), "DOID:48": (None, "renal_uro"),
+    "DOID:162": ("heme_onc", "heme_onc"),            # cancer (organ cancers reach their organ class first)
     "DOID:28": (None, "endo_metab"), "DOID:0014667": (None, "endo_metab"),
-    "DOID:74": (None, "heme_onc"), "DOID:162": (None, "heme_onc"),
     "DOID:150": (None, "psych"), "DOID:16": (None, "derm"),
     "DOID:5614": (None, "ent_eye"), "DOID:2742": (None, "ent_eye"),
     "DOID:17": (None, "msk_ortho"),
@@ -169,11 +218,22 @@ FALLBACK: tuple[tuple[str, str | None, str], ...] = (
      "cardio", "cardio"),
     (r"뇌졸중|뇌경색|뇌출혈|뇌|신경|척수|치매|두통|경련|발작|stroke|cerebr|neur|brain|spinal|dementia|seizure", "neuro",
      "neuro"),
-    (r"폐|기관지|기관|흉막|늑막|호흡|결핵|copd|pulmon|lung|bronch|pleur|respirat", "resp_id", "resp_id"),
+    # "요폐" (urinary retention) and "폐쇄" (obstruction: "담도 폐쇄") are not lung words
+    (r"(?<!요)폐(?!쇄)|기관지|기관|흉막|늑막|호흡|결핵|copd|pulmon|lung|bronch|pleur|respirat", "resp_id", "resp_id"),
     (r"간경변|담관|담낭|담도|췌장|위장|식도|대장|소장|십이지장|위염|장염|hepat|biliar|pancrea|gastr|esophag|colon|bowel"
      r"|intestin", "gi_liver", "gi_liver"),
     (r"관절|류마|루푸스|혈관염|근염|lupus|arthrit|vasculit|myosit|rheumat", "rheum_immune", "rheum_immune"),
     (r"자궁|난소|난관|질염|소아|영아|uter|ovar|vagin|pediatric|infant", "peds_obgyn", "peds_obgyn"),
+    (r"신장|콩팥|신부전|사구체|요로|방광|요관|전립선|고환|음낭|부고환|요폐|kidney|(?<!ad)renal|nephr|urinar|urethr|bladder"
+     r"|prostat|testic|scrot|epididym|ureter", "renal_uro", "renal_uro"),
+    # fluid/electrolyte/acid-base (E87) when the KB cannot resolve the name; ketoacidosis stays endocrine via the KB
+    (r"[나칼]트?륨\s?혈증|(?<!케톤)(?<!케토)산증|알칼리증|hypo?-?natr|hyper-?natr|hypo-?kal|hyper-?kal|(?<!keto)acidosis"
+     r"|alkalosis", "renal_uro", "renal_uro"),
+    (r"빈혈|백혈병|림프종|골수종|혈소판|호중구|혈우병|응고\s?장애|골수(?!염)|anemi|anaemi|leuk[ae]mia|lymphoma|myeloma"
+     r"|thrombocyt|neutropeni|hemophilia|haemophilia|coagulopath|myelodysplas", "heme_onc", "heme_onc"),
+    # "폐암"-style names only ("메트암페타민" must not match); organ words above win for site-specific tumours
+    (r"[가-힣]암(?:$|[\s(,·/])|암종|종양|육종|carcinoma|cancer|tumou?r|sarcoma|malignan|metasta|neoplas", "heme_onc",
+     "heme_onc"),
     # organ words first: an infection of a named organ goes to that organ ("감염성 장염" → gi_liver)
     (r"감염|균|바이러스|진균|infect|viral|fung", "resp_id", "resp_id"),
 )
@@ -184,7 +244,8 @@ PEDIATRIC_DX = re.compile(
     r"|히르슈?슈프룽|hirschsprung|선천성?\s?거대\s?결장|괴사성\s?장염|necrotizing enterocol|수족구|hand,? foot|돌발진|장미진|roseola"
     r"|전염성\s?홍반|erythema infectiosum|레그|perthes|대퇴골두\s?골단|slipped capital|윌름스|wilms|신경모세포종|neuroblastoma"
     r"|림프모구|lymphoblastic|담도\s?폐쇄|biliary atresia|iga\s?혈관염|헤노흐|henoch|소아|juvenile|childhood|infantile|성홍열|scarlet"
-    r"|홍역|measles|풍진|rubella|볼거리|유행성\s?이하선염|mumps|백일해|pertussis|급성\s?중이염|otitis media|선천")
+    r"|홍역|measles|풍진|rubella|볼거리|유행성\s?이하선염|mumps|백일해|pertussis|급성\s?중이염|otitis media|선천"
+    r"|고환\s?염전|정삭\s?염전|testicular torsion")  # renal_uro by name; a child's torsion → peds_obgyn consult
 _PREG_WORDS = re.compile(r"임신|자간|태반|산후|산욕|분만|유산|양수|태아|자궁\s?외|pregnan|eclampsia|placent|postpartum|ectopic"
                          r"|gestation")
 
@@ -195,13 +256,17 @@ _PREG_WORDS = re.compile(r"임신|자간|태반|산후|산욕|분만|유산|양�
 CRITERIA_SPECIALTY: dict[str, tuple[str, ...]] = {
     "sle_2019": ("rheum_immune",), "ra_2010": ("rheum_immune",), "takayasu_2022": ("rheum_immune", "cardio"),
     "gca_2022": ("rheum_immune", "neuro"), "kawasaki_aha2017": ("peds_obgyn", "rheum_immune", "cardio"),
-    "duke_iscvid_2023": ("cardio", "resp_id"), "kdigo_aki_2012": (), "dka_hhs_2024": (), "light_1972": ("resp_id",),
-    "sepsis3_2016": ("resp_id",), "jones_2015": ("rheum_immune", "cardio", "peds_obgyn"), "mcdonald_2017": ("neuro",),
+    "duke_iscvid_2023": ("cardio", "resp_id"), "kdigo_aki_2012": ("renal_uro",), "dka_hhs_2024": (),
+    "light_1972": ("resp_id", "heme_onc"),  # malignant effusion
+    "sepsis3_2016": ("resp_id", "heme_onc", "renal_uro"),  # neutropenic sepsis, urosepsis
+    "jones_2015": ("rheum_immune", "cardio", "peds_obgyn"), "mcdonald_2017": ("neuro",),
     "ichd3_migraine_tth": ("neuro",), "bipolar_dsm5tr": (), "gout_2015": ("rheum_immune",),
 }
 RULE_SPECIALTY: dict[str, tuple[str, ...]] = {
-    "wells_pe": ("cardio", "resp_id"), "perc": ("cardio", "resp_id"), "heart": ("cardio",), "add_rs": ("cardio",),
-    "qsofa": ("resp_id",), "curb65": ("resp_id",), "centor": ("resp_id",), "mcisaac": ("resp_id", "peds_obgyn"),
+    "wells_pe": ("cardio", "resp_id", "heme_onc"),  # active cancer is a Wells item (cancer-associated VTE)
+    "perc": ("cardio", "resp_id"), "heart": ("cardio",), "add_rs": ("cardio",),
+    "qsofa": ("resp_id", "heme_onc", "renal_uro"),  # sepsis screen: neutropenic fever, urosepsis
+    "curb65": ("resp_id",), "centor": ("resp_id",), "mcisaac": ("resp_id", "peds_obgyn"),
     "ottawa_sah": ("neuro",), "cchr": ("neuro",), "abcd2": ("neuro",), "alvarado": ("gi_liver",),
     "bisap": ("gi_liver",), "gbs": ("gi_liver",), "pecarn_head_lt2": ("peds_obgyn", "neuro"),
     "pecarn_head_ge2": ("peds_obgyn", "neuro"), "nexus": (), "ccsr": (), "sfsr": ("cardio",), "csrs": ("cardio",),
@@ -211,12 +276,15 @@ RULE_SPECIALTY: dict[str, tuple[str, ...]] = {
 # chief-complaint categories of clinical_rules / safety.protocols → specialties
 CATEGORY_SPECIALTY: dict[str, tuple[str, ...]] = {
     "chest_pain": ("cardio",), "dyspnea": ("resp_id", "cardio"), "headache": ("neuro",), "neuro": ("neuro",),
-    "fever": ("resp_id",), "abdominal_pain": ("gi_liver", "peds_obgyn"), "allergy": ("rheum_immune",),
+    "fever": ("resp_id", "heme_onc"), "abdominal_pain": ("gi_liver", "peds_obgyn"), "allergy": ("rheum_immune",),
     "syncope": ("cardio", "neuro"), "palpitations": ("cardio",), "hemoptysis_cough": ("resp_id",),
-    "jaundice": ("gi_liver", "peds_obgyn"), "joint": ("rheum_immune",), "back_pain": (), "rash": ("rheum_immune",),
-    "pruritus": ("gi_liver",), "edema": ("cardio",), "menstrual": ("peds_obgyn",), "fatigue": (),
-    "cognitive": ("neuro",), "psychiatric": (), "urticaria_chronic": ("rheum_immune",), "hearing_loss": (),
-    "neck_mass": (), "bleeding": (), "chronic_weakness": ("neuro", "rheum_immune"),
+    "jaundice": ("gi_liver", "peds_obgyn", "heme_onc"),  # haemolysis
+    "joint": ("rheum_immune",), "back_pain": ("heme_onc",),  # spinal metastasis
+    "rash": ("rheum_immune",), "pruritus": ("gi_liver", "heme_onc", "renal_uro"),  # cholestasis, lymphoma/PV, CKD
+    "edema": ("cardio", "renal_uro"),  # nephrotic syndrome / glomerulonephritis
+    "menstrual": ("peds_obgyn",), "fatigue": ("heme_onc",), "cognitive": ("neuro",), "psychiatric": (),
+    "urticaria_chronic": ("rheum_immune",), "hearing_loss": (),
+    "neck_mass": ("heme_onc",), "bleeding": ("heme_onc",), "chronic_weakness": ("neuro", "rheum_immune"),
     "bilious_vomiting": ("peds_obgyn", "gi_liver"),
 }
 
@@ -320,7 +388,7 @@ def _detail(name: str) -> dict:
 
 
 def specialty_detail(dx_name: str) -> dict:
-    """{"specialty": id | None, "group": specialty or out-of-six bucket, "how": override|kcd|do|keyword|none,
+    """{"specialty": id | None, "group": specialty or out-of-eight bucket, "how": override|kcd|do|keyword|none,
     "code": KCD code or "", "name": KB standard name or ""}."""
     try:
         return _detail(dx_name)
@@ -329,7 +397,7 @@ def specialty_detail(dx_name: str) -> dict:
 
 
 def specialty_of(dx_name: str) -> str | None:
-    """One of SPECIALTIES for a diagnosis name, or None (outside the six / unknown). Never raises."""
+    """One of SPECIALTIES for a diagnosis name, or None (outside the eight / unknown). Never raises."""
     return specialty_detail(dx_name)["specialty"]
 
 
@@ -429,7 +497,7 @@ def route(state) -> tuple[str | None, float, list[str]]:
             reasons.append(f"{ctx}이지만 선두 후보가 연령·임신 특이 질환이 아니라 장기별 분과로 배정")
         best = max(SPECIALTIES, key=lambda s: (mass[s], -SPECIALTIES.index(s)))
         if mass[best] <= 0:
-            return None, 0.0, reasons + ["상위 감별 후보가 6개 분과 어디에도 속하지 않음: " + ", ".join(unmapped[:3])]
+            return None, 0.0, reasons + ["상위 감별 후보가 8개 분과 어디에도 속하지 않음: " + ", ".join(unmapped[:3])]
         share = mass[best] / total
         reasons.append(f"상위 감별 {len(cands)}개 중 {SPECIALTY_KO[best]}({best}) 비중 {_pct(share)}: "
                        + ", ".join(members[best][:3]))
@@ -437,7 +505,7 @@ def route(state) -> tuple[str | None, float, list[str]]:
         if others:
             reasons.append("다른 분과: " + ", ".join(others))
         if unmapped:
-            reasons.append("6개 분과 밖 후보: " + ", ".join(unmapped[:3]))
+            reasons.append("8개 분과 밖 후보: " + ", ".join(unmapped[:3]))
         return best, round(share, 3), reasons
     except Exception as e:  # never break the agent loop
         return None, 0.0, [f"분과 배정 실패({type(e).__name__})"]

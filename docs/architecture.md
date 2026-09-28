@@ -625,3 +625,48 @@ Offline numbers (`eval/offline/eval_specialty.py`, metrics `data/labels/specialt
 - Routing replay (224 non-dummy trajectories of 2026-09-25/26 runs): a consult fires (≥ 3 turns, share ≥ 0.6) in 151
   (67.4%), mean firing turn 3.1; routed = gold specialty 130/151 (86.1%), 130/139 (93.5%) when the gold is inside the six.
   Warm latency (shared machine, load 7–20): route mean 0.8 ms, p95 1.7 ms; resources mean 11 ms, p95 24 ms.
+
+### Eight ids: `heme_onc` and `renal_uro` added (2026-09-28)
+
+`SPECIALTIES` is now `cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn, heme_onc, renal_uro` (new ones last,
+so earlier tie-breaks are unchanged; Korean labels 혈액·종양, 신장·비뇨). `route()` is unchanged apart from the id set and
+the reason text ("8개 분과"). Buckets outside the eight: `endo_metab, psych, derm, ent_eye, msk_ortho, tox_trauma,
+symptom, other` (endocrine stays unmapped: DKA → None/endo_metab).
+- Mapping decisions (`KCD_TABLE`, most specific first):
+  - Solid tumours: **site first**, as before (lung → resp_id, GI/liver/pancreas → gi_liver, CNS → neuro,
+    gynaecological → peds_obgyn) plus kidney/urinary/male genital (C60–C68, D09.0, D29–D30, D40–D41) → renal_uro.
+    Malignant/in-situ/uncertain neoplasms of sites no id owns (breast, head and neck, thyroid, bone/soft tissue,
+    melanoma, unknown primary) and haematological malignancy (C81–C96, D45–D47) → heme_onc. Non-melanoma skin cancer
+    (C44, DO integumentary cancer) → derm; benign neoplasms of unowned sites (D10–D36 rest) → None (derm/msk/endo/other).
+  - Blood/immune split: D50–D89 → heme_onc except immunodeficiency (D80–D84, D71 CGD) and D89 → rheum_immune,
+    sarcoidosis D86 → resp_id, IgA vasculitis D69.0 → rheum_immune. TTP (M31.1) and tumour lysis (E88.3) → heme_onc.
+    Lymphadenopathy R59 and lymphatic I88–I89 → heme_onc.
+  - renal_uro: N00–N39, N40–N51 (male genital), N99; E87 fluid/electrolyte/acid-base; E1x.2 diabetic nephropathy; I12
+    hypertensive CKD (I13 stays cardio); Q53–Q55 and Q60–Q64 congenital; R30–R39 urinary symptoms. Breast N60–N65 → None.
+  - **Testicular torsion**: renal_uro by name (N44; urology owns it at every age). It is also on `PEDIATRIC_DX`, so for a
+    child (< 18 y) whose top-1 candidate is torsion the context override routes to peds_obgyn (whose consult spec lists
+    torsion as must-not-miss); adults → renal_uro. Ovarian torsion stays peds_obgyn.
+  - DO: hematologic/lymphatic/immune-system cancer, hematopoietic system disease → heme_onc; urinary and male
+    reproductive system disease → renal_uro (organ classes); `cancer` → heme_onc as a system-wide class (organ cancers
+    reach their organ class first).
+  - Overrides added: rhabdomyolysis → renal_uro; tumour lysis, neutropenia (before the sepsis override), haemolytic
+    anaemia/HUS/G6PD → heme_onc; diabetic nephropathy → renal_uro; Henoch–Schönlein/IgA vasculitis → rheum_immune;
+    cerebral venous sinus thrombosis → neuro (KB normalises it to I80). Fallback keywords for kidney/urinary/male genital,
+    blood and tumour words and electrolyte names; the lung keyword `폐` no longer matches `요폐` or `폐쇄`.
+- Evidence slices: `kdigo_aki_2012` → renal_uro; `sepsis3_2016` and `qsofa` + heme_onc/renal_uro (neutropenic sepsis,
+  urosepsis); `light_1972` and `wells_pe` + heme_onc (malignant effusion, cancer-associated VTE). Categories: fatigue,
+  neck_mass, bleeding, back_pain → heme_onc; fever, jaundice, pruritus + heme_onc; edema, pruritus + renal_uro.
+  No rule targets heme_onc/renal_uro alone. `test_every_id_has_evidence_tags` pins these; the coverage test now also
+  fails when a table names an id that no longer exists.
+- Gold `data/labels/specialty_gold_v2.jsonl` (v1 file unchanged): 48 new names (21 heme_onc, 19 renal_uro, 8 controls)
+  + 14 corrected copies of v1 items (`source: v1_corrected`, `v1_specialty`, `note`: 10 relabelled from None, 4 with
+  heme_onc added to `also`). Same labelling rules as v1 plus the decisions above. First pass: new names strict 44/48
+  (91.7%), lenient 45/48; v1-corrected 112/116. After fixes read off those errors: 48/48 and 113/116 (optimistic).
+- cases_aug (267): heme_onc 24, renal_uro 14; outside the eight 59 (22.1%, was 97 = 36.3% outside the six): derm 12,
+  other 12, psych 11, endo_metab 10, msk_ortho 9, ent_eye 5.
+- Routing replay (same 224 trajectories): consult fires 180 (80.4%, was 151 = 67.4%); routed = gold specialty 160/180
+  (88.9%); the six-id module scored against the same eight-id gold: 130/151 (86.1%). Among fires whose gold maps to an
+  id: 160/173 (92.5%) vs 130/144 (90.3%). Warm latency: route mean 0.2–0.9 ms, p95 0.5–2.2 ms, max 25 ms under load;
+  resources mean 3–11 ms. Metrics: `data/labels/specialty_gold_v2_metrics.json`.
+- Consult content for the two new ids lives in `agent/subagents/consult.py` (agent-engineer/clinical-strategist); until
+  it has them, `build_consult` raises KeyError for those ids and the orchestrator logs a consult error (no hint).
