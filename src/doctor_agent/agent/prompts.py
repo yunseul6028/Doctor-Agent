@@ -1,6 +1,6 @@
 """Prompts. Medical content is owned by clinical-strategist. Record changes in docs/experiments.md."""
 
-PROMPT_VERSION = "v6-kb-strict-review"
+PROMPT_VERSION = "v7-advisors"
 
 SYSTEM = """당신은 환자를 진료하는 숙련된 의사입니다.
 매 턴마다 아래 행동 중 정확히 하나만 합니다.
@@ -47,8 +47,22 @@ JSON 한 줄로만 출력하세요:
 LOW_TIME_HINT = "진료 시간이 얼마 남지 않았습니다. 꼭 필요한 확인만 하고 곧 진단하세요."
 
 
-def build_step_messages(view: str, turn: int, max_turns: int, hints: list[str]) -> list[dict]:
+# advisors (agent/policy.py; the hint bodies themselves come from the advisor modules, ≤ AgentConfig.max_advisor_chars)
+# triage: unstable patient (or vitals unknown with red flags) → shown above everything else in the step prompt
+TRIAGE_ALERT = "⚠ 우선 확인: {text}\n진단 추론보다 환자 상태 안정 여부 확인을 먼저 하세요."
+# confidence: one pushback per case when the code-computed confidence of a proposed diagnosis is low
+CONFIDENCE_PUSHBACK = ("제안한 진단 '{dx}'의 확신도가 낮습니다({score:.2f}; {reasons}). 1순위와 2순위 후보를 가장 잘 "
+                       "가르는 남은 질문·진찰·검사 하나를 먼저 하세요. 확진 근거가 이미 있으면 reason에 그 근거를 쓰고 진단하세요.")
+
+
+def confidence_pushback(dx: str, score: float, reasons: list[str]) -> str:
+    return CONFIDENCE_PUSHBACK.format(dx=dx[:40], score=score, reasons="; ".join(reasons[:4])[:200])
+
+
+def build_step_messages(view: str, turn: int, max_turns: int, hints: list[str], alert: str = "") -> list[dict]:
     user = f"{view}\n\n현재 턴: {turn + 1}/{max_turns}"
+    if alert:
+        user = TRIAGE_ALERT.format(text=alert) + "\n\n" + user
     if hints:
         user += "\n참고:\n- " + "\n- ".join(hints)
     user += "\n\n다음 행동을 JSON으로 정하세요."

@@ -1,6 +1,6 @@
 # Architecture
 
-Current as of 2026-09-27 (prompt `v6-kb-strict-review`). When an interface changes, update this file first.
+Current as of 2026-09-28 (prompt `v7-advisors`). When an interface changes, update this file first.
 
 ```
 run.py ──> case source (env/factory.py: local | official)          ← official.py is a TODO until the guide is out
@@ -13,6 +13,8 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
              │ hints ◄── safety/protocols.py        can't-miss dx + pending minimum checks (26 categories)
              │       ◄── knowledge/clinical_rules.py ≤2 applicable decision rules (24 rules)
              │       ◄── agent/kb_hints.py ◄── knowledge/kb.py (+ kb_curated.py, kb_tests.py, data/kb/)
+             │ advisors ◄── safety/triage.py (alert on top), agent/anchoring.py (turn-1 DDx, anchoring check),
+             │          ◄── agent/question_planner.py (next-action suggestions), agent/confidence.py (DIAGNOSE pushback)
              ▼
         CaseState (agent/state.py): findings ledger + DDx ledger (agent/ledger.py), turns, reviews
 ```
@@ -30,7 +32,8 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 | `agent/state.py`, `agent/ledger.py` | Per-case state; `FindingsLedger` (양성/음성/결과없음) and `DdxLedger` (p, status 유력/위험/배제, for/against) merged across turns; capped prompt view. |
 | `agent/parser.py` | Extracts the last action JSON (skips `<think>/<analysis>` blocks); `ACTION_SCHEMA` for structured output. |
 | `agent/text.py` | Char-bigram similarity, history-question detection, DDx name-variant matching (`same_dx`). |
-| `agent/prompts.py` | All prompts (`SYSTEM`, `REVIEW_SYSTEM`, final prompt, `LOW_TIME_HINT`). Version changes → `docs/experiments.md`. |
+| `agent/prompts.py` | All prompts (`SYSTEM`, `REVIEW_SYSTEM`, final prompt, `LOW_TIME_HINT`, advisor wording `TRIAGE_ALERT` / `CONFIDENCE_PUSHBACK`). Version changes → `docs/experiments.md`. |
+| `agent/confidence.py`, `agent/anchoring.py`, `agent/question_planner.py`, `safety/triage.py` | Advisors (code only): confidence score + stop rule, starting DDx + anchoring check, information-gain next-action planner, unstable-patient triage. Wiring: "Advisors wired into the policy". |
 | `agent/kb_hints.py` | KB → short hints (candidates, discriminators, diagnosis normalisation). Fail-safe: any KB error = no hint. |
 | `agent/runtime.py` | `CaseBudget` (wall clock), `GuardedLLM` (failure cap, watchdog, deadlines, gpt-oss options, prompt-size stats). |
 | `llm/client.py`, `llm/harmony.py` | `OpenAICompatClient` (retries, 429 wait, billing detection, length retry, structured output), `DummyLLM`; harmony-format cleanup. |
@@ -67,6 +70,11 @@ Remaining turns ≤ 1 → final-diagnosis prompt. Otherwise the hints are built 
 4. **Dedupe** — a non-DIAGNOSE action of the same type with char-bigram similarity ≥ 0.7 to an earlier one is refused.
 5. **Safety pushback** — DIAGNOSE while non-treatment protocol checks are pending, more than 5 turns left, not
    degraded, not pushed back yet → one hint listing the pending checks (diagnosing anyway requires a stated reason).
+   Then the **can't-miss gate** (see "Safety layers" below).
+5b. **Confidence pushback** (`AGENT_USE_CONFIDENCE`) — DIAGNOSE that passed the gate, more than 3 turns left, not
+   degraded, at least 2 attempts left, not pushed back yet: `confidence.assess(state, dx, cfg)`; score <
+   `confidence_pushback_below` (0.3) and recommendation ≠ `must_continue` → one hint (`prompts.confidence_pushback`, with
+   `reasons_ko`) asking for the most discriminating remaining step. `must_continue` is left to the gate (no double block).
 6. **Pre-diagnosis review** — DIAGNOSE with < 2 reviews so far (`MAX_REVIEWS`), more than 3 turns left, not degraded:
    the same LLM in a reviewer role fills fixed fields (`key_findings` 설명됨/설명 안 됨, `contradicting`,
    `confirmation`, `unresolved_danger`, `next`, optional `final_diagnosis` + `refine_evidence`). **Code decides**:
@@ -89,8 +97,11 @@ All attempts used → final-diagnosis prompt.
 4. At most 2 applicable clinical rules (`clinical_rules.rules_for(initial)` → `render_for_prompt`).
 5. Target-turn notice once `turn_count ≥ target_turns` (20).
 6. KB hints (`kb_hints.step_hints`, only when `AGENT_USE_KB` ≠ 0): candidate hint and discriminator hint.
+7. Advisor hints (`Policy._advisors`, see "Advisors wired into the policy"): triage (concerning), anchoring check,
+   turn-1 starting DDx, question planner — together ≤ `max_advisor_chars`. The triage alert for an unstable patient is
+   placed above the case view instead (`build_step_messages(alert=...)`).
 
-In low-time mode only the first 2 hints are kept, plus `prompts.LOW_TIME_HINT`. All hints are labelled as reference,
+In low-time mode only the first 2 hints are kept, plus `prompts.LOW_TIME_HINT` (and the triage alert, if any). All hints are labelled as reference,
 not evidence. Categories are detected from the **initial information only**; conditional checks may also use what was
 learned later (triggers, predicates).
 
@@ -168,7 +179,7 @@ KB hints (`agent/kb_hints.py`, per case `seen` set, each ≤ 400 chars):
 - `normalize_hint`: standard Korean name + KCD code; warning when the code is sex-restricted and the patient's sex differs
   (used in the review view and in the result record).
 
-Next-question planner (`agent/question_planner.py`, not wired into the policy yet; CPU, ≈3 ms/call warm, p95 6 ms):
+Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-turn hint; CPU, ≈3 ms/call warm, p95 6 ms):
 - `suggest(state, k=3, include_safety=True) -> list[Suggestion]`; `Suggestion(type "ASK"|"EXAM"|"TEST", content_ko,
   targets[dx], expected_value, cost_tier ask|exam|lab|imaging|invasive, source, citation, safety, features, note)`.
 - Hypotheses = top 4 live DDx-ledger entries (else `state.ddx`, else KB candidates) resolved to KB profiles + an "other"
@@ -238,7 +249,25 @@ Order inside `Policy.next_action` for each proposed action:
 3. TEST/EXAM (incl. gate/review follow-ups): **pre-test preconditions** (`safety/preconditions.check`: block → swap in the prerequisite, e.g. brain CT before LP, β-hCG before abdominal CT; block without alternative → ask the model for another action; warn → annotate the reason).
 All three are guarded (exceptions are logged, never raised), recorded in `result["safety_log"]` (shown per turn in the viewer), and switchable for ablations: `AGENT_USE_GROUNDING`, `AGENT_USE_DANGER_GATE`, `AGENT_USE_PRECONDITIONS` (experiment condition `v6-no-safety`).
 
-## Confidence and stop rule (`agent/confidence.py`, 2026-09-28; not wired in yet)
+## Advisors wired into the policy (2026-09-28, prompt `v7-advisors`)
+Four code-only helpers (CPU, no LLM call of their own). They add prompt text or one pushback; they never pick the
+action. Each is guarded (an exception is logged as `{"layer", "error"}` in `safety_log` and the case goes on as if the
+advisor were off), switchable, and logged to `result["safety_log"]` with a Korean `msg` shown per turn in the viewer.
+
+| Advisor | Switch (env, default on) | When | Effect | Log (`layer`) |
+|---|---|---|---|---|
+| Triage (`safety/triage.py`) | `AGENT_USE_TRIAGE` | every turn | `unstable`, or `unknown` (vitals missing) with a red flag (`TRIAGE_RED_FLAGS`: ams, chest_pain, syncope, bleeding, anaphylaxis, airway, respiratory, seizure, sepsis_suspected, trauma) → `render_for_prompt` (≤ 250 chars) as an alert **above the case view** (`prompts.TRIAGE_ALERT`), kept in low-time mode; `concerning` → ordinary hint; `stable` / `unknown` without red flags → nothing | `triage`, on level change only |
+| Starting DDx (`anchoring.initial_differential`) | `AGENT_USE_ANCHORING` | turn 1 only | `render_for_prompt` (≤ 300 chars) as a hint | `anchoring` / `initial_ddx` |
+| Anchoring check (`anchoring.anchoring_check`) | `AGENT_USE_ANCHORING` | from turn 3, each turn until it fires | its `prompt_ko` as a hint in the next prompt, **once per case** (`state.anchoring_shown`, set only when the hint really made it into the prompt; a raising check is not retried) | `anchoring` / `premature_closure` |
+| Question planner (`question_planner.suggest(k=planner_k=3)`) | `AGENT_USE_PLANNER` **and** `AGENT_USE_KB` | every turn | `render_for_prompt` (≤ 300 chars, protocol items left out) as a hint | `planner`, when the suggestions change |
+| Confidence (`confidence.assess`) | `AGENT_USE_CONFIDENCE` | DIAGNOSE proposal after the protocol pushback and the can't-miss gate | score < `AGENT_CONFIDENCE_PUSHBACK_BELOW` (0.3) and not `must_continue` → one retry hint (`prompts.confidence_pushback`) per case (`state.confidence_pushback`); only with > 3 turns left, not in low-time mode, and ≥ 2 attempts of `MAX_ATTEMPTS` left | `confidence`, every assessment (score, components, recommendation, pushback) |
+
+Prompt budget: the advisor hints of one step prompt (plus the triage alert) are ≤ `AGENT_MAX_ADVISOR_CHARS` (900),
+filled in priority order triage > anchoring check > starting DDx > planner; a hint that does not fit is dropped whole
+(and not logged / not counted as shown). In low-time mode only the triage alert is kept. Ablation: experiment condition
+`v6-no-advisors` (all four switches off).
+
+## Confidence and stop rule (`agent/confidence.py`, 2026-09-28; wired as a one-time pushback, see "Advisors")
 Code-computed replacement for the LLM's self-reported confidence. Pure code over one `CaseState` (no LLM, CPU, stdlib,
 never raises, nothing kept between calls or cases).
 - API: `assess(state, proposed_dx=None, cfg=AgentConfig, params=None) -> Assessment(score, components, recommendation,
@@ -262,7 +291,7 @@ never raises, nothing kept between calls or cases).
   `kb_agreement` fitted to weight 0. Replay (leave-one-run-out, stop at the first "diagnose"): accuracy 0.885 → 0.876,
   mean turns 6.40 → 6.08. Earlier labels are a name-matching proxy (`same_disease`). **Re-validate on gpt-oss-20b.**
 
-## Broad starting DDx and anchoring check (`agent/anchoring.py`, 2026-09-28; not wired yet)
+## Broad starting DDx and anchoring check (`agent/anchoring.py`, 2026-09-28; wired, see "Advisors")
 Two pure functions for the policy (the lead wires them in; no state kept between calls or cases):
 - `initial_differential(initial_info) -> list[{"dx", "tag": 위험|흔함|KB, "source", "category"?, "kcd"?}]` (≤ 8, deduplicated
   with `same_dx`): up to 3 can't-miss diagnoses (`safety/protocols` via `detect_categories`), 4 common causes from the
@@ -279,7 +308,7 @@ Two pure functions for the policy (the lead wires them in; no state kept between
   `prompt_ko` is a devil's-advocate request (two alternatives that explain the findings + the result that would refute
   the current top, then pick that action). The caller must show it at most once per case.
 
-## Unstable-patient triage (`safety/triage.py`, 2026-09-28; not wired yet)
+## Unstable-patient triage (`safety/triage.py`, 2026-09-28; wired, see "Advisors")
 - `assess(state) -> dict`: `level` = `unstable` (any critical signal) / `concerning` (any warning) / `stable` (no
   warning and core vitals known or requested) / **`unknown`** (no warning yet but vitals missing — missing vitals are
   never "stable"; treat as "measure vitals first"). Also `signals` [{key, ko, severity critical|warning|unknown,

@@ -67,6 +67,17 @@ class AgentConfig:
     use_danger_gate: bool = field(default_factory=lambda: _flag("AGENT_USE_DANGER_GATE", "1"))
     use_preconditions: bool = field(default_factory=lambda: _flag("AGENT_USE_PRECONDITIONS", "1"))
     max_gate_turns: int = 3  # actions the can't-miss gate may force per case
+    # advisors (code-only helpers that add prompt hints / one pushback; see docs/architecture.md "Advisors"). Each can be
+    # switched off for ablation experiments (condition v6-no-advisors turns all four off).
+    use_confidence: bool = field(default_factory=lambda: _flag("AGENT_USE_CONFIDENCE", "1"))
+    use_anchoring: bool = field(default_factory=lambda: _flag("AGENT_USE_ANCHORING", "1"))
+    use_planner: bool = field(default_factory=lambda: _flag("AGENT_USE_PLANNER", "1"))  # also needs use_kb
+    use_triage: bool = field(default_factory=lambda: _flag("AGENT_USE_TRIAGE", "1"))
+    # a proposed diagnosis whose code-computed confidence is below this gets one pushback per case
+    confidence_pushback_below: float = field(default_factory=lambda: _num("AGENT_CONFIDENCE_PUSHBACK_BELOW", 0.3))
+    planner_k: int = 3  # suggestions shown by the question planner
+    # total characters the advisor hints may add to one step prompt (triage > anchoring > starting DDx > planner)
+    max_advisor_chars: int = field(default_factory=lambda: int(_num("AGENT_MAX_ADVISOR_CHARS", 900)))
 
     # --- runtime robustness (see docs/architecture.md "Runtime") ---
     # submission mode: never raise out of run_case (log instead); dev mode: fail loudly (≥1 LLM call rule, billing)

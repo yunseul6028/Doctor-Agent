@@ -26,7 +26,10 @@ class CaseState:
     safety_pushback: bool = False  # already asked once to finish safety checks before diagnosing
     gate_turns: int = 0  # actions forced by the can't-miss rule-out gate in this case
     confirmed_other_shown: bool = False  # the gate's "another can't-miss diagnosis is confirmed" hint was shown
-    safety_log: list[dict] = field(default_factory=list)  # grounding / gate / precondition events (for the viewer)
+    confidence_pushback: bool = False  # already pushed back once on a low code-computed confidence
+    anchoring_shown: bool = False  # the premature-closure (anchoring) hint was shown
+    triage_level: str = ""  # last triage level logged (a new safety_log entry only when it changes)
+    safety_log: list[dict] = field(default_factory=list)  # grounding / gate / precondition / advisor events (viewer)
     view_max_chars: int = 0  # prompt-length cap for view(); set from AgentConfig.max_view_chars by the loop
 
     @property

@@ -172,9 +172,11 @@ function renderCases(all, run) {
       `${r.final_diagnosis ? ` → 진단명 수정: ${esc(r.final_diagnosis)}` : ""}</div>`).join("");
     const safetyAt = {};
     (c.safety_log || []).forEach(e => { (safetyAt[e.turn] = safetyAt[e.turn] || []).push(e); });
-    const LAYER = { grounding: "사실 확인", danger_gate: "위험 질환 관문", preconditions: "검사 전 확인" };
+    const LAYER = { grounding: "사실 확인", danger_gate: "위험 질환 관문", preconditions: "검사 전 확인",
+                    confidence: "확신도", anchoring: "감별 넓히기", planner: "추천 행동", triage: "중증도", advisors: "보조 모듈" };
     const safetyHtml = n => (safetyAt[n + 1] || []).map(e => {
       let msg = e.error ? "오류: " + e.error
+        : e.msg ? e.msg
         : e.layer === "grounding" ? `미확인 소견 ${e.findings_unverified || 0}개` + (e.unverified_examples && e.unverified_examples.length ? ` (${e.unverified_examples.join(", ")})` : "") + (e.ddx_removed ? `, 근거에서 뺀 항목 ${e.ddx_removed}개` : "")
         : e.layer === "danger_gate" ? (e.kind === "rule_out" ? `진단(${e.proposed}) 보류 → ${e.danger} 배제 먼저: ${e.why || ""}` : `참고: ${e.why || ""}`)
         : `${e.severity === "block" ? "차단" : "경고"}: ${e.requested} — ${e.why || ""}` + (e.replaced_with ? ` → ${e.replaced_with.content}` : "");

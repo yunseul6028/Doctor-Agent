@@ -223,6 +223,7 @@ def _run(state, *outputs):
     llm = _Scripted(*outputs)
     cfg = Config().agent
     cfg.use_danger_gate = cfg.use_preconditions = False  # isolate the review/criteria logic under test
+    cfg.use_confidence = False  # its one-time pushback would consume a scripted output
     return Policy(llm, cfg).next_action(state), llm
 
 

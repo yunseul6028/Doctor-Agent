@@ -13,13 +13,14 @@
       "workers": 5
     },
     "dev": {
-      "description": "50 fixed cases stratified across sets; current code vs. without KB hints vs. without the new safety layers.",
+      "description": "50 fixed cases stratified across sets; current code vs. without KB hints vs. without the new safety layers vs. without the advisors.",
       "cases_file": "eval/case_lists/dev.txt",
       "size": 50,
       "conditions": [
         "v6",
         "v6-no-kb",
-        "v6-no-safety"
+        "v6-no-safety",
+        "v6-no-advisors"
       ],
       "workers": 8
     },
@@ -56,6 +57,15 @@
         "AGENT_USE_GROUNDING": "0",
         "AGENT_USE_DANGER_GATE": "0",
         "AGENT_USE_PRECONDITIONS": "0"
+      }
+    },
+    "v6-no-advisors": {
+      "description": "current checkout, advisors off (code-confidence pushback, starting DDx + anchoring check, question planner, triage)",
+      "env": {
+        "AGENT_USE_CONFIDENCE": "0",
+        "AGENT_USE_ANCHORING": "0",
+        "AGENT_USE_PLANNER": "0",
+        "AGENT_USE_TRIAGE": "0"
       }
     }
   }

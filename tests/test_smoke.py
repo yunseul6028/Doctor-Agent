@@ -122,6 +122,7 @@ def _state(*exchanges):
     # these tests exercise the diagnosis review only; 황달 now has a safety protocol, whose one-time pushback
     # before DIAGNOSE would consume a scripted output, so mark it as already given
     st.safety_pushback = True
+    st.confidence_pushback = True  # same for the one-time low-confidence pushback (tests/test_advisors.py covers it)
     for q, a in exchanges:
         st.turns.append(Turn(Action(ActionType.ASK, q), a))
     return st
