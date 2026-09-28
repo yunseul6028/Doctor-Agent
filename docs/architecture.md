@@ -415,3 +415,50 @@ Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_inter
 6. **Logs** (`safety_log`, viewer label "결과 판독"): `{"layer": "result_interp", "kind": "reading", "turn": <result
    turn>, test, test_kind, critical, needs_llm, llm_reasons, msg}` per result; `{"kind": "critical_alert", items, msg}`
    when an alert is shown; `{"layer": "result_interp", "error"}` on any exception (the case goes on as if off).
+
+## Specialist sub-agent content (`agent/subagents/consult.py`, `advocate.py`, 2026-09-28; content only, not wired)
+
+Owned by clinical-strategist. Kept separate from the framework section (when to call, merging, budgets), which the
+framework owner writes. Interface: `agent/subagents/base.py` (`SubagentCall`, `SubagentResult`). Same gpt-oss-20b,
+one call each; nothing here calls an LLM.
+
+**Consult** — `build_consult(state, specialty, resources=None) -> SubagentCall`, `parse_consult(text, specialty="",
+known_ddx=None, max_chars=600) -> SubagentResult`.
+- `SPECIALTIES` (`SpecialtySpec`): `cardio` 심장·혈관, `resp_id` 호흡기·감염, `gi_liver` 소화기·간, `neuro` 신경,
+  `rheum_immune` 류마티스·면역, `peds_obgyn` 소아·산부인과. Each: Korean role, must-not-miss list, discriminating
+  questions / exams / tests, pitfalls, per-branch notes, and references by id into existing modules (not copied):
+  `rule_ids` (clinical_rules RULES), `criteria_ids` (diagnostic_criteria), `protocol_categories` (safety/protocols),
+  `rule_out_names` (danger_gate RULE_OUT_TABLE). Tests check every id exists. New claims cite `SpecialtySpec.citations`
+  or are marked reviewer knowledge in `note`.
+- Patient branch (`patient_profile`): `peds` (triage age reader; renders the age's Fleming 2011 1st–99th centile HR/RR
+  and the PALS hypotension floor), `pregnant` (protocols predicate `current_pregnancy`, or postpartum words;
+  gestational weeks → before/after 20 weeks), `female_repro` (predicate `pregnancy_test_abdominal`: pregnancy test before
+  radiation or drugs), `adult`. Age from the initial info; pregnancy from the initial info + usable responses.
+- User message order: specialty block (+ branch notes) → patient branch → can't-miss of the chief-complaint protocols
+  owned by this specialty → rules in their validated population (`rules_for`) owned by it → criteria matching a current
+  DDx name (`criteria_for`) owned by it → optional `resources` (from knowledge/specialty.py; any dict of str/list/dict,
+  ≤ 900 chars) → case context (initial info; findings ledger with `exclude_unverified=True`; last 2 exchanges; DDx
+  ledger; actions done, newest first, "(결과 없음)" marked).
+- Output JSON (`CONSULT_SCHEMA`): `assessment`, `ddx_add[{name, why}]`, `missed_dangers[]`, `next_actions[≤3 {type
+  ASK|EXAM|TEST, content, why}]`, `confidence_note`. Mapping: `ddx_add` → `ddx_add`, `next_actions` →
+  `suggested_actions`, `missed_dangers` → `red_flags`, whole object → `raw`.
+
+**Advocate ("반대 의견 담당", diagnostic time-out; Croskerry cognitive debiasing)** — `build_advocate(state,
+proposed_dx, reason="", resources=None)`, `parse_advocate(text, proposed_dx="", max_chars=600)`. JSON
+(`ADVOCATE_SCHEMA`): `alternatives[2 {name, why}]`, `unexplained[]` (positive findings the proposed dx does not
+explain), `refuting_test` (one ASK/EXAM/TEST or null), `dangers_not_excluded[]`, `verdict` 유지|재검토, `note`. Mapping:
+alternatives → `ddx_add` (the proposed dx itself dropped), refuting_test → `suggested_actions` (≤ 1), dangers →
+`red_flags`, `raw["verdict"]` normalised (keep/reconsider → 유지/재검토, "" if missing). The user message adds the
+chief-complaint can't-miss list (`protocols.cant_miss_for`).
+
+**Parsing (both)**: `extract_json` = harmony split (`llm/harmony.py`) + reasoning-tag strip + code-fence strip, last
+top-level object having a schema key (`parser._json_objects`), then a truncated-JSON repair (close strings/brackets,
+cut back to earlier commas). Actions: type normalised (lowercase, Korean 문진/진찰/검사), anything else (DIAGNOSE,
+PLAN, empty content) dropped, near-duplicates dropped, ≤ 3. `ddx_add` deduplicated with `same_dx` and against
+`known_ddx`. `hint_ko` restates only what the JSON said (header + non-empty lines), capped at `max_chars` (600 =
+`SubagentCall.max_chars_out`). `ok=False` with an empty hint when no object is found or it has no usable content.
+Never raises.
+
+**Sizes** (tiktoken `o200k_harmony`, messages only): consult system 374 tokens; specialty block 348–577; full consult
+832–1,090 tokens at turn 0 and ≤ 2,759 in the worst case (60 turns, 80 findings, 8 DDx, full resources; user message
+≤ 6,500 chars by test); advocate 584 / 2,361.

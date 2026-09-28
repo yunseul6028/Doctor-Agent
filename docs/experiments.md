@@ -46,6 +46,16 @@ keyword patient, no judge; the dummy doctor ignores hints, so scores cannot move
 the ledgers. `scripts/token_budget.py --tokenizer chars --limit 3`: the result hint adds 30.5 tokens mean (max 102;
 present in 72% of step prompts). **Measure v6 vs. v6-no-interp on gpt-oss-20b before relying on it.**
 
+### 2026-09-28 · specialist sub-agent content (not wired, no LLM run)
+Content only (`agent/subagents/consult.py`, `advocate.py`; see `docs/architecture.md` "Specialist sub-agent content"):
+six specialist consult prompts (cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn with a pediatric /
+pregnant / reproductive-age-female branch) and a devil's-advocate diagnostic time-out prompt, with tolerant parsers.
+Not part of any prompt version until the framework wires it. Sizes (tiktoken `o200k_harmony`, messages only, without
+the harmony wrapper): consult system 374 tokens; full consult turn 0 = 832–1,090 tokens, worst case (60 turns,
+80 findings, 8 DDx, 2 kB resources) 2,657–2,759 tokens; advocate 584 (turn 0) / 2,361 (worst). Each call adds one
+gpt-oss call. **Measure on gpt-oss-20b as ablations** (consult on/off, advocate on/off) with per-metric scores before
+relying on them; the parsers were tested only on hand-written outputs.
+
 ## 2026-09-26 → 09-27: changes since the last LLM run (no LLM calls)
 
 Everything below was measured offline (rules, KB, case files). None of it has an Accuracy/Efficiency/Safety score yet.
