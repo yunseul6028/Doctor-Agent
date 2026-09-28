@@ -233,3 +233,16 @@ Recommendations (not applied here):
   (mostly keyword-key collisions for the keyword simulator) remain as a review list.
 - KB ranking is a hint, not evidence: held-out top-10 is 0.269. `kb_hints` does not pass sex/age to `candidates()` yet.
 - The official environment (`env/official.py`), action/diagnosis format and how test results are provided are unknown.
+
+### 2026-09-28 · specialty routing for runtime consults (`knowledge/specialty.py`, code only, no LLM, not wired)
+Offline only (`python eval/offline/eval_specialty.py --results <dir with run_*.json>`; metrics in
+`data/labels/specialty_gold_v1_metrics.json`). No prompt change, so no Accuracy / Efficiency / Safety row.
+- `specialty_of` on the hand-labelled gold set (116 names, ko/en): first pass strict 94.8% / lenient 97.4%; after fixes
+  read off those errors 97.4% / 100% (optimistic: same set).
+- Gold diagnoses of `data/cases_aug` (267): 36.3% fall outside the six specialties (heme_onc 25, renal_uro 13, psych 11,
+  derm 11, endo_metab 10, msk_ortho 9, ent_eye 5, other 13).
+- Replay of per-turn DDx snapshots from 224 Gemini/Gemma trajectories: `route()` reaches share ≥ 0.6 after ≥ 3 turns in
+  67.4% (mean turn 3.1) and names the gold diagnosis's specialty in 86.1% of those (93.5% when the gold is inside the six);
+  on the 16 fired cases whose final answer was wrong, 11 were routed to the gold specialty.
+- Next: wire a consult behind `MIN_TURNS`/`MIN_SHARE`, measure with gpt-oss-20b; consider adding `heme_onc` and
+  `renal_uro` (together 14% of cases_aug gold diagnoses).

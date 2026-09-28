@@ -482,7 +482,7 @@ class KnowledgeBase:
                         break
         return best
 
-    def _resolve(self, name_or_id: str) -> int | None:
+    def _resolve(self, name_or_id: str, fuzzy: bool = True) -> int | None:
         if name_or_id in self.by_id:
             return self.by_id[name_or_id]
         if not name_or_id or not _n(name_or_id):
@@ -502,7 +502,7 @@ class KnowledgeBase:
         sub = self._contained(spaced, self.names)
         if sub:
             return self._best_hit(sub)
-        return self._fuzzy(same[0] if same else _n(name_or_id))
+        return self._fuzzy(same[0] if same else _n(name_or_id)) if fuzzy else None
 
     def _fuzzy(self, key: str) -> int | None:
         """Char-bigram Dice over profile names. Short keys/abbreviations never go fuzzy; Korean matches below 0.7
@@ -1068,9 +1068,10 @@ class KnowledgeBase:
             res["sex"] = {"X": "여성", "Y": "남성"}.get(sex, sex)
         return res
 
-    def normalize_diagnosis(self, text: str) -> dict | None:
+    def normalize_diagnosis(self, text: str, fuzzy: bool = True) -> dict | None:
         """Standard Korean name + KCD code. Order: explicit code → exact KCD/profile name (spelling variants) →
-        same with qualifiers dropped ("backoff") → longest known name inside the text ("contained") → fuzzy."""
+        same with qualifiers dropped ("backoff") → longest known name inside the text ("contained") → fuzzy.
+        fuzzy=False skips the last step (char-bigram Dice; 40-100 ms on long English names) for latency-bound callers."""
         t = (text or "").strip()
         if not t:
             return None
@@ -1116,7 +1117,7 @@ class KnowledgeBase:
             return from_kcd(sub_k, "contained")
         if sub_p:
             return from_profile(self._best_hit(sub_p), "contained")
-        i = self._resolve(t)
+        i = self._resolve(t, fuzzy=fuzzy)
         return from_profile(i, "fuzzy") if i is not None else None
 
     def render_for_prompt(self, findings: list[str] | None = None, dx: list[str] | None = None, k: int = 3,
