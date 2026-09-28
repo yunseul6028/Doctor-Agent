@@ -246,3 +246,13 @@ Offline only (`python eval/offline/eval_specialty.py --results <dir with run_*.j
   on the 16 fired cases whose final answer was wrong, 11 were routed to the gold specialty.
 - Next: wire a consult behind `MIN_TURNS`/`MIN_SHARE`, measure with gpt-oss-20b; consider adding `heme_onc` and
   `renal_uro` (together 14% of cases_aug gold diagnoses).
+
+### 2026-09-28 · specialty routing: eight ids (`heme_onc`, `renal_uro` added; code only, no LLM)
+Offline (`eval/offline/eval_specialty.py`; metrics `data/labels/specialty_gold_v2_metrics.json`). No prompt change, so
+no Accuracy / Efficiency / Safety row.
+- New gold `specialty_gold_v2.jsonl` (48 new names + 14 corrected v1 copies): first pass strict 44/48 (91.7%) on the new
+  names, 112/116 on v1-corrected; after fixes 48/48 and 113/116 (optimistic: same set).
+- cases_aug gold diagnoses outside the ids: 97/267 (36.3%) → 59/267 (22.1%) (heme_onc 24, renal_uro 14).
+- Trajectory replay (224): consult fires 67.4% → 80.4%; routed = gold specialty 86.1% (130/151, old module vs eight-id
+  gold) → 88.9% (160/180). The DKA case still routes to gi_liver: its DDx never contained DKA (endocrine not an id).
+- Needs consult specs for the two ids in `agent/subagents/consult.py` before the routing can use them.
