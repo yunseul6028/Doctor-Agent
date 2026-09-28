@@ -1,0 +1,132 @@
+{
+ "dev": {
+  "gold": "data/labels/result_interp_gold_v1.jsonl",
+  "n_items": 66,
+  "n_gold_findings": 116,
+  "overall": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "tp": 116,
+   "fp": 0,
+   "fn": 0
+  },
+  "by_polarity": {
+   "present": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 72,
+    "fp": 0,
+    "fn": 0
+   },
+   "absent": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 36,
+    "fp": 0,
+    "fn": 0
+   },
+   "uncertain": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 8,
+    "fp": 0,
+    "fn": 0
+   }
+  },
+  "laterality_accuracy": 1.0,
+  "laterality_n": 26,
+  "normal_flag_accuracy": 1.0,
+  "needs_llm_rate": 0.015,
+  "by_tag_recall": {
+   "bare": 1.0,
+   "cannot_exclude": 1.0,
+   "comparison": 1.0,
+   "critical": 1.0,
+   "exam": 1.0,
+   "except": 1.0,
+   "excluded": 1.0,
+   "fixed_neg": 1.0,
+   "hedge": 1.0,
+   "lab": 1.0,
+   "lat": 1.0,
+   "list": 1.0,
+   "mass": 1.0,
+   "neg": 1.0,
+   "new_concept": 1.0,
+   "normal": 1.0,
+   "not_comparison": 1.0,
+   "plain": 1.0,
+   "recommendation": 1.0,
+   "resolved": 1.0,
+   "section": 1.0,
+   "value": 1.0
+  }
+ },
+ "fresh": {
+  "gold": "data/labels/result_interp_gold_fresh_v1.jsonl",
+  "n_items": 32,
+  "n_gold_findings": 66,
+  "overall": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0,
+   "tp": 66,
+   "fp": 0,
+   "fn": 0
+  },
+  "by_polarity": {
+   "present": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 36,
+    "fp": 0,
+    "fn": 0
+   },
+   "absent": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 27,
+    "fp": 0,
+    "fn": 0
+   },
+   "uncertain": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 3,
+    "fp": 0,
+    "fn": 0
+   }
+  },
+  "laterality_accuracy": 1.0,
+  "laterality_n": 13,
+  "normal_flag_accuracy": 1.0,
+  "needs_llm_rate": 0.062,
+  "by_tag_recall": {
+   "comparison": 1.0,
+   "critical": 1.0,
+   "exam": 1.0,
+   "hedge": 1.0,
+   "lab": 1.0,
+   "lat": 1.0,
+   "list": 1.0,
+   "mass": 1.0,
+   "neg": 1.0,
+   "normal": 1.0,
+   "plain": 1.0,
+   "recommendation": 1.0,
+   "section": 1.0,
+   "value": 1.0
+  }
+ },
+ "notes": {
+  "fresh_first_pass": "fresh set scored once before any change it prompted (2026-09-28): concept+polarity P 0.879 R 0.879 (tp 58, fp 8, fn 8); the misses then fixed were generic (English list negation, comparison header scope, SYM/SIGN words inside imaging reports, testis flow wording, qualifier scope, side-less duplicate merge)",
+  "caveat": "rules and labels by the same author; dev = tuned on, fresh = partly tuned after first pass"
+ }
+}

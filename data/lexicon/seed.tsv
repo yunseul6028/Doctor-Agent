@@ -2131,3 +2131,118 @@ LAB:hcg_pos	flags	cue
 LAB:troponin_high	lay	심장 효소 수치가 높|심장 수치가 높
 LAB:troponin_high	med	심근효소 상승|심근 효소 상승|심장 효소 상승|트로포닌 상승|트로포닌 양성
 LAB:troponin_high	syn	elevated troponin|troponin positive|cardiac enzymes elevated
+
+# ---------------------------------------------------------------- radiology / echo / ECG report wording (2026-09-28)
+# Hand-authored for agent/result_interpreter.py (short generic report phrases, Korean + English; no text copied).
+# Bare report words whose meaning depends on the organ ("경화", "출혈", "종괴", "확장", "비후") are NOT forms here: the
+# interpreter maps them with the organ named in the report or the test name (agent/result_interpreter._DESCRIPTORS).
+IMG:normal_study	ko	영상: 특이 소견 없음
+IMG:normal_study	en	imaging: no significant abnormality
+ECG:normal_ecg	ko	심전도: 정상
+ECG:normal_ecg	en	ECG: normal
+IMG:lung_nodule	ko	흉부영상: 폐 결절
+IMG:lung_nodule	en	chest imaging: pulmonary nodule
+IMG:lung_nodule	med	폐결절|폐 결절|폐의 결절|다발성 폐 결절|다발성 폐결절
+IMG:lung_nodule	syn	pulmonary nodule|pulmonary nodules|lung nodule|lung nodules
+IMG:atelectasis	ko	흉부영상: 무기폐
+IMG:atelectasis	en	chest imaging: atelectasis
+IMG:atelectasis	med	무기폐|판상 무기폐|분절성 무기폐
+IMG:atelectasis	syn	atelectasis|atelectatic|subsegmental atelectasis|plate-like atelectasis
+IMG:subdural_hematoma	ko	영상: 경막하·경막외 혈종
+IMG:subdural_hematoma	en	imaging: subdural / epidural hematoma
+IMG:subdural_hematoma	med	경막하 혈종|경막하 출혈|경막외 혈종|경막외 출혈|급성 경막하 혈종|만성 경막하 혈종
+IMG:subdural_hematoma	syn	subdural hematoma|subdural haematoma|subdural hemorrhage|epidural hematoma|extradural hematoma
+IMG:mass_effect	ko	영상: 뇌부종·종괴 효과(정중선 편위)
+IMG:mass_effect	en	imaging: cerebral edema / mass effect / midline shift
+IMG:mass_effect	med	정중선 편위|정중선 이동|종괴 효과|뇌부종|뇌 부종|뇌탈출|뇌 탈출|뇌실 압박
+IMG:mass_effect	syn	midline shift|mass effect|cerebral edema|brain edema|effacement of the sulci|sulcal effacement
+IMG:abscess	ko	영상: 농양
+IMG:abscess	en	imaging: abscess
+IMG:abscess	med	농양|폐농양|간농양|복강 내 농양|골반 농양|신장 농양|신주위 농양
+IMG:abscess	syn	abscess|abscesses|abscess formation|rim-enhancing collection
+IMG:mass	ko	영상: 종괴(장기 불명·기타)
+IMG:mass	en	imaging: mass (other organ)
+IMG:free_fluid	ko	영상: 복강·골반 내 자유 액체
+IMG:free_fluid	en	imaging: free intraperitoneal / pelvic fluid
+IMG:wall_motion_abnormality	ko	심초음파: 국소 벽운동 이상
+IMG:wall_motion_abnormality	en	echo: regional wall motion abnormality
+IMG:wall_motion_abnormality	med	국소 벽운동 이상|국소 벽운동 장애|국소 벽운동 저하|벽운동 이상|벽운동 저하|벽 운동 이상|벽 운동 저하|무운동|운동 저하증
+IMG:wall_motion_abnormality	syn	regional wall motion abnormality|wall motion abnormality|hypokinesis|hypokinetic|akinesis|akinetic|dyskinesis
+IMG:wall_motion_abnormality	abbr	rwma
+IMG:valve_regurgitation	ko	심초음파: 판막 역류
+IMG:valve_regurgitation	en	echo: valvular regurgitation
+IMG:valve_regurgitation	med	승모판 역류|승모판막 역류|대동맥판 역류|대동맥판막 역류|삼첨판 역류|삼첨판막 역류|판막 역류|승모판 폐쇄부전|대동맥판 폐쇄부전
+IMG:valve_regurgitation	syn	mitral regurgitation|aortic regurgitation|tricuspid regurgitation|valvular regurgitation|mitral insufficiency|aortic insufficiency
+IMG:lvh	ko	좌심실 비대(심초음파·심전도)
+IMG:lvh	en	left ventricular hypertrophy (echo / ECG)
+IMG:lvh	med	좌심실 비대|좌심실비대|좌심실 벽 비후|좌심실벽 비후|좌심실 비후
+IMG:lvh	syn	left ventricular hypertrophy|concentric lv hypertrophy
+IMG:lvh	abbr	lvh
+IMG:hyperinflation	ko	흉부영상: 폐 과팽창
+IMG:hyperinflation	en	chest imaging: hyperinflation
+IMG:hyperinflation	med	폐 과팽창|폐과팽창|폐의 과팽창|과팽창|횡격막 편평화|횡격막의 편평화|횡격막 편평|횡격막 하강
+IMG:hyperinflation	syn	hyperinflation|hyperinflated lungs|hyperexpanded lungs|flattened diaphragm|flattened hemidiaphragms|flattening of the diaphragm
+IMG:bone_lesion	ko	영상: 용해성 골 병변
+IMG:bone_lesion	en	imaging: lytic bone lesion
+IMG:bone_lesion	med	용해성 골 병변|용해성 골병변|골용해성 병변|골 용해성 병변|골 파괴|골파괴|펀치 아웃 병변
+IMG:bone_lesion	syn	lytic lesion|lytic lesions|lytic bone lesion|osteolytic lesion|osteolytic|bone destruction|punched-out lesions
+IMG:intrauterine_pregnancy	ko	초음파: 자궁 내 임신(임신낭)
+IMG:intrauterine_pregnancy	en	ultrasound: intrauterine pregnancy
+IMG:intrauterine_pregnancy	med	자궁 내 임신낭|자궁내 임신낭|자궁 내 태낭|자궁내 태낭|자궁 내 난황낭|자궁 내 임신 확인
+IMG:intrauterine_pregnancy	syn	intrauterine pregnancy|intrauterine gestational sac|intrauterine gestation
+
+# extra report wording for existing kb_tests imaging / ECG concepts (labels and links stay those of kb_tests)
+IMG:cxr_consolidation	med	폐 경화|폐경화|폐의 경화|폐 침윤|폐침윤|폐포 침윤|폐포성 침윤|침윤성 음영|공기 기관지 음영|공기기관지 음영|공기 기관지 조영|엽성 경화|대엽성 경화|결절성 침윤
+IMG:cxr_consolidation	syn	air bronchogram|air bronchograms|airspace opacity|airspace opacities|airspace disease|lobar consolidation|pulmonary infiltrate|infiltrate|infiltrates
+IMG:pleural_effusion	med	흉수|흉막 삼출|흉막삼출|늑막 삼출|늑막삼출|흉막 삼출액|흉수 저류
+IMG:pleural_effusion	syn	pleural effusion|pleural effusions|pleural fluid
+IMG:cxr_ptx	syn	pneumothorax
+IMG:cxr_hf	med	심비대|심장 비대|심장비대|심장 음영 확대|심흉곽비 증가|폐부종|폐 부종|간질성 폐부종|폐혈관 울혈|폐 울혈|케를리 b선
+IMG:cxr_hf	syn	pulmonary edema|pulmonary oedema|interstitial edema|kerley b lines|cephalization|enlarged cardiac silhouette|pulmonary vascular congestion|vascular congestion|cardiomegaly
+IMG:gallstone	med	담낭 결석|담낭결석|담낭 내 결석
+IMG:gallstone	syn	gallstone|gallstones
+IMG:hydronephrosis	med	수신증|신우 확장|신우확장|신우신배 확장
+IMG:hydronephrosis	syn	hydronephrosis|hydroureteronephrosis|pelvicalyceal dilatation
+IMG:stone_imaging	med	신장 결석|요관 결석|요관결석|방광 결석
+IMG:stone_imaging	syn	renal stone|renal calculus|kidney stone|ureteral stone|ureteric stone|ureteral calculus
+IMG:ct_ich	med	뇌실질 내 출혈|뇌실질내 출혈|뇌실질 출혈|뇌내출혈|뇌내 출혈|뇌실 내 출혈|뇌실내 출혈|두개내 출혈|두개 내 출혈
+IMG:ct_ich	syn	intraparenchymal hemorrhage|intracranial hemorrhage|intraventricular hemorrhage|parenchymal hemorrhage
+IMG:ct_sah	med	지주막하 출혈|지주막하출혈|거미막밑 출혈|거미막하 출혈
+IMG:ct_sah	syn	subarachnoid hemorrhage|subarachnoid haemorrhage
+IMG:stroke_imaging	med	확산 제한|확산제한|확산 강조 영상 고신호|급성 허혈성 병변
+IMG:stroke_imaging	syn	acute infarct|acute infarction|restricted diffusion|diffusion restriction|acute ischemic infarct
+IMG:doppler_dvt	med	정맥 내 혈전|정맥내 혈전|심부정맥 내 혈전|압박되지 않는 정맥|정맥 압박 불가
+IMG:doppler_dvt	syn	deep venous thrombosis|non-compressible vein|noncompressible vein|intraluminal thrombus
+IMG:ctpa_pe	med	폐동맥 충만 결손|폐동맥 충만결손|폐동맥 내 충만 결손|폐동맥 내 충만결손|폐동맥 내 혈전
+IMG:ctpa_pe	syn	pulmonary arterial filling defect|filling defects
+IMG:us_cholecystitis	med	담낭벽 비후|담낭 벽 비후|담낭 주위 액체|담낭주위 액체|담낭 팽대|담낭 벽 부종
+IMG:us_cholecystitis	syn	pericholecystic fluid|sonographic murphy sign|gallbladder distension
+IMG:cbd_dilation	med	총담관 확장|담관 확장|간내 담관 확장|간내담관 확장|담도 확장|총담관의 확장
+IMG:cbd_dilation	syn	biliary dilatation|biliary ductal dilatation|dilated common bile duct|cbd dilatation|intrahepatic ductal dilatation
+IMG:ct_appendicitis	med	충수 비후|충수 확장|충수 주위 지방 침윤|충수 주위 지방층 침윤|충수 주위 염증|충수벽 비후|충수 결석|충수염 소견
+IMG:ct_appendicitis	syn	dilated appendix|appendiceal wall thickening|periappendiceal fat stranding|periappendiceal inflammation|appendicolith
+IMG:sbo_imaging	med	소장 확장|장 확장|공기-액체 층|공기 액체 층|기체-액체 층|이행 부위|장폐색 소견
+IMG:sbo_imaging	syn	dilated small bowel|dilated bowel loops|air-fluid levels|air fluid levels|transition point
+IMG:echo_pericardial_effusion	med	심낭 삼출|심낭삼출|심낭 삼출액|심낭액|심낭 내 액체
+IMG:echo_pericardial_effusion	syn	pericardial effusion|pericardial fluid
+IMG:echo_tamponade	med	심장 눌림|우심실 확장기 허탈|우심방 허탈
+IMG:echo_tamponade	syn	tamponade physiology|rv diastolic collapse|right ventricular diastolic collapse
+IMG:echo_vegetation	med	증식물|우종|판막 증식물|판막 우종
+IMG:echo_vegetation	syn	vegetation|vegetations|valvular vegetation
+IMG:lvef_low	med	구혈률 감소|구혈률 저하|박출률 감소|박출률 저하|좌심실 수축 기능 저하|좌심실 수축기능 저하
+IMG:lvef_low	syn	low ejection fraction|lv systolic dysfunction|reduced lv function|reduced lv systolic function|reduced systolic function
+IMG:ggo	med	간유리 음영|간유리음영|간유리 혼탁|간유리 양상
+IMG:ggo	syn	ground-glass opacity|ground-glass opacities|ground glass opacities|ground glass opacity
+IMG:ct_diverticulitis	med	게실 주위 염증|게실 주위 지방 침윤
+IMG:ct_diverticulitis	syn	pericolic fat stranding|peridiverticular inflammation
+IMG:ct_dissection	med	내막 피판|가성 내강|거짓 내강
+IMG:ct_dissection	syn	intimal flap|dissection flap|false lumen
+IMG:aaa_imaging	med	복부대동맥 확장
+IMG:testis_no_flow	med	고환 혈류 소실|고환 혈류 감소|고환 내 혈류 없음|고환 혈류 없음
+IMG:testis_no_flow	syn	absent testicular blood flow|absent testicular flow|no testicular flow
+ECG:ecg_st_depression	med	st 분절 변화|st분절 변화|st 변화|st-t 분절 변화
+ECG:ecg_long_qt	med	qt 연장|qtc 연장|qt간격 연장|qt 간격 연장
+ECG:ecg_long_qt	syn	prolonged qt|qt prolongation|prolonged qtc
+IMG:echo_rv_strain	med	우심실 부하|우심 부하|우심실 긴장|우심실 과부하|d자 모양 중격
+IMG:echo_rv_strain	syn	right heart strain|rv strain|right ventricular strain|right ventricular dilatation|rv dilatation|d-shaped septum
+ECG:ecg_st_depression	syn	st-segment changes|st segment changes|st-segment change|st changes|st change|st-t wave changes

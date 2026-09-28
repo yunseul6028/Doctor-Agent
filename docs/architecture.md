@@ -326,3 +326,65 @@ Two pure functions for the policy (the lead wires them in; no state kept between
 - `render_for_prompt(state, assessment=None, actions=None, max_chars=250)` → one Korean line, "" when stable.
 - Physiologically stable emergencies (STEMI, dissection, SAH with normal vitals) stay `stable` here by design; the
   can't-miss gate (`danger_gate.py`) and protocols cover them.
+
+## Result interpreter (`agent/result_interpreter.py`, 2026-09-28; not wired yet)
+A code-first reader for one EXAM/TEST result text, separate from the diagnosing agent (it never diagnoses). Pure code:
+stdlib, CPU, deterministic, never raises, no LLM or network call, nothing kept between calls or cases (~0.6 ms per
+text on the 1,420 exam/test texts in `data/cases_*`).
+- API: `interpret(test_name, result_text, patient_ctx=None) -> Interpretation`; `patient_ctx` = `{"age_years",
+  "sex", "initial_info"}` of the same case (age switches the nlp layer's children's HR/RR ranges).
+  `Interpretation`: `kind` (lab / imaging / ecg / exam / other), `items`, `normal` (whole-normal statement and nothing
+  abnormal), `unavailable` ("결과가 제공되지 않습니다": **not normal**), `pending` ("대기 중": not a result), `ignored`
+  (dropped sections / recommendation parts), `llm_reasons`, helpers `present()/absent()/uncertain()/critical()/
+  concepts()/as_dict()`.
+  `Item`: `kind`, `concept` (lexicon id; `""` = abnormal wording the code could not map), `label`, `polarity`
+  (present / absent / uncertain), `span`, `site`, `laterality`, `value`/`unit`/`direction` (labs, vitals), `critical`,
+  `comparison` (new / improved / worsened / stable / resolved), `hedge`, `supports` ((dx key, Korean name, weight) from
+  `kb_tests` links, **supportive only**, present IMG/ECG items only), `source`, `confidence`, `summary_ko`.
+- `render_for_prompt(interp, max_chars=300)`: one Korean line — `[검사] 정상 / 있음: ⚠critical first … / 의심: … /
+  없음: … / 지지 가능 질환(확진 아님): …`. `needs_llm(interp)` / `llm_reasons(interp)`: long text (>500 chars),
+  >6 sentences, serial time points, ≥2 unmapped abnormal phrases (or unmapped only), nothing read from an imaging/ECG
+  report, conflicting polarity, ≥3 hedged items.
+- Reading: sections (Indication / History / Technique / Comparison / Recommendation / 권고 / 임상 정보 dropped;
+  short header sections end at their first sentence), recommendation parts cut, comparison phrases that look like
+  negations masked ("no interval change in", "이전과 비교하여 변화 없음"); `nlp.findings.parse` (lexicon, vitals, labs
+  with reference ranges, kb_tests); kb_tests imaging/ECG readings re-anchored on their own span; organ-dependent report
+  words mapped with the organ next to them or the test name (`_DESCRIPTORS`: "출혈" on a brain CT = `IMG:ct_ich`,
+  "혈전" in a leg vein = `IMG:doppler_dvt`, "비후" of the gallbladder = `IMG:us_cholecystitis`, ...); impression words
+  ("급성 충수염 의심") mapped to the imaging concept; HX concepts re-mapped in imaging context (`HX:prior_vte` →
+  `IMG:ctpa_pe` / `IMG:doppler_dvt`); SYM/QUAL and non-imaging SIGN concepts dropped from imaging reports ("반점상 경화"
+  is not a rash). Polarity: the nlp cue rules (`assess_spans`), then per comma part hedges → uncertain, "배제할 수 없음 /
+  cannot be excluded" → uncertain, "배제됨 / was excluded" → absent, English list negation ("No A, B, or C"), "A without
+  B" keeps A. Lab values next to a printed range are re-checked against that range (kb_tests missed "D-dimer 750 ng/mL
+  (<500)"). Pending parts are skipped.
+- Critical: urgent imaging/ECG concepts (pneumothorax, free air, dissection, ICH/SAH/SDH, mass effect, PE, DVT,
+  tamponade, torsion, empty uterus, STEMI, long QT, ...; our selection after the ACR communication parameter) read as
+  present/uncertain, or values beyond adult critical limits (K ≥6.0/<2.8, Na <120/>160, glucose <50/>450, Hb <7,
+  platelets <20k, WBC <2k/>30k, INR ≥5, HCO3 <10 — Kost 1990; SBP <90, SpO2 <90, RR ≥30/≤8, adult HR ≥130/<40).
+- Lexicon: `data/lexicon/seed.tsv` gained report wording (Korean + English) for existing kb_tests IMG/ECG concepts and
+  15 new concepts (`IMG:normal_study`, `ECG:normal_ecg`, `IMG:lung_nodule`, `IMG:atelectasis`, `IMG:subdural_hematoma`,
+  `IMG:mass_effect`, `IMG:abscess`, `IMG:mass`, `IMG:free_fluid`, `IMG:wall_motion_abnormality`,
+  `IMG:valve_regurgitation`, `IMG:lvh`, `IMG:hyperinflation`, `IMG:bone_lesion`, `IMG:intrauterine_pregnancy`).
+  Disease names ("대동맥 박리", "기흉") are deliberately **not** lexicon forms (the grounding checker would treat a
+  diagnosis in the doctor's reason as a finding claim); the interpreter maps them itself in imaging context.
+- Offline evaluation: `eval/offline/eval_result_interp.py` on `data/labels/result_interp_gold_v1.jsonl` (66 snippets,
+  116 labels; dev set) and `result_interp_gold_fresh_v1.jsonl` (32 snippets, 66 labels; written after the rules):
+  fresh set before the fixes it prompted P 0.879 / R 0.879; both sets 1.00 after (same author for rules and labels →
+  optimistic). Metrics in `data/labels/result_interp_gold_v1_metrics.json`. Tests: `tests/test_result_interpreter.py`.
+- Future LLM hook: `prompts.RESULT_INTERPRETER_PROMPT` + `build_result_interpreter_messages(test_name, text,
+  code_reading)` (JSON items/normal/unavailable/summary). Not called anywhere.
+
+### Wiring plan (for the policy owner)
+1. After `env.step` returns a response to an EXAM/TEST action: `interp = interpret(action.content, response,
+   {"initial_info": state.initial_info})`; store `interp.as_dict()` on the `Turn` (result log / viewer).
+2. Next step prompt: add `render_for_prompt(interp)` as the first hint for that turn (≤300 chars) instead of relying on
+   the model re-reading the raw text; `unavailable` / `pending` lines keep "결과 없음 ≠ 정상" explicit.
+3. Findings ledger: add items as verified findings (present → 양성, absent → 음성, uncertain → 양성 with detail
+   "의심"; `unavailable` → 결과없음) so grounding / confidence / danger gate read the same facts. Items with concept ""
+   stay prompt-only.
+4. Safety: any `critical` item → one-time hint "⚠ 즉시 조치가 필요한 결과: …" and let `danger_gate` treat a critical
+   IMG/ECG concept as a confirmed danger (e.g. `IMG:ct_dissection` present).
+5. KB: pass `interp.concepts("present")` to `kb.candidates`/`kb_hints`; `supports` is shown as "지지 가능 질환(확진
+   아님)", never as a diagnosis.
+6. Optional (time budget permitting, off by default): if `needs_llm(interp)`, one extra gpt-oss call with
+   `build_result_interpreter_messages(...)`; merge only items the code did not read. Measure the time cost first.
