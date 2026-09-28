@@ -11,6 +11,12 @@ python eval/experiment.py --profile dev --doctor-endpoint competition   # standa
 
 Real LLM clients are metered (eval/usage.py): doctor token usage per case (`usage`) and per role for the run.
 Exit code 3 when the batch stopped on a billing error.
+
+LLM record/replay cache (eval/replay.py, files under eval/cache/):
+python eval/run_local.py --llm-cache auto                 # patient/judge: replay on hit, else call + record
+python eval/run_local.py --llm-cache replay --cache-doctor   # zero API calls; a miss aborts the batch (exit 4)
+    --cache-salt S (new salt = fresh samples), --cache-sample-idx K (K-th stored sample per request),
+    --doctor-cache MODE (doctor mode independent of --llm-cache), --cache-dir DIR
 """
 import argparse
 import glob
@@ -37,6 +43,7 @@ from eval.llm_patient import PERSONA_CHOICES, PERSONAS, LLMPatientEnvironment  #
 from eval.scorer import missed_checks, score_case  # noqa: E402
 from eval.simulator import CaseFileEnvironment  # noqa: E402
 from eval.usage import UsageMeter, attach  # noqa: E402
+from eval import replay  # noqa: E402
 
 try:
     from doctor_agent.llm.client import BillingError  # noqa: E402
@@ -45,7 +52,16 @@ except ImportError:  # older commits (v5 baseline worktrees) have no BillingErro
         pass
 
 BILLING_ABORT_EXIT = 3  # process exit code when the batch stopped on a billing error (see eval/experiment.py)
+REPLAY_MISS_EXIT = 4  # --llm-cache replay found no stored answer: the batch stopped without calling the API
 _last_aborted = False
+_last_exit = 1
+
+
+def _env_float(name: str) -> float | None:
+    try:
+        return float(os.environ[name]) if os.environ.get(name) else None
+    except ValueError:
+        return None
 
 
 def load_dotenv(path: Path) -> None:
@@ -134,9 +150,17 @@ def main(argv: list[str] | None = None) -> Path | None:
     ap.add_argument("--out", default=str(ROOT / "eval/results"))
     ap.add_argument("--no-view", action="store_true", help="do not open the results viewer when done")
     ap.add_argument("--meta", default=None, help="JSON object stored as `experiment` in the result file")
+    ap.add_argument("--llm-cache", choices=replay.MODES, default="off",
+                    help="record/replay cache for patient+judge (and the doctor with --cache-doctor); see eval/replay.py")
+    ap.add_argument("--cache-doctor", action="store_true", help="apply --llm-cache to the doctor too")
+    ap.add_argument("--doctor-cache", choices=replay.MODES, default=None, help="doctor cache mode (overrides the above)")
+    ap.add_argument("--cache-salt", default="", help="part of every cache key; change it to force fresh answers")
+    ap.add_argument("--cache-sample-idx", type=int, default=0, help="k-th stored sample per request (variance runs)")
+    ap.add_argument("--cache-dir", default=str(replay.DEFAULT_DIR))
     args = ap.parse_args(argv)
-    global _last_aborted
+    global _last_aborted, _last_exit
     _last_aborted = False
+    _last_exit = 1
 
     load_dotenv(ROOT / ".env")
     cfg = Config()
@@ -153,12 +177,25 @@ def main(argv: list[str] | None = None) -> Path | None:
     metered = {"doctor": args.doctor == "llm",
                "patient": bool(patient_llm) and attach(patient_llm, meters["patient"]),
                "judge": bool(judge_llm) and attach(judge_llm, meters["judge"])}
+    # the cache wraps the metered SDK: hits never reach the meter, so `usage` stays "tokens actually billed"
+    caches = replay.make_caches(args.llm_cache, cache_doctor=args.cache_doctor, doctor_mode=args.doctor_cache,
+                                directory=args.cache_dir, salt=args.cache_salt, sample_idx=args.cache_sample_idx)
+    in_use = {"doctor": args.doctor == "llm", "patient": patient_llm is not None, "judge": judge_llm is not None}
+    caches = {r: (c if in_use[r] else None) for r, c in caches.items()}  # no stats for roles without an LLM
+    for role, llm in (("patient", patient_llm), ("judge", judge_llm)):
+        if llm is not None:
+            replay.attach(llm, caches[role])
+    if any(caches.values()):
+        print("llm cache: " + "  ".join(f"{r}={c.mode}({len(c)} entries)" for r, c in caches.items() if c)
+              + (f" salt={args.cache_salt!r}" if args.cache_salt else "")
+              + (f" sample_idx={args.cache_sample_idx}" if args.cache_sample_idx else ""))
 
     def run_one(set_: str, path: Path) -> dict:
         case = json.loads(path.read_text(encoding="utf-8"))
         doctor = DummyLLM() if args.doctor == "dummy" else OpenAICompatClient(cfg.llm)  # new instance per case
         case_meter = UsageMeter()
         has_usage = attach(doctor, case_meter)
+        replay.attach(doctor, caches["doctor"])
         env = LLMPatientEnvironment(case, patient_llm, args.persona) if patient_llm else CaseFileEnvironment(case)
         t0 = time.time()
         try:
@@ -187,7 +224,8 @@ def main(argv: list[str] | None = None) -> Path | None:
     done: dict[int, dict] = {}
     failed: list[dict] = []
     lock = threading.Lock()
-    abort = threading.Event()  # set on billing errors: stop the whole batch
+    abort = threading.Event()  # set on billing errors / replay misses: stop the whole batch
+    miss: list[str] = []
     t_start = time.time()
 
     def report(i: int, set_: str, path: Path, row: dict | None, err: Exception | None) -> None:
@@ -205,6 +243,14 @@ def main(argv: list[str] | None = None) -> Path | None:
     def finish(i: int, set_: str, path: Path, fut_result) -> None:
         try:
             row = fut_result()
+        except replay.CacheMiss as e:
+            # replay mode must never fall back to the API: stop the batch
+            abort.set()
+            with lock:
+                miss.append(str(e))
+                failed.append({"case": path.stem, "set": set_, "error": str(e)})
+            report(i, set_, path, None, e)
+            return
         except BillingError as e:
             # out of credits: every remaining case would fail too
             abort.set()
@@ -235,9 +281,18 @@ def main(argv: list[str] | None = None) -> Path | None:
                     for f in futs:
                         f.cancel()
                     break
+    cache_block = replay.summary(caches, salt=args.cache_salt, sample_idx=args.cache_sample_idx,
+                                 price_in=_env_float("EXPERIMENT_PRICE_IN_PER_M"),
+                                 price_out=_env_float("EXPERIMENT_PRICE_OUT_PER_M"))
     if abort.is_set():
+        if miss:
+            print(f"\n{replay.format_summary(cache_block)}")
+            print(f"\nABORTED: llm cache miss in replay mode ({miss[0]}). No result file written.", flush=True)
+            _last_exit = REPLAY_MISS_EXIT
+            return None
         print("\nABORTED: LLM billing error (credits depleted?). No result file written.", flush=True)
         _last_aborted = True
+        _last_exit = BILLING_ABORT_EXIT
         return None
 
     rows = [done[i] for i in sorted(done)]
@@ -256,6 +311,8 @@ def main(argv: list[str] | None = None) -> Path | None:
     if usage:
         print("usage: " + "  ".join(f"{k} calls={u['calls']} in={u['prompt_tokens']} out={u['completion_tokens']}"
                                     for k, u in usage.items()))
+    if cache_block:
+        print(replay.format_summary(cache_block))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     slug = re.sub(r"[^A-Za-z0-9._-]+", "-", args.label).strip("-")[:40]
@@ -269,7 +326,7 @@ def main(argv: list[str] | None = None) -> Path | None:
                     "label": args.label or None, "prompt_version": pv, "commit": commit,
                     "case_specs": args.cases, "sample": args.sample, "seed": args.seed if args.sample else None,
                     "limit": args.limit, "workers": args.workers,
-                    "experiment": json.loads(args.meta) if args.meta else None, "usage": usage,
+                    "experiment": json.loads(args.meta) if args.meta else None, "usage": usage, "llm_cache": cache_block,
                     "avg": avg, "avg_by_set": by_set, "overall": overall, "failed": failed, "cases": rows},
                    ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -283,4 +340,4 @@ def main(argv: list[str] | None = None) -> Path | None:
 
 
 if __name__ == "__main__":
-    sys.exit(0 if main() else (BILLING_ABORT_EXIT if _last_aborted else 1))
+    sys.exit(0 if main() else _last_exit)

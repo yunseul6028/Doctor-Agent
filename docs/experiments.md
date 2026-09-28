@@ -76,6 +76,31 @@ the same model, else any model, else 3,000 in / 1,000 out), all × margin 1.3. D
 `--log` appends one table row per condition above and a comparison section (overall, per set, flips, n/a rate) under
 "Auto-logged experiment runs" at the end. The share page path is printed (`eval/results/share_<time>.html` or `--share`).
 
+### LLM record/replay cache (stretching the credits)
+`eval/replay.py` wraps the SDK's `chat.completions.create` at the eval layer (like `eval/usage.py`; src untouched, never
+shipped). Key = sha256(endpoint, model, messages, temperature, max_tokens, reasoning_effort, response_format/extra_body,
+`--cache-salt`, `--cache-sample-idx`); `timeout` is ignored. One append-only JSONL per role in `eval/cache/`
+(git-ignored; `doctor.jsonl`, `patient.jsonl`, `judge.jsonl`; content, reasoning, finish_reason, usage per entry;
+fcntl-locked appends, safe with `--workers N`).
+- Modes (`--llm-cache`): `off`, `record` (always call, store; latest entry wins), `auto` (hit → replay, miss → call +
+  record), `replay` (no API calls at all; the first miss aborts the batch, exit code 4, no result file).
+- `eval/experiment.py` defaults: patient/judge `auto`, doctor `off`; `--cache-doctor` (or `"cache_doctor": true` on a
+  condition in `experiment_profiles.json`) caches the doctor too. `run_local.py` defaults to `off`
+  (`--llm-cache auto [--cache-doctor | --doctor-cache MODE]`).
+- Result JSON: `llm_cache` = per role hits / misses / recorded / tokens avoided (`saved_*`), plus `saved_krw_doctor`
+  when `EXPERIMENT_PRICE_{IN,OUT}_PER_M` are set. `usage` still counts only tokens actually billed (the cache sits above
+  the meter). The comparison prints a `cache` line per run and `--log` adds it to the notes.
+- Where it saves: the judge prompt is (case answer, predicted diagnosis), so every repeated diagnosis across conditions
+  and reruns is free. Patient answers hit only while the conversation prefix is identical (same doctor question
+  sequence), i.e. unchanged conditions and the doctor-cached replays. The doctor (the competition credits) hits when a
+  condition sends exactly the same requests again: reruns of the same code/prompt (baseline conditions, rescoring or
+  scorer/viewer changes, parser-only changes that do not alter the prompts). A prompt change misses from its first
+  differing call onward, so the saving there is the unchanged prefix only.
+- Caveats: replay is deterministic — with temperature > 0 it reuses the first sample, so a replayed rerun hides sampling
+  variance. For variance runs run with `--cache-sample-idx k`, k = 0, 1, 2… (each k is a separate stored sample per request) or a new
+  `--cache-salt` to force fresh answers. Time-budget branches (degraded mode, deadlines) can differ between a live run
+  and a fast replay, which shows up as misses, not as wrong hits. The cost estimate ignores expected hits (upper bound).
+
 ## Open issues (refreshed 2026-09-27)
 - **Nothing since v5 is measured with an LLM.** v6 (KB hints, code-decided review), the 26-category protocols and
   `data/cases_aug` need a first run; prompts were written against Gemini and must be re-validated on gpt-oss-20b.

@@ -7,3 +7,4 @@ eval/results/
 .DS_Store
 data/external/
 .claude/worktrees/
+eval/cache/
