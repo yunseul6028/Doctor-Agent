@@ -321,9 +321,9 @@ def capture_builders(doctor: ScriptedDoctor, state_ref: dict):
     """Wrap the prompt builders so each call records (kind, view, hints, extras) for the anatomy breakdown."""
     orig = (prompts.build_step_messages, prompts.build_review_messages, prompts.build_final_messages)
 
-    def step(view, turn, max_turns, hints):
-        doctor.pending.append(("step", view, list(hints), {}))
-        return orig[0](view, turn, max_turns, hints)
+    def step(view, turn, max_turns, hints, alert=""):
+        doctor.pending.append(("step", view, list(hints), {"step.triage_alert": alert} if alert else {}))
+        return orig[0](view, turn, max_turns, hints, alert)
 
     def review(view, diagnosis, reason, turn, max_turns):
         base, extras = split_review_view(view, state_ref["state"].view() if state_ref.get("state") is not None else "")
