@@ -228,10 +228,11 @@ SYM:panic	med	공황 발작|공황발작|공황 증상
 SYM:panic	syn	panic attack|panic
 SYM:altered_mental_status	ko	의식 변화
 SYM:altered_mental_status	en	altered mental status
-SYM:altered_mental_status	lay	지남력이 떨어|깨우기 어려|잘 깨지 않|정신이 오락가락|횡설수설|헛소리|엉뚱한 소리|앞뒤가 안 맞|앞뒤가 맞지 않|사람을 못 알아|사람을 알아보지 못|말귀를 못 알아|깨워도 잘 안 깨|깨워도 안 깨|축 처져|축 늘어|반응이 없|반응이 느리|의식이 흐|의식이 없|의식이 떨어|의식이 흐려|정신이 흐려|멍하게 있|멍하니|정신이 없어 보|평소와 다르게 멍|정신이 이상|의식이 평소와 다르|엉뚱한 말
+SYM:altered_mental_status	lay	지남력이 떨어|깨우기 어려|잘 깨지 않|정신이 오락가락|횡설수설|헛소리|엉뚱한 소리|앞뒤가 안 맞|앞뒤가 맞지 않|사람을 못 알아|사람을 알아보지 못|말귀를 못 알아|깨워도 잘 안 깨|깨워도 안 깨|축 처져|축 늘어|의식이 흐|의식이 없|의식이 떨어|의식이 흐려|정신이 흐려|멍하게 있|멍하니|정신이 없어 보|평소와 다르게 멍|정신이 이상|의식이 평소와 다르|엉뚱한 말
 SYM:altered_mental_status	med	기면|기면 상태|의식 저하|의식저하|의식 변화|의식변화|의식 혼탁|의식혼탁|혼돈|착란|섬망|지남력 저하|지남력 장애|지남력 상실|혼미|혼수|의식 장애|의식장애|의식 수준 저하|명료하지 않|혼동
 SYM:altered_mental_status	syn	drowsy|lethargic|decreased consciousness|decreased level of consciousness|comatose|confusion|altered mental status|altered mentation|delirium|disorientation|obtundation|stupor|coma|disoriented|confused
 SYM:altered_mental_status	abbr	ams
+SYM:altered_mental_status	re	(?<!치료에)(?<!치료에 )(?<!약에)(?<!약에 )(?<!요법에)(?<!요법에 )(?<!제에)(?<!제에 )반응이 ?(?:없|느리)
 SYM:altered_mental_status	re	(?:통증|자극)에 대한 반응(?:이|은)? ?(?:저하|감소|없|둔)
 SYM:altered_mental_status	neg	지남력 양호|지남력은 양호|지남력 유지|의식 명료|의식은 명료|의식 청명|의식은 또렷|정신은 또렷|정신은 멀쩡|의식은 정상|명료한 의식|지남력 정상|지남력은 정상|alert and oriented
 SYM:altered_mental_status	negre	의식.{0,12}(명료|청명|정상|또렷)
@@ -677,7 +678,7 @@ SYM:hematemesis	en	hematemesis
 SYM:hematemesis	lay	피를 토|피가 섞인 토|토에 피|토한 것에 피|커피 찌꺼기~|커피색~|커피 가루 같은~|검붉은 걸 토|핏덩이를 토
 SYM:hematemesis	med	토혈|혈성 구토|커피 찌꺼기 구토|커피색 구토|커피 찌꺼기 모양 구토물
 SYM:hematemesis	syn	hematemesis|haematemesis|coffee-ground emesis|bloody vomit
-SYM:hematemesis	re	(피|혈액|핏).{0,6}(토했|토하|토해|토함|구토)|(토했|토한|구토|토물).{0,8}(피가|피를|피도|혈액|핏)
+SYM:hematemesis	re	(피(?![로곤부지하])|혈액|핏).{0,6}(토했|토하|토해|토함|구토)|(토했|토한|구토|토물).{0,8}(피가|피를|피도|혈액|핏)
 SYM:hematemesis	parents	SYM:vomiting|GRP:bleeding
 SYM:bilious_vomiting	ko	담즙성 구토
 SYM:bilious_vomiting	en	bilious vomiting
@@ -1300,7 +1301,8 @@ SYM:pruritus	parents	GRP:skin
 SYM:urticaria	ko	두드러기
 SYM:urticaria	en	urticaria
 SYM:urticaria	lay	두드러기|모기 물린 것처럼 부~|벌레 물린 것처럼 부~|피부가 부풀어 오르|부풀어 오른 반점
-SYM:urticaria	med	두드러기|팽진|담마진|만성 두드러기|급성 두드러기
+SYM:urticaria	med	두드러기|담마진|만성 두드러기|급성 두드러기
+SYM:urticaria	re	팽진(?!도)
 SYM:urticaria	syn	urticaria|hives|wheals|wheal
 SYM:urticaria	parents	SYM:rash
 SYM:angioedema	ko	혈관부종

@@ -148,7 +148,7 @@ SYNONYMS: dict[str, list[str]] = {
     "maculopapular rash": ["반구진", "홍반성 구진", "구진"],
     "erythema": ["홍반", "발적", "피부가 붉", "빨갛게 부"],
     "itch": ["가려움", "가렵", "가려워", "가려운", "소양", "간지러"],
-    "urticaria": ["두드러기", "팽진"],
+    "urticaria": ["두드러기", "팽진이"],  # bare "팽진" also hits "피부 팽진도" (skin turgor)
     "petechia": ["점상출혈", "점상 출혈", "자반", "붉은 점"],
     "easy bruising": ["멍이 잘", "멍이 쉽게", "쉽게 멍"],
     "blisters": ["물집", "수포성", "수포가", "수포 형성"],

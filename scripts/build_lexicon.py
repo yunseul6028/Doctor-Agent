@@ -48,6 +48,8 @@ BLOCK = [
     "다음 날", "다음날", "다음 주", "다음번", "다음에", "열심히", "열흘", "열어", "열린", "가래떡", "자궁경부", "황달 구역", "종창성", "객담 도말", "객담 배양", "객담 검사", "가래 검사", "객담 그람", "말초 맥박", "원위부 맥박", "족배동맥 맥박", "후경골동맥 맥박", "대퇴 맥박", "방사형", "구역의", "구역에서", "구역 내", "경동맥 잡음", "경동맥잡음", "혈관 잡음", "복부 잡음",
     # "기억이 안 나요" answers a question (uncertainty), it is not memory loss
     "기억이 안", "기억이 잘 안", "기억 안", "기억은 안",
+    # skin turgor ("피부 팽진도 감소"), not wheals
+    "팽진도",
 ]
 
 # ambiguous in free text; not taken from the merged tables ("병변 등 통증" = "lesions etc.", "방사통" also in the wrist)
