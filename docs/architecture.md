@@ -278,3 +278,22 @@ Two pure functions for the policy (the lead wires them in; no state kept between
   unverified), `contradicted` (≥ 2 distinct "against" items that are grounded findings, not "결과 없음/확인 필요").
   `prompt_ko` is a devil's-advocate request (two alternatives that explain the findings + the result that would refute
   the current top, then pick that action). The caller must show it at most once per case.
+
+## Unstable-patient triage (`safety/triage.py`, 2026-09-28; not wired yet)
+- `assess(state) -> dict`: `level` = `unstable` (any critical signal) / `concerning` (any warning) / `stable` (no
+  warning and core vitals known or requested) / **`unknown`** (no warning yet but vitals missing — missing vitals are
+  never "stable"; treat as "measure vitals first"). Also `signals` [{key, ko, severity critical|warning|unknown,
+  where, cite}], `why_ko`, `citation`, `news2`, `shock_index`, `map`, `qsofa`, `gcs`, `vitals`, `missing`,
+  `unavailable`, `pediatric`, `flags` (ams, chest_pain, sepsis_suspected, bleeding, anaphylaxis, airway, ...).
+- Reads the initial info + every environment response (not the doctor's questions); vitals are the nlp layer's
+  measured values with the patient's age (Fleming 2011 centiles for children), worst value per vital.
+- Thresholds: NEWS2 bands/triggers (adults), qSOFA, shock index (≥1.0 warning, ≥1.4 with SBP ≤100 critical), SIPA and
+  PALS hypotension (children), MAP <65, SpO2 <90, RR ≥30/≤8, GCS ≤8/AVPU P-U, NIAID/FAAN anaphylaxis, airway
+  swelling/stridor, bleeding + instability, chest pain + instability, reproductive-age abdominal pain + SI ≥1.
+  Sources and verification levels are in the module docstring.
+- `priority_actions(state, level_or_assessment)` → [(ActionType, content_ko, reason_ko)] in ABCDE order, skipping
+  actions already done or results already in the text: airway exam, vitals / SpO2, breathing exam, ABGA, ECG,
+  lactate + blood cultures, CBC, β-hCG, bedside ultrasound, glucose, GCS/neuro exam, skin exam. `stable` → [].
+- `render_for_prompt(state, assessment=None, actions=None, max_chars=250)` → one Korean line, "" when stable.
+- Physiologically stable emergencies (STEMI, dissection, SAH with normal vitals) stay `stable` here by design; the
+  can't-miss gate (`danger_gate.py`) and protocols cover them.
