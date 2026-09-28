@@ -32,6 +32,7 @@ Everything below was measured offline (rules, KB, case files). None of it has an
 | Cases | Full augmentation of all sets → `data/cases_aug` (267); rule-based quality gate `scripts/check_cases.py` | hard issues **48 → 0** (45 placeholder search terms, 2 sex/age-inconsistent tests, 1 vital conflict); 15 cases / 57 edits; 2,278 soft issues left as a review list (`data/labels/case_quality_2026-09-27.json`) |
 | KB | Matching/ranking/normalisation rework (09-26), then curated test-result → disease links `kb_tests.py` (262 concepts, 452 links, 95 PMID-verified refs) | see below |
 | Eval | One-command experiment runner (profiles smoke/dev/full, cost guard, token metering, compare, log, share page) | `tests/test_experiment.py` |
+| Result interpreter (09-28, not wired) | `agent/result_interpreter.py`: code-first reading of EXAM/TEST result text (negation, hedges, comparison, sections, organ-aware report words, critical values, supportive kb_tests links); new prompt `RESULT_INTERPRETER_PROMPT` added to `prompts.py` but **not called** (PROMPT_VERSION unchanged) | gold (concept+polarity): fresh set P/R 0.879/0.879 before the fixes it prompted, dev + fresh 1.00 after (same author, optimistic); `tests/test_result_interpreter.py` |
 
 KB offline benchmark (`scripts/eval_kb.py`, gold diagnosis rank in `candidates(k=50)` from the case text; dev = sample +
 clinicalqa 111, held-out = agentclinic + diagnosisarena 156; `data/labels/kb_eval_2026-09-27.json`):

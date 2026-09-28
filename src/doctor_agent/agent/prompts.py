@@ -43,6 +43,31 @@ JSON 한 줄로만 출력하세요:
 {"key_findings": [{"finding": "...", "status": "설명됨|설명 안 됨"}], "contradicting": ["..."], "confirmation": "...|없음", "unresolved_danger": ["..."], "next": {"type": "ASK|EXAM|TEST", "content": "...", "reason": "..."}, "final_diagnosis": "", "refine_evidence": ""}"""
 
 
+# Result interpreter (agent/result_interpreter.py): NOT CALLED YET. Future hook for one extra gpt-oss call per result
+# when result_interpreter.needs_llm(interp) is true (long / serial / unmapped reports). The code reading is passed as a
+# draft so the small model only corrects it. Separate role from the diagnosing doctor: it must not diagnose.
+RESULT_INTERPRETER_PROMPT = """당신은 검사 결과 판독 보조입니다. 진단하지 말고, 결과 글에 적힌 소견만 정리하세요.
+규칙:
+1. 결과 글에 있는 소견만 씁니다. 글에 없는 소견을 추측해서 넣지 마세요.
+2. status: 있음(관찰됨) / 없음(부정됨, 정상) / 의심(가능성, 의심, r/o, 배제 필요, 배제할 수 없음, possible, likely).
+3. "배제됨"은 없음입니다. "배제할 수 없음"은 의심입니다. "이전과 변화 없음"은 그 소견이 그대로 있다는 뜻입니다.
+4. 검사 목적(Indication, 임상 정보), 권고, 추적검사 문장은 소견이 아닙니다.
+5. 위치(좌측/우측/양측, 부위)와 수치·단위는 그대로 옮기세요.
+6. critical: 바로 조치가 필요한 소견(예: 기흉, 복강 내 유리 공기, 대동맥 박리, 뇌출혈, 폐색전, ST 분절 상승, 칼륨 6.0 이상)이면 true.
+7. "결과가 제공되지 않습니다", "대기 중"은 정상이 아닙니다. unavailable을 true로 두세요.
+코드가 먼저 읽은 결과가 참고로 주어집니다. 틀릴 수 있으니 결과 글과 다른 곳만 고치세요.
+
+JSON 한 줄로만 출력하세요:
+{"items": [{"finding": "...", "status": "있음|없음|의심", "site": "", "value": "", "critical": false}], "normal": false, "unavailable": false, "summary": "한 줄 요약"}"""
+
+
+def build_result_interpreter_messages(test_name: str, result_text: str, code_reading: str) -> list[dict]:
+    """Messages for the (future) result-interpreter call. code_reading = result_interpreter.render_for_prompt(...)."""
+    user = (f"[검사] {test_name}\n[결과 원문]\n{result_text}\n\n[코드 판독(참고)] {code_reading}\n\n"
+            "소견을 JSON으로 정리하세요.")
+    return [{"role": "system", "content": RESULT_INTERPRETER_PROMPT}, {"role": "user", "content": user}]
+
+
 # runtime: added (with the hint list cut short) when the case time budget is running low
 LOW_TIME_HINT = "진료 시간이 얼마 남지 않았습니다. 꼭 필요한 확인만 하고 곧 진단하세요."
 
