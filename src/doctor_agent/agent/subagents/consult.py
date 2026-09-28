@@ -31,18 +31,23 @@ from doctor_agent.agent.parser import _THOUGHT_RE, _json_objects
 from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult
 from doctor_agent.agent.text import same_dx, similarity
 from doctor_agent.knowledge.clinical_rules import Citation, contains_affirmed, rules_for
-from doctor_agent.knowledge.diagnostic_criteria import criteria_for
+from doctor_agent.knowledge.diagnostic_criteria import C_AKI, criteria_for
 from doctor_agent.llm.harmony import split_harmony
 from doctor_agent.nlp.findings import _PEDS_HR, _PEDS_RR, _peds_row
 from doctor_agent.safety import protocols as _protocols
+from doctor_agent.safety.danger_gate import C_SCROTAL
 from doctor_agent.safety.preconditions import P_ACOG_723, P_RCOG_APH
 from doctor_agent.safety.protocols import (
     G_AMI,
     G_CHEST_PAIN,
     G_ECTOPIC,
     G_EARLY_PREGNANCY,
+    G_GLOMERULAR,
     G_GOUT_DX,
     G_HOT_JOINT,
+    G_MECFS,
+    G_NECK_MASS,
+    G_NEUTROPENIA,
     G_PE,
     G_SEPSIS,
     protocols_for,
@@ -71,7 +76,32 @@ C_FEBRILE_INFANT_AAP = Citation(
     "Pediatrics", 2021, "148(2):e2021052228", doi="10.1542/peds.2021-052228", pmid="34281996", verified=True,
     short_author="AAP 발열 영아 지침",
 )
-NEW_CITATIONS: tuple[Citation, ...] = (C_HINTS, C_PREECLAMPSIA, C_FEBRILE_INFANT_AAP)
+C_TLS = Citation(
+    "Cairo MS, Bishop M.",
+    "Tumour lysis syndrome: new therapeutic strategies and classification",
+    "Br J Haematol", 2004, "127(1):3-11", doi="10.1111/j.1365-2141.2004.05094.x", pmid="15384972", verified=True,
+)
+C_MYELOMA_IMWG = Citation(
+    "Rajkumar SV, Dimopoulos MA, Palumbo A, et al.",
+    "International Myeloma Working Group updated criteria for the diagnosis of multiple myeloma",
+    "Lancet Oncol", 2014, "15(12):e538-e548", doi="10.1016/S1470-2045(14)70442-5", pmid="25439696", verified=True,
+    short_author="IMWG",
+)
+C_HIT_ASH = Citation(
+    "Cuker A, Arepally GM, Chong BH, et al.",
+    "American Society of Hematology 2018 guidelines for management of venous thromboembolism: heparin-induced "
+    "thrombocytopenia",
+    "Blood Adv", 2018, "2(22):3360-3392", doi="10.1182/bloodadvances.2018024489", pmid="30482768", verified=True,
+    short_author="ASH HIT 지침",
+)
+C_TTP_ISTH = Citation(
+    "Zheng XL, Vesely SK, Cataland SR, et al.",
+    "ISTH guidelines for the diagnosis of thrombotic thrombocytopenic purpura",
+    "J Thromb Haemost", 2020, "18(10):2486-2495", doi="10.1111/jth.15006", pmid="32914582", verified=True,
+    short_author="ISTH TTP 지침",
+)
+NEW_CITATIONS: tuple[Citation, ...] = (C_HINTS, C_PREECLAMPSIA, C_FEBRILE_INFANT_AAP, C_TLS, C_MYELOMA_IMWG,
+                                       C_HIT_ASH, C_TTP_ISTH)
 
 # --------------------------------------------------------------------------------------------
 # Specialty content
@@ -187,7 +217,7 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         pitfalls=("진찰 소견보다 심한 통증은 장간막 허혈 의심", "고령·스테로이드 복용자는 복막 자극 징후가 약함",
                   "가임기 여성 임신 검사 누락", "위염으로 결론 전 심전도(하벽 심근경색)"),
         rule_ids=("alvarado", "bisap", "gbs", "pas"),
-        criteria_ids=("dka_hhs_2024", "kdigo_aki_2012"),
+        criteria_ids=("dka_hhs_2024",),
         protocol_categories=("abdominal_pain", "jaundice", "bilious_vomiting"),
         rule_out_names=("장 천공", "장간막 허혈", "복부 대동맥류 파열", "자궁외 임신", "당뇨병성 케톤산증"),
         branch_notes={
@@ -246,7 +276,7 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         pitfalls=("발작 중 요산 정상이어도 통풍 배제 불가", "통풍·가성통풍이 있어도 화농성 동반 가능: 천자",
                   "ANA 양성만으로 루푸스 진단 금지(분류 기준)", "열감 단일 관절에 스테로이드 전 감염 배제"),
         rule_ids=(),
-        criteria_ids=("sle_2019", "ra_2010", "gout_2015", "gca_2022", "takayasu_2022", "jones_2015", "kdigo_aki_2012"),
+        criteria_ids=("sle_2019", "ra_2010", "gout_2015", "gca_2022", "takayasu_2022", "jones_2015"),
         protocol_categories=("joint", "rash", "allergy", "urticaria_chronic", "edema", "bleeding", "pruritus",
                              "chronic_weakness"),
         rule_out_names=("아나필락시스", "상기도 부종(혈관부종)"),
@@ -299,6 +329,72 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
              "gadolinium): P_ACOG_723. Pediatric vitals: Fleming 2011 centiles + PALS hypotension (triage.py). "
              "Teratogenic drug examples, intussusception, ovarian torsion, abuse, ultrasound-first in children: "
              "reviewer knowledge.",
+    ),
+    SpecialtySpec(
+        id="heme_onc", name_ko="혈액·종양",
+        role_ko="빈혈·혈구 감소·출혈·림프절 비대·체중 감소·피로를 혈액 질환과 암(합병증 포함) 관점에서 봅니다. 혈구 수치와 말초혈액 도말부터 봅니다.",
+        must_not_miss=("호중구감소성 발열", "급성 백혈병", "TTP/HUS", "DIC", "헤파린 유발 혈소판 감소증", "종양 용해 증후군",
+                       "악성 척수 압박", "상대정맥 증후군", "악성 고칼슘혈증", "급성 용혈", "재생불량성 빈혈"),
+        key_asks=("체중 감소·야간 발한·발열", "잇몸·코 출혈, 멍", "항암 치료와 마지막 날짜", "헤파린 5~10일 뒤 혈소판 감소",
+                  "요통·뼈 통증+다리 힘 빠짐", "새 약·감염 후 진한 소변", "얼굴·팔 부기, 누우면 숨참"),
+        key_exams=("림프절 위치·크기·단단함·고정", "간비종대", "점상출혈·자반", "창백·황달", "척추 압통·하지 근력·감각",
+                   "목·가슴 정맥 확장"),
+        key_tests=("CBC+백혈구 감별", "말초혈액 도말(모세포·분열적혈구)", "망상적혈구", "LDH·간접 빌리루빈·합토글로빈·직접 Coombs",
+                   "PT/aPTT·피브리노겐·D-dimer", "ADAMTS13", "칼슘·요산·칼륨·인·크레아티닌", "SPEP·혈청 유리 경쇄",
+                   "유세포 분석·골수/림프절 생검"),
+        pitfalls=("항암 후 발열은 호중구 수 확인 전 안심 금지", "혈소판 감소+용혈은 도말로 TTP부터",
+                  "단단하고 고정된 림프절·B 증상은 경과 관찰 말고 생검", "빈혈+신기능 저하+고칼슘+뼈 통증 = 골수종",
+                  "암 환자 요통을 근골격계로 단정"),
+        rule_ids=(),
+        criteria_ids=(),
+        protocol_categories=("fatigue", "neck_mass", "bleeding", "jaundice", "pruritus", "fever", "back_pain"),
+        rule_out_names=("호중구감소성 발열", "마미 증후군"),
+        branch_notes={
+            "peds": ("소아 창백·멍·뼈 통증·간비종대 = 급성 백혈병(CBC·도말)", "설사 후 혈소판 감소+용혈+신손상 = HUS"),
+            "pregnant": ("임신 중 혈소판 감소: 임신성 vs HELLP·전자간증·TTP(혈압·간효소·도말)",),
+        },
+        citations=(G_NEUTROPENIA, G_NECK_MASS, G_MECFS, C_TLS, C_MYELOMA_IMWG, C_HIT_ASH, C_TTP_ISTH),
+        verification="unverified",
+        note="Neutropenic fever: G_NEUTROPENIA (protocols.py, danger_gate). Neck mass work-up / biopsy of a suspicious "
+             "persistent node: G_NECK_MASS (AAO-HNS 2017). Fatigue CBC/TSH: G_MECFS (as protocols.py 'fatigue'). TLS "
+             "electrolytes (urate, K, phosphate, Ca, creatinine): C_TLS (abstract). Myeloma CRAB features + SPEP/FLC: "
+             "C_MYELOMA_IMWG (abstract names CRAB; FLC from reviewer knowledge). HIT timing and 4Ts pretest probability: "
+             "C_HIT_ASH (abstract). ADAMTS13 testing for TTP: C_TTP_ISTH (abstract). Malignant cord compression, SVC "
+             "syndrome, hypercalcaemia of malignancy, pediatric leukaemia/HUS and pregnancy thrombocytopenia notes: "
+             "reviewer knowledge. Owns protocol categories 'fatigue' (can't-miss led by haematological malignancy and "
+             "anaemia, CBC first) and 'neck_mass' (lymphoma / metastatic node).",
+    ),
+    SpecialtySpec(
+        id="renal_uro", name_ko="신장·비뇨",
+        role_ko="소변량·크레아티닌 변화, 혈뇨·단백뇨, 옆구리·음낭 통증, 배뇨 장애를 콩팥과 요로 관점에서 봅니다. 급성 신손상은 신전성·신성·신후성으로 나눕니다.",
+        must_not_miss=("고칼륨혈증", "요로 폐쇄 동반 감염·요로성 패혈증", "급속 진행성 사구체신염·폐-신장 증후군",
+                       "횡문근융해증", "급성 요폐·양측 요로 폐쇄", "고환 염전", "복부 대동맥류(신산통 오인)"),
+        key_asks=("소변량·마지막 소변", "구토·설사·섭취 감소", "NSAID·ACE 억제제/ARB·이뇨제·조영제", "혈뇨·거품뇨·부종",
+                  "옆구리 통증+발열·오한", "배뇨 곤란·잔뇨감", "근육통·장시간 부동·과격한 운동", "갑작스러운 음낭 통증"),
+        key_exams=("혈압·기립성 변화·체액 상태", "늑척추각 압통", "방광 팽만", "고환 위치·거고근 반사", "전립선 압통",
+                   "부종·자반"),
+        key_tests=("크레아티닌(기저치 비교)·BUN", "칼륨·심전도", "소변 현미경(적혈구 원주·백혈구)", "소변 단백/크레아티닌 비",
+                   "CK", "신장·방광 초음파(수신증)·잔뇨량", "소변·혈액 배양", "ANCA·항GBM·보체", "음낭 도플러"),
+        pitfalls=("크레아티닌은 늦게 오르니 소변량도 봄", "심전도 정상으로 고칼륨 위험 배제 금지",
+                  "발열+폐쇄 결석은 응급 배액", "소변 잠혈 양성인데 적혈구 없음 = 근색소뇨",
+                  "고환 염전 의심 시 영상으로 수술 지연 금지", "고령 첫 신산통은 대동맥류 배제"),
+        rule_ids=("qsofa",),
+        criteria_ids=("kdigo_aki_2012", "sepsis3_2016"),
+        protocol_categories=("edema", "abdominal_pain", "back_pain"),
+        rule_out_names=("패혈증", "고환 염전", "복부 대동맥류 파열"),
+        branch_notes={
+            "peds": ("영아·소아 요로 감염은 발열만 보일 수 있음: 소변검사·배양", "청소년 급성 음낭 통증은 고환 염전부터"),
+            "pregnant": ("임신 중 신우신염 흔함. 우측 생리적 수신증을 폐쇄로 오인 주의",),
+        },
+        citations=(C_AKI, G_GLOMERULAR, C_SCROTAL, G_SEPSIS),
+        verification="unverified",
+        note="AKI definition/staging by creatinine rise and urine output: C_AKI (criteria kdigo_aki_2012, owned here "
+             "since 2026-09-28; moved from gi_liver / rheum_immune). Glomerular disease work-up (urine sediment, "
+             "protein/creatinine ratio, ANCA/anti-GBM/complement): G_GLOMERULAR. Scrotal Doppler US as initial "
+             "imaging for acute scrotal pain: C_SCROTAL (danger_gate); torsion is shared with peds_obgyn (peak in "
+             "adolescents; peds_obgyn keeps it). Urosepsis: G_SEPSIS. Imaging must not delay exploration, "
+             "hyperkalaemia with a normal ECG, obstructed infected kidney, myoglobinuria dipstick pattern, AAA "
+             "mimicking renal colic, pregnancy hydronephrosis and pediatric UTI notes: reviewer knowledge.",
     ),
 )}
 

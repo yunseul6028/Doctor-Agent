@@ -557,6 +557,20 @@ Never raises.
 832–1,090 tokens at turn 0 and ≤ 2,759 in the worst case (60 turns, 80 findings, 8 DDx, full resources; user message
 ≤ 6,500 chars by test); advocate 584 / 2,361.
 
+**Added specialties (2026-09-28): `heme_onc` 혈액·종양, `renal_uro` 신장·비뇨** (same `SpecialtySpec` pattern; 8 ids
+in `SPECIALTY_IDS`; `knowledge/specialty.py` routing for them is added separately).
+- `heme_onc`: neutropenic fever, acute leukaemia, TTP/HUS, DIC, HIT, TLS, malignant cord compression, SVC syndrome,
+  hypercalcaemia of malignancy, haemolysis, aplastic anaemia; smear / reticulocytes / haemolysis panel / ADAMTS13 /
+  SPEP·FLC / flow cytometry·biopsy. Owns protocol categories `fatigue` and `neck_mass` (previously unowned; now every
+  category has an owner, checked by test) plus `bleeding`, `jaundice`, `pruritus`, `fever`, `back_pain` (shared).
+  New citations: Cairo-Bishop 2004 (TLS), IMWG 2014 (myeloma), ASH 2018 (HIT), ISTH 2020 (TTP).
+- `renal_uro`: AKI (pre/intra/post-renal), hyperkalaemia, obstructed infection / urosepsis, RPGN / pulmonary-renal,
+  rhabdomyolysis, retention, testicular torsion (shared with `peds_obgyn`, which keeps it), AAA mimicking colic.
+  `kdigo_aki_2012` is now owned only here (removed from `gi_liver` and `rheum_immune`, where it was parked). Reuses
+  C_AKI, G_GLOMERULAR, C_SCROTAL, G_SEPSIS; `qsofa` rule; protocols `edema`, `abdominal_pain`, `back_pain`.
+- Sizes: specialty block 467–517 tokens (render ≤ 675 chars); full consult turn 0 950–1,104 tokens, worst case ≤ 2,929
+  (same measurement for the six existing specialties now reads 2,769–2,915).
+
 ## Specialty routing (`knowledge/specialty.py`, 2026-09-28; not wired yet)
 
 Routing and evidence slicing for runtime specialist consults (code only, stdlib, CPU, no network; the consult prompt
