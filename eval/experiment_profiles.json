@@ -67,6 +67,12 @@
         "AGENT_USE_PLANNER": "0",
         "AGENT_USE_TRIAGE": "0"
       }
+    },
+    "v6-no-interp": {
+      "description": "current checkout, code-first result interpreter off (no result-reading hint, no critical-result alert, no code findings in the ledger). Not in the dev profile (cost); run it explicitly when needed.",
+      "env": {
+        "AGENT_USE_RESULT_INTERPRETER": "0"
+      }
     }
   }
 }

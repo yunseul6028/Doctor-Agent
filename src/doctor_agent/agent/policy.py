@@ -1,7 +1,8 @@
 import logging
 import re
 
-from doctor_agent.agent import anchoring, confidence, grounding, kb_hints, prompts, question_planner
+from doctor_agent.agent import anchoring, confidence, grounding, kb_hints, prompts, question_planner, result_interpreter
+from doctor_agent.agent.ledger import CODE_SOURCE, Finding
 from doctor_agent.agent.parser import _json_objects, extract_action_json, parse_action
 from doctor_agent.agent.state import CaseState
 from doctor_agent.config import AgentConfig
@@ -42,8 +43,13 @@ class Policy:
         self.degraded = False  # set by the loop when the case time budget runs low (runtime.CaseBudget)
         self._conf_params = None  # confidence parameters, loaded on first use (per case)
         self._planner_logged = ""  # last planner suggestions written to the safety log
+        self._interp_done = 0  # turns already given to the result interpreter
 
     def next_action(self, state: CaseState) -> Action:
+        try:
+            self._interpret_results(state)
+        except Exception as e:  # noqa: BLE001 — each result is guarded; this only catches a bug in the bookkeeping
+            self._advisor_error(state, "result_interp", e)
         remaining = self.cfg.max_turns - state.turn_count
         if remaining <= 1:
             return self._final_diagnosis(state)
@@ -208,13 +214,17 @@ class Policy:
             return None
 
     def _advisors(self, state: CaseState) -> tuple[str, list[str]]:
-        """(top-of-prompt alert, extra hints) from triage, the anchoring check, the starting DDx and the question
-        planner. Within cfg.max_advisor_chars in total, filled in that priority order; a hint that does not fit is
-        dropped (not cut) and is neither logged nor counted as shown."""
+        """(top-of-prompt alert, extra hints) from triage (+ new critical results in the alert), the reading of the
+        latest result, the anchoring check, the starting DDx and the question planner. Within cfg.max_advisor_chars in
+        total, filled in that priority order; a hint that does not fit is dropped (not cut) and is neither logged nor
+        counted as shown."""
         alert, triage_hint = self._triage(state)
-        if self.degraded:  # low-time mode: only the triage alert survives (the other hints would be cut anyway)
+        if critical := self._critical_alert(state):  # triage text first, then the critical results (same slot)
+            alert = f"{alert} / {critical}" if alert else critical
+        if self.degraded:  # low-time mode: only the alert survives (the other hints would be cut anyway)
             return alert, []
-        items = [(triage_hint, None), self._anchoring(state), self._initial_ddx(state), self._planner(state)]
+        items = [(triage_hint, None), self._result_hint(state), self._anchoring(state), self._initial_ddx(state),
+                 self._planner(state)]
         budget = max(0, self.cfg.max_advisor_chars - len(alert))
         out = []
         for text, entry in items:
@@ -295,6 +305,92 @@ class Policy:
         except Exception as e:  # noqa: BLE001
             self._advisor_error(state, "planner", e)
             return "", None
+
+    # ---- result interpreter (code-first reading of EXAM/TEST results; guarded, switchable) ----
+    def _interpret_results(self, state: CaseState) -> None:
+        """Read every EXAM/TEST response not read yet: store the reading on the Turn, merge its findings into the
+        findings ledger (as code-verified findings), keep critical items for the alert and the can't-miss gate, count
+        the results that would need an LLM reading (not called). Each turn is read once, even when it fails."""
+        if not self.cfg.use_result_interpreter:
+            return
+        stats = state.interp_stats
+        for k in ("n", "needs_llm", "critical", "unavailable", "errors"):
+            stats.setdefault(k, 0)
+        stats.setdefault("llm_reasons", {})
+        while self._interp_done < len(state.turns):
+            idx = self._interp_done
+            self._interp_done += 1
+            t = state.turns[idx]
+            if t.action.type not in (ActionType.EXAM, ActionType.TEST) or not (t.response or "").strip() \
+                    or t.response.startswith("(환경 응답 오류)"):
+                continue
+            try:
+                self._interpret_turn(state, idx + 1, t)
+            except Exception as e:  # noqa: BLE001
+                stats["errors"] += 1
+                self._advisor_error(state, "result_interp", e)
+
+    def _interpret_turn(self, state: CaseState, turn: int, t) -> None:
+        stats = state.interp_stats
+        interp = result_interpreter.interpret(t.action.content, t.response, {"initial_info": state.initial_info})
+        line = result_interpreter.render_for_prompt(
+            interp, max(60, self.cfg.result_hint_chars - len(prompts.RESULT_HINT.format(line=""))))
+        reasons = result_interpreter.llm_reasons(interp)
+        t.interp = {**interp.as_dict(), "prompt": line, "needs_llm": bool(reasons), "pending": interp.pending}
+        stats["n"] += 1
+        stats["unavailable"] += int(interp.unavailable)
+        if any(r == "error" for r in reasons):
+            stats["errors"] += 1
+        if reasons:  # the optional extra gpt-oss reading (prompts.RESULT_INTERPRETER_PROMPT) is NOT called: count only
+            stats["needs_llm"] += 1
+            for r in reasons:
+                stats["llm_reasons"][r] = stats["llm_reasons"].get(r, 0) + 1
+        for f in _interp_findings(interp, turn):
+            state.findings.add(f)
+        crit = []
+        for i in interp.critical():
+            if i.polarity == "absent":
+                continue
+            crit.append({"turn": turn, "test": interp.test_name, "concept": i.concept, "label": i.label,
+                         "polarity": i.polarity, "kind": i.kind, "laterality": i.laterality,
+                         "summary": i.summary_ko.lstrip("⚠")})
+        state.result_criticals.extend(crit)
+        stats["critical"] += len(crit)
+        state.safety_log.append({
+            "turn": turn, "layer": "result_interp", "kind": "reading", "test": interp.test_name,
+            "test_kind": interp.kind, "critical": [c["summary"] for c in crit], "needs_llm": bool(reasons),
+            "llm_reasons": reasons,
+            "msg": line + (f" · LLM 판독 필요({', '.join(reasons)}; 호출 안 함)" if reasons else "")})
+
+    def _result_hint(self, state: CaseState) -> tuple[str, dict | None]:
+        """Code reading of the latest action's result (EXAM/TEST), on the prompt right after it."""
+        if not self.cfg.use_result_interpreter or not state.turns:
+            return "", None
+        interp = state.turns[-1].interp
+        line = (interp or {}).get("prompt")
+        return (prompts.result_hint(line), None) if line else ("", None)
+
+    def _critical_alert(self, state: CaseState) -> str:
+        """Critical results not shown yet → one alert line (each critical finding is shown once per case)."""
+        if not self.cfg.use_result_interpreter:
+            return ""
+        try:
+            new = []
+            for c in state.result_criticals:
+                key = (c.get("concept"), c.get("laterality"), c.get("polarity"))
+                if key in state.critical_alerted:
+                    continue
+                state.critical_alerted.add(key)
+                new.append(f"{c.get('summary') or c.get('label')} [{c.get('test', '')[:20]}]")
+            if not new:
+                return ""
+            text = prompts.result_critical_alert(new)
+            state.safety_log.append({"turn": state.turn_count + 1, "layer": "result_interp", "kind": "critical_alert",
+                                     "items": new, "msg": "위급 결과 알림: " + ", ".join(new)})
+            return text
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "result_interp", e)
+            return ""
 
     def _review(self, state: CaseState, action: Action) -> Action:
         """Pre-diagnosis review by the same LLM in a reviewer role. The reviewer only fills structured fields
@@ -377,6 +473,53 @@ class Policy:
             return parsed[0]
         top = state.ddx[0].get("dx") if state.ddx and isinstance(state.ddx[0], dict) else None
         return Action(ActionType.DIAGNOSE, top or "진단 불가")
+
+
+# --- result interpreter → findings ledger -----------------------------------------------------------------------
+MAX_LEDGER_ITEMS_PER_RESULT = 6
+_NORMAL_CONCEPTS = ("IMG:normal_study", "ECG:normal_ecg")
+_POL_STATUS = {"present": "양성", "uncertain": "양성", "absent": "음성"}
+_LAT_KO = {"right": "우측", "left": "좌측", "bilateral": "양측"}
+
+
+def _interp_findings(interp, turn: int) -> list[Finding]:
+    """Ledger findings (source=CODE_SOURCE, verified) from one reading: present → 양성, uncertain → 양성 "의심",
+    absent → 음성 (a normal measurement once, as its span "정상"), whole-normal study → the test 음성 "특이 소견 없음",
+    "not provided" / pending-only → the test 결과없음 (never 음성). Unmapped wording (concept "") stays prompt-only.
+    Abnormal items first, at most MAX_LEDGER_ITEMS_PER_RESULT."""
+    name = (interp.test_name or "검사").strip()[:40]
+
+    def f(item: str, status: str, detail: str = "", span: str = "") -> Finding:
+        return Finding(item, status, detail, turn, verified=True, span=span[:120], source=CODE_SOURCE)
+
+    if interp.unavailable:
+        return [f(name, "결과없음", "결과 제공 안 됨")]
+    out: list[Finding] = []
+    abnormal = sorted((i for i in interp.items if i.concept and i.polarity != "absent" and i.concept not in _NORMAL_CONCEPTS),
+                      key=lambda i: (not i.critical, i.polarity != "present"))
+    for i in abnormal:
+        detail = [x for x in (_LAT_KO.get(i.laterality, ""), i.site if i.kind in ("imaging", "ecg") else "") if x]
+        if i.value is not None:
+            detail.append(f"{i.value:g}{i.unit}")
+        if i.polarity == "uncertain":
+            detail.append("의심")
+        if i.critical:
+            detail.append("위급")
+        detail.append(name)
+        out.append(f(i.label, _POL_STATUS[i.polarity], ", ".join(detail), i.span))
+    if interp.normal and any(i.concept in _NORMAL_CONCEPTS for i in interp.items):
+        out.append(f(name, "음성", "특이 소견 없음", "정상"))
+    seen: set[str] = set()
+    for i in interp.items:
+        if i.polarity != "absent" or not i.concept:
+            continue
+        item, detail = (i.span, "정상") if i.value is not None and i.span else (i.label, name)
+        if item not in seen:
+            seen.add(item)
+            out.append(f(item, "음성", detail, i.span))
+    if interp.pending and not out:
+        out.append(f(name, "결과없음", "결과 대기 중"))
+    return out[:MAX_LEDGER_ITEMS_PER_RESULT]
 
 
 # --- pre-diagnosis review helpers -------------------------------------------------------------------------------

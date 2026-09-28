@@ -28,6 +28,10 @@ def test_committed_profiles_resolve():
     assert dev["conditions"][1]["env"] == {"AGENT_USE_KB": "0"}
     assert dev["conditions"][3]["env"] == {"AGENT_USE_CONFIDENCE": "0", "AGENT_USE_ANCHORING": "0",
                                            "AGENT_USE_PLANNER": "0", "AGENT_USE_TRIAGE": "0"}
+    # the result-interpreter ablation exists but is not part of dev (cost); it can be named explicitly
+    assert "v6-no-interp" not in [c["name"] for c in dev["conditions"]]
+    no_interp = ex.resolve_profile(cfg, "smoke", ["v6-no-interp"])["conditions"][0]
+    assert no_interp["env"] == {"AGENT_USE_RESULT_INTERPRETER": "0"} and no_interp["commit"] is None
     # smoke is a subset of dev and covers every set
     dev_paths = {p.resolve() for _, p in dev["cases"]}
     assert all(p.resolve() in dev_paths for _, p in smoke["cases"])

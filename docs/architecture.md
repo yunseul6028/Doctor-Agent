@@ -59,6 +59,10 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 
 ## Policy decision order (`Policy.next_action`)
 
+0. **Read new results** (`AGENT_USE_RESULT_INTERPRETER`) — every EXAM/TEST response not read yet goes through
+   `result_interpreter.interpret` (see "Result interpreter wired into the policy"): reading on the `Turn`, code
+   findings into the findings ledger, critical items kept for the alert and the gate.
+
 Remaining turns ≤ 1 → final-diagnosis prompt. Otherwise the hints are built once, then up to 4 attempts
 (`MAX_ATTEMPTS`); each retry adds one corrective hint:
 
@@ -97,11 +101,12 @@ All attempts used → final-diagnosis prompt.
 4. At most 2 applicable clinical rules (`clinical_rules.rules_for(initial)` → `render_for_prompt`).
 5. Target-turn notice once `turn_count ≥ target_turns` (20).
 6. KB hints (`kb_hints.step_hints`, only when `AGENT_USE_KB` ≠ 0): candidate hint and discriminator hint.
-7. Advisor hints (`Policy._advisors`, see "Advisors wired into the policy"): triage (concerning), anchoring check,
-   turn-1 starting DDx, question planner — together ≤ `max_advisor_chars`. The triage alert for an unstable patient is
-   placed above the case view instead (`build_step_messages(alert=...)`).
+7. Advisor hints (`Policy._advisors`, see "Advisors wired into the policy"): triage (concerning), code reading of the
+   latest result (`prompts.RESULT_HINT`), anchoring check, turn-1 starting DDx, question planner — together ≤
+   `max_advisor_chars`. The triage alert for an unstable patient and new critical results are placed above the case
+   view instead (`build_step_messages(alert=...)`, triage text first, then `prompts.RESULT_CRITICAL_ALERT`).
 
-In low-time mode only the first 2 hints are kept, plus `prompts.LOW_TIME_HINT` (and the triage alert, if any). All hints are labelled as reference,
+In low-time mode only the first 2 hints are kept, plus `prompts.LOW_TIME_HINT` (and the alert, if any). All hints are labelled as reference,
 not evidence. Categories are detected from the **initial information only**; conditional checks may also use what was
 learned later (triggers, predicates).
 
@@ -263,7 +268,7 @@ advisor were off), switchable, and logged to `result["safety_log"]` with a Korea
 | Confidence (`confidence.assess`) | `AGENT_USE_CONFIDENCE` | DIAGNOSE proposal after the protocol pushback and the can't-miss gate | score < `AGENT_CONFIDENCE_PUSHBACK_BELOW` (0.3) and not `must_continue` → one retry hint (`prompts.confidence_pushback`) per case (`state.confidence_pushback`); only with > 3 turns left, not in low-time mode, and ≥ 2 attempts of `MAX_ATTEMPTS` left | `confidence`, every assessment (score, components, recommendation, pushback) |
 
 Prompt budget: the advisor hints of one step prompt (plus the triage alert) are ≤ `AGENT_MAX_ADVISOR_CHARS` (900),
-filled in priority order triage > anchoring check > starting DDx > planner; a hint that does not fit is dropped whole
+filled in priority order triage > result reading (since `v8-result-interp`) > anchoring check > starting DDx > planner; a hint that does not fit is dropped whole
 (and not logged / not counted as shown). In low-time mode only the triage alert is kept. Ablation: experiment condition
 `v6-no-advisors` (all four switches off).
 
@@ -327,7 +332,7 @@ Two pure functions for the policy (the lead wires them in; no state kept between
 - Physiologically stable emergencies (STEMI, dissection, SAH with normal vitals) stay `stable` here by design; the
   can't-miss gate (`danger_gate.py`) and protocols cover them.
 
-## Result interpreter (`agent/result_interpreter.py`, 2026-09-28; not wired yet)
+## Result interpreter (`agent/result_interpreter.py`, 2026-09-28; wired, see "Result interpreter wired into the policy")
 A code-first reader for one EXAM/TEST result text, separate from the diagnosing agent (it never diagnoses). Pure code:
 stdlib, CPU, deterministic, never raises, no LLM or network call, nothing kept between calls or cases (~0.6 ms per
 text on the 1,420 exam/test texts in `data/cases_*`).
@@ -374,17 +379,39 @@ text on the 1,420 exam/test texts in `data/cases_*`).
 - Future LLM hook: `prompts.RESULT_INTERPRETER_PROMPT` + `build_result_interpreter_messages(test_name, text,
   code_reading)` (JSON items/normal/unavailable/summary). Not called anywhere.
 
-### Wiring plan (for the policy owner)
-1. After `env.step` returns a response to an EXAM/TEST action: `interp = interpret(action.content, response,
-   {"initial_info": state.initial_info})`; store `interp.as_dict()` on the `Turn` (result log / viewer).
-2. Next step prompt: add `render_for_prompt(interp)` as the first hint for that turn (≤300 chars) instead of relying on
-   the model re-reading the raw text; `unavailable` / `pending` lines keep "결과 없음 ≠ 정상" explicit.
-3. Findings ledger: add items as verified findings (present → 양성, absent → 음성, uncertain → 양성 with detail
-   "의심"; `unavailable` → 결과없음) so grounding / confidence / danger gate read the same facts. Items with concept ""
-   stay prompt-only.
-4. Safety: any `critical` item → one-time hint "⚠ 즉시 조치가 필요한 결과: …" and let `danger_gate` treat a critical
-   IMG/ECG concept as a confirmed danger (e.g. `IMG:ct_dissection` present).
-5. KB: pass `interp.concepts("present")` to `kb.candidates`/`kb_hints`; `supports` is shown as "지지 가능 질환(확진
-   아님)", never as a diagnosis.
-6. Optional (time budget permitting, off by default): if `needs_llm(interp)`, one extra gpt-oss call with
-   `build_result_interpreter_messages(...)`; merge only items the code did not read. Measure the time cost first.
+## Result interpreter wired into the policy (2026-09-28, prompt `v8-result-interp`)
+Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_interpreter`). Ablation condition
+`v6-no-interp` in `eval/experiment_profiles.json` (**not** in the `dev` profile; name it explicitly).
+1. **Read** (`Policy._interpret_results`, first thing in `next_action`): each EXAM/TEST turn not read yet (each turn
+   exactly once, also when it fails; "(환경 응답 오류)" skipped) → `interpret(action.content, response,
+   {"initial_info": ...})`. `Turn.interp` = `interp.as_dict()` + `prompt` (the rendered line), `needs_llm`, `pending`;
+   the loop result carries it per turn (`result["turns"][i]["interp"]`).
+2. **Hint**: the reading of the **latest** turn (only on the prompt right after the result) as
+   `prompts.RESULT_HINT` (≤ `result_hint_chars` = 300 incl. prefix), inside the shared advisor budget
+   (`max_advisor_chars`), priority: triage hint > result reading > anchoring > starting DDx > planner. Dropped whole
+   when it does not fit; not shown in low-time mode (hints are cut there anyway).
+3. **Findings ledger** (`policy._interp_findings` → `FindingsLedger.add`): `Finding.source = "result_interpreter"`,
+   `verified=True` (grounding keeps them verified: read from the text by construction). present → 양성; uncertain → 양성
+   with detail "의심"; absent → 음성 (a normal measurement once as its span, e.g. "혈압 120/80" 음성 "정상"); whole-normal
+   study → the test 음성 "특이 소견 없음"; **"not provided" → the test 결과없음, pending-only → the test 결과없음 "결과 대기 중"
+   (never 음성)**; concept "" stays prompt-only; abnormal first, ≤ 6 items per result. Merge semantics: later
+   information wins as before, except a model-reported finding does not replace a code reading of the same (or a
+   later) turn. KB hints and the question planner read the ledger, so the result concepts reach `kb.candidates`
+   through their Korean labels (plan item 5). TODO: hand `interp.concepts("present")` (lexicon ids) to
+   `kb.candidates` / `question_planner` directly instead of via labels (needs a concept-id entry point in the KB).
+4. **Critical results**: items with `critical` (present or uncertain) go to `state.result_criticals`. Each (concept,
+   side, polarity) is shown **once per case** in the top-of-prompt alert slot (`TRIAGE_ALERT` wrapper; triage text
+   first, then `prompts.RESULT_CRITICAL_ALERT`), also in low-time mode; its length counts against the advisor budget
+   but it is never dropped. **Danger gate**: `danger_gate.CRITICAL_RESULT_DANGER` maps critical IMG/ECG concepts that
+   are the disease itself (pneumothorax, dissection, AAA, STEMI, SAH, PE, free air, ICH/SDH, ischemic stroke, testicular
+   no-flow) to rule-out entries; `_Ctx.critical` (from `state.result_criticals`, **present only**) makes `_status` return
+   `confirmed` with the reading as evidence, and `_dangers` adds such a danger to the checked list even when neither
+   the chief complaint nor the DDx ledger raised it (source `critical_result`) → a different proposed diagnosis gets
+   the one-time `confirmed_other` hint; a proposed diagnosis that matches is allowed as a confirmed danger.
+   `confidence.assess` sees it through `danger_gate`. Labs (K, glucose, ...) are alerted but not mapped to the gate.
+5. **LLM reading** (plan item 6): **not implemented**. `needs_llm` results are only counted: `result["result_interp"]`
+   = `{n, needs_llm, llm_reasons: {reason: count}, critical, unavailable, errors}` per case, and the reading's
+   `safety_log` message says "LLM 판독 필요(…; 호출 안 함)". Use these counts to size the extra call.
+6. **Logs** (`safety_log`, viewer label "결과 판독"): `{"layer": "result_interp", "kind": "reading", "turn": <result
+   turn>, test, test_kind, critical, needs_llm, llm_reasons, msg}` per result; `{"kind": "critical_alert", items, msg}`
+   when an alert is shown; `{"layer": "result_interp", "error"}` on any exception (the case goes on as if off).
