@@ -106,6 +106,13 @@ def main(argv: list[str] | None = None) -> dict[str, str | None]:
     if not args.resume and jsonl.exists():
         jsonl.unlink()
     preds: dict[str, str | None] = dict(done)
+    if cfg.agent.use_subagents:
+        try:  # process-level warm-up of the static KB indexes only (no case data), so the first consult is not slow
+            from doctor_agent.knowledge import specialty
+
+            specialty.warm()
+        except Exception:  # noqa: BLE001
+            log.warning("specialty warm-up failed", exc_info=True)
 
     try:
         cases = iter(case_source(args.env)(cases=args.cases))

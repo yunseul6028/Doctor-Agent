@@ -128,6 +128,7 @@ def mods(monkeypatch):
             monkeypatch.setitem(sys.modules, "doctor_agent.agent.subagents.consult", cons)
         else:
             monkeypatch.setitem(sys.modules, "doctor_agent.agent.subagents.consult", None)  # import → ImportError
+            monkeypatch.setitem(sys.modules, "doctor_agent.knowledge.specialty", None)  # the real one exists now
         if advocate:
             monkeypatch.setitem(sys.modules, "doctor_agent.agent.subagents.advocate", _advocate_mod(calls))
         else:
