@@ -13,6 +13,8 @@ separate diseases late in an interview, so this table adds them.
 Link weights: 3 = diagnostic criterion / (near-)pathognomonic result, 2 = strong support, 1 = nonspecific support.
 "R" = a normal/negative result argues against the disease (used as a penalty); results without R never penalise.
 Reference ranges and cut-offs are common adult values (our choice, not from one lab); see each REFS entry.
+A reference range printed next to a value ("750 ng/mL (정상 <500)") wins over the default threshold and is compared in
+the printed unit; cut-off findings (Finding.cutoff, e.g. "AST > 1000") only accept "within the range" from it.
 The facts are standard clinical knowledge; the wording, regexes and weights are ours (no text copied from any source).
 Build: scripts/build_kb.py writes the links into data/kb/kb.json.gz (profile field "findings_from_tests").
 Runtime: kb.py uses detect() on the agent's findings. No network, no LLM.
@@ -208,6 +210,8 @@ class Finding:
     fixed: bool = False            # kw: the keyword itself carries the polarity (e.g. "혈류 소실"), no negation check
     not_if: str = ""               # skip the finding when this regex occurs in the same segment
     need_value: bool = False       # hi/lo: only a measured value can make it abnormal ("혈당이 높다" ≠ glucose ≥ 250)
+    cutoff: bool = False           # hi/lo: the finding is an absolute cut-off ("AST > 1000"), not "outside the reference
+                                   # range": a printed range can only make the value normal, never abnormal by itself
 
     def parsed_links(self) -> list[tuple[str, int, bool, str]]:
         out = []
@@ -218,6 +222,18 @@ class Finding:
 
 
 F = Finding
+
+
+def _gap(n: int, stop: str) -> str:
+    """A lazy gap of up to n characters that does not cross a clause boundary or any word matching `stop` (another
+    heart structure / valve): "승모판 역류 및 대동맥판 협착" is not mitral stenosis."""
+    return r"(?:(?![.,;:\n]|" + stop + r").){0," + str(n) + "}?"
+
+
+# words that end the subject of an echo finding (another chamber / valve / vessel, or a normal statement)
+_NOT_MV = r"대동맥|아오타|삼첨|폐동맥|판막|심실|심방|정상|aortic|tricuspid|pulmon|normal"
+_NOT_AV = r"승모|삼첨|폐동맥|판막|심실|심방|정상|mitral|tricuspid|pulmon|normal"
+_NOT_RV = r"좌심|대동맥|판막|승모|삼첨|하대|정맥|(?<![a-z])ivc|정상|normal"
 _M = {"ng/l": 0.001, "pg/ml": 0.001}  # troponin ng/L (hs) → ng/mL
 FINDINGS: list[Finding] = [
     # ---------------- pancreas / heart / vessels
@@ -275,18 +291,19 @@ FINDINGS: list[Finding] = [
     F("echo_pericardial_effusion", "심초음파: 심낭 삼출", "echo: pericardial effusion", "kw",
       r"심낭\s*(삼출|액\s*(저류|고임)|내\s*액체)|심장막\s*삼출|pericardial effusion", "pericarditis:2:pericard tamponade:2:pericard"),
     F("echo_tamponade", "심초음파: 심장눌림 소견", "echo: tamponade physiology", "kw",
-      r"(우심실|우심방|right (?:atrial|ventricular)).{0,20}(허탈|collapse)|심장\s*눌림|tamponade|전기적\s*교대|electrical alternans",
+      r"(우심실|우심방|right (?:atrial|ventricular))" + _gap(20, _NOT_RV) + r"(허탈|collapse)|심장\s*눌림|tamponade|전기적\s*교대|electrical alternans",
       "tamponade:3:pericard"),
     F("echo_hcm", "심초음파: 비대칭 중격 비후", "echo: asymmetric septal hypertrophy", "kw",
       r"비대칭(성|적)?\s*(심실\s*)?중격\s*비후|asymmetric septal hypertrophy|(?<![a-z])sam(?![a-z])|systolic anterior motion|수축기\s*전방\s*운동|좌심실\s*유출로\s*폐쇄|lvot obstruction",
       "hcm:3:textbook"),
     F("echo_as", "심초음파: 대동맥판 협착", "echo: aortic valve stenosis", "kw",
-      r"대동맥\s*판막?.{0,25}(협착|개구\s*면적)|aortic (?:valve )?stenosis|aortic valve area", "aortic_stenosis:3:textbook"),
+      r"(?:대동맥|아오타)\s*판막?" + _gap(25, _NOT_AV) + r"(협착|개구\s*면적)|aortic (?:valve )?stenosis|aortic valve area", "aortic_stenosis:3:textbook"),
     F("echo_ms", "심초음파: 승모판 협착", "echo: mitral stenosis", "kw",
-      r"승모\s*판막?.{0,25}(협착|개구\s*면적|하키\s*스틱)|mitral (?:valve )?stenosis|mitral valve area|hockey[- ]stick",
+      r"승모\s*판막?" + _gap(25, _NOT_MV) + r"(협착|개구\s*면적|하키\s*스틱)|mitral (?:valve )?stenosis|mitral valve area|hockey[- ]stick",
       "mitral_stenosis:3:textbook"),
     F("echo_rv_strain", "심초음파: 우심실 확장·부하", "echo: RV dilatation / strain", "kw",
-      r"우심실.{0,10}(확장|부전|과부하|긴장|기능\s*저하)|rv (?:dilat|strain|dysfunction|enlarg)|mcconnell|d-?shaped|d자\s*모양",
+      r"우심실" + _gap(10, _NOT_RV) + r"(확장(?!\s*기)|확장기\s*말\s*(직경|내경|크기|용적).{0,8}(증가|확대|커)|부전|과부하|긴장|기능\s*저하)"
+      r"|rv (?:dilat|strain|dysfunction|enlarg)|right ventric\w*\s+(?:dilat|enlarg|strain|dysfunction)|mcconnell|d-?shaped|d자\s*모양",
       "pe:1:esc_pe pulm_htn:1:textbook"),
     F("ddimer_high", "D-dimer 상승", "elevated D-dimer", "hi", r"d-?\s*dimer|d-?\s*다이머|디다이머",
       "pe:1R:esc_pe thrombosis:1R:ash_vte aortic_dissection:1:esc_aorta dic:2:isth_dic cvst:1:textbook",
@@ -867,6 +884,37 @@ FINDINGS: list[Finding] = [
       "osteomyelitis:3:textbook"),
 ]
 
+# Alternative units (unit prefix, lower-case, "μ" for micro → multiplier to the threshold's unit). Standard SI ↔
+# conventional conversion factors (molar masses; textbook). Units not listed are taken to be the threshold's unit.
+_MORE_UNITS: dict[str, dict[str, float]] = {
+    "bnp_high": {"pmol": 3.47},                     # BNP 1 pmol/L = 3.47 pg/mL
+    "ntprobnp_high": {"pmol": 8.46},                # NT-proBNP 1 pmol/L = 8.46 pg/mL
+    "igg_high": {"g/l": 100.0},                     # g/L → mg/dL
+    "ceruloplasmin_low": {"mg/l": 0.1, "g/l": 100.0},
+    "afp_high": {"iu/ml": 1.21, "kiu/l": 1.21},     # AFP 1 IU/mL = 1.21 ng/mL
+    "uric_high": {"μmol": 1 / 59.48},               # μmol/L → mg/dL
+    "ft4_high": {"pmol": 0.0777}, "ft4_low": {"pmol": 0.0777},  # pmol/L → ng/dL
+    "cortisol_low": {"nmol": 0.0362},               # nmol/L → μg/dL
+    "acth_high": {"pmol": 4.54},                    # pmol/L → pg/mL
+    "prolactin_high": {"miu/l": 0.0472, "mu/l": 0.0472, "μiu/ml": 0.0472},  # mIU/L → ng/mL (WHO 84/500)
+    "pth_high": {"pmol": 9.43},                     # pmol/L → pg/mL
+    "calcium_high": {"mmol": 4.008},                # mmol/L → mg/dL
+    "b12_low": {"pmol": 1.355},                     # pmol/L → pg/mL
+    "haptoglobin_low": {"g/l": 100.0},
+    "fibrinogen_low": {"g/l": 100.0},
+    "lactate_high": {"mg/dl": 0.111},               # mg/dL → mmol/L
+    "apap_level_high": {"μmol": 0.151},             # μmol/L → μg/mL
+    "glucose_very_high": {"mmol": 18.0},
+}
+# Findings defined by an absolute cut-off rather than by "above/below the reference range"
+_CUTOFF = {"ast_alt_very_high", "synovial_wbc_high", "ck_high", "esr_very_high", "hba1c_high", "glucose_very_high",
+           "ferritin_very_high", "adamts13_low", "proteinuria_nephrotic", "fev1fvc_low"}
+for _f in FINDINGS:
+    if _f.id in _MORE_UNITS:
+        _f.units = {**_f.units, **_MORE_UNITS[_f.id]}
+    if _f.id in _CUTOFF:
+        _f.cutoff = True
+
 # ------------------------------------------------------------------ detection
 _NUM = re.compile(r"([<>≤≥]=?)?\s*(\d{1,3}(?:,\d{3})+(?!\d)|\d+(?:\.\d+)?)\s*(%|[a-zμµ/.³^0-9]+)?")
 _TITER = re.compile(r"1\s*:\s*(\d{2,5})")
@@ -883,11 +931,111 @@ _DOWN_BEFORE = re.compile(r"(감소된|저하된|낮은|low|decreased|reduced)\s
 _PENDING = re.compile(r"진행\s*중|pending|대기|예정|결과\s*(미|안\s*나)|의뢰|보냄|(?<![a-z])sent(?![a-z])|시행하지|미시행|not done|not performed|검사\s*필요")
 _RULEOUT = re.compile(r"배제|감별\s*(위해|을\s*위해)|r/o(?![a-z])|rule out|확인\s*위해|평가\s*위해|위해\s*시행|고려|권고|필요")
 _HISTORY = re.compile(r"병력|과거력|과거에|history of|진단\s*받|앓았|치료\s*(중|받)|복용\s*중|수술\s*받|가족력")
-_REFPAREN = re.compile(r"\(([^()]*?(?:정상|참고|normal|ref|범위|기준)[^()]*)\)")
+_UNIT = r"(%|[a-zμµ/.³^]+)"
+# "(정상 0.4-4.0)", "(참고치: <500 ng/mL)", "(ref 13-60 U/L)", "(정상 범위 초과)"; a bare "(<500)" / "(13-60)" right
+# after a measured value is a reference range too
+_REFPAREN = re.compile(r"\(([^()]*?(?:정상|참고|normal|ref|범위|기준)[^()]*)\)"
+                       r"|\((\s*(?:[<≤]\s*=?\s*\d[\d.,]*|\d[\d.,]*\s*[-~–]\s*\d[\d.,]*)\s*(?:%|[a-zμµ/.³^]+)?\s*)\)")
+_AFTER_VALUE = re.compile(r"\d\s*(?:%|[a-zμµ/.³^0-9]+)?\s*$")
 _SEG = re.compile(r"[;\n]|,\s+|,(?=[^\d\s])|\s/\s|\s-\s|·")
-_RANGE = re.compile(r"(\d+(?:\.\d+)?)\s*[-~–]\s*(\d+(?:\.\d+)?)")
-_UPPER = re.compile(r"[<≤]\s*=?\s*(\d+(?:\.\d+)?)")
-_LOWER = re.compile(r"[>≥]\s*=?\s*(\d+(?:\.\d+)?)")
+_RANGE = re.compile(r"(\d+(?:\.\d+)?)\s*[-~–]\s*(\d+(?:\.\d+)?)\s*" + _UNIT + "?")
+_UPPER = re.compile(r"[<≤]\s*=?\s*(\d+(?:\.\d+)?)\s*" + _UNIT + "?|(\\d+(?:\\.\\d+)?)\\s*" + _UNIT + r"?\s*(?:미만|이하|under|below)")
+_LOWER = re.compile(r"[>≥]\s*=?\s*(\d+(?:\.\d+)?)\s*" + _UNIT + "?|(\\d+(?:\\.\\d+)?)\\s*" + _UNIT + r"?\s*(?:초과|이상|over|above)")
+# a reference parenthesis without numbers that says where the value lies
+_REF_NORMAL_NEG = re.compile(r"없|않|(?<![a-z])no(?![a-z])")
+_REF_HIGH = re.compile(r"초과|높|상승|상회|above|high|exceed|(?<![a-z])over(?![a-z])|↑")
+_REF_LOW = re.compile(r"미만|낮|저하|감소|하회|below|(?<![a-z])low|under|↓")
+_REF_OUT = re.compile(r"벗어|이상|abnormal|out of|outside")
+_REF_IN = re.compile(r"정상|normal|범위\s*내|within")
+
+
+def _unit_norm(u: str) -> str:
+    u = (u or "").lower().replace("µ", "μ").replace("mcg", "μg").rstrip(".")
+    if u[:1] == "u" and u[1:2] in ("g", "m", "i", "l"):  # ug/L, umol/L, uIU/mL, uL
+        u = "μ" + u[1:]
+    return u
+
+
+@dataclass
+class _Ref:
+    pos: int
+    lo: float | None = None
+    hi: float | None = None
+    unit: str = ""
+    says: str = ""       # "normal" / "high" / "low" / "abnormal" for a range without numbers ("정상 범위 초과")
+
+
+def _ref_ranges(seg: str) -> tuple[str, list[_Ref]]:
+    """Blank out "(정상 0.4-4.0)" style reference parentheses; return (text, [_Ref]). Bounds stay in the unit printed
+    in the parenthesis (ref.unit, "" when none is printed): see _vs_ref for the comparison."""
+    refs = []
+    spans = []
+    for m in _REFPAREN.finditer(seg):
+        body = m.group(1) if m.group(1) is not None else m.group(2)
+        if m.group(1) is None and not _AFTER_VALUE.search(seg[:m.start()]):
+            continue  # a bare "(<0.01)" is the value itself unless it follows one
+        ref = _Ref(m.start())
+        r = _RANGE.search(body)
+        if r:
+            ref.lo, ref.hi, ref.unit = float(r.group(1)), float(r.group(2)), r.group(3) or ""
+        else:
+            u = _UPPER.search(body)
+            lw = _LOWER.search(body)
+            if u:
+                ref.hi = float(u.group(1) or u.group(3))
+                ref.unit = u.group(2) or u.group(4) or ""
+            if lw:
+                ref.lo = float(lw.group(1) or lw.group(3))
+                ref.unit = ref.unit or lw.group(2) or lw.group(4) or ""
+        ref.unit = _unit_norm(ref.unit)
+        if ref.lo is None and ref.hi is None:
+            if _REF_HIGH.search(body):
+                ref.says = "high"
+            elif _REF_LOW.search(body):
+                ref.says = "low"
+            elif _REF_OUT.search(body) and not _REF_NORMAL_NEG.search(body):
+                ref.says = "abnormal"
+            elif _REF_IN.search(body):
+                ref.says = "normal"
+        refs.append(ref)
+        spans.append((m.start(), m.end()))
+    for a, b in spans:
+        seg = seg[:a] + " " * (b - a) + seg[b:]
+    return seg, refs
+
+
+def _scale(f: Finding, v: float, unit: str) -> float:
+    """A value in `unit` → the threshold's unit (f.units; units not listed are taken to be the threshold's unit)."""
+    if f.id == "hba1c_high" and (unit.startswith("mmol") or (not unit.startswith("%") and v > 20)):
+        return v / 10.929 + 2.15  # IFCC mmol/mol → NGSP %
+    for u, mult in f.units.items():
+        if unit.startswith(_unit_norm(u)):
+            return v * mult
+    return v
+
+
+def _number(after: str, f: Finding) -> tuple[float, str, float, str] | None:
+    """First value in the text right after the analyte: (value in the threshold's unit, comparator, value as printed,
+    printed unit)."""
+    m = re.match(r"[^\d<>≤≥,]{0,14}?([<>≤≥]=?\s*)?(\d{1,3}(?:,\d{3})+(?!\d)|\d+(?:\.\d+)?)\s*(%|[a-zμµ/.³^]+)?", after)
+    if not m:
+        return None
+    lead = after[: m.start(2)]
+    if re.search(r"1\s*:\s*$|x\s*$|×\s*$", lead):
+        return None
+    raw = float(m.group(2).replace(",", ""))
+    unit = _unit_norm(m.group(3) or "")
+    return _scale(f, raw, unit), (m.group(1) or "").strip(), raw, unit
+
+
+def _vs_ref(f: Finding, num: tuple[float, str, float, str], bound: float, ref: _Ref) -> tuple[float, float]:
+    """(value, bound) in one unit. The value and the range are compared as printed when they share a unit or one of
+    them has none ("D-dimer 750 ng/mL (정상 <500)"); both are converted to the threshold's unit only when two different
+    units are printed ("0.75 mg/L (정상 <500 ng/mL)")."""
+    _v, _c, raw, unit = num
+    if not ref.unit or not unit or ref.unit == unit:
+        return raw, bound
+    return _scale(f, raw, unit), _scale(f, bound, ref.unit)
 
 
 
@@ -899,46 +1047,6 @@ def _lazy(pat: str) -> str:
 _COMPILED: list[tuple[Finding, re.Pattern, re.Pattern | None]] = [
     (f, re.compile(_lazy(f.pat)), re.compile(f.not_if) if f.not_if else None) for f in FINDINGS]
 BY_ID: dict[str, Finding] = {f.id: f for f in FINDINGS}
-
-
-def _ref_ranges(seg: str) -> tuple[str, list[tuple[int, float | None, float | None, bool]]]:
-    """Blank out "(정상 0.4-4.0)" style reference parentheses; return (text, [(pos, lo, hi, says_normal)])."""
-    refs = []
-    for m in _REFPAREN.finditer(seg):
-        body = m.group(1)
-        lo = hi = None
-        r = _RANGE.search(body)
-        if r:
-            lo, hi = float(r.group(1)), float(r.group(2))
-        else:
-            u = _UPPER.search(body)
-            lw = _LOWER.search(body)
-            hi = float(u.group(1)) if u else None
-            lo = float(lw.group(1)) if lw else None
-        says_normal = lo is None and hi is None and bool(re.search(r"정상|normal|범위\s*내|within", body))
-        refs.append((m.start(), lo, hi, says_normal))
-    if refs:
-        seg = _REFPAREN.sub(lambda m: " " * len(m.group(0)), seg)
-    return seg, refs
-
-
-def _number(after: str, f: Finding) -> tuple[float, str] | None:
-    """First value in the text right after the analyte: (value in the threshold's unit, comparator)."""
-    m = re.match(r"[^\d<>≤≥,]{0,14}?([<>≤≥]=?\s*)?(\d{1,3}(?:,\d{3})+(?!\d)|\d+(?:\.\d+)?)\s*(%|[a-zμµ/.³^]+)?", after)
-    if not m:
-        return None
-    lead = after[: m.start(2)]
-    if re.search(r"1\s*:\s*$|x\s*$|×\s*$", lead):
-        return None
-    v = float(m.group(2).replace(",", ""))
-    unit = (m.group(3) or "").lower()
-    for u, mult in f.units.items():
-        if unit.startswith(u):
-            v *= mult
-            break
-    if f.id == "hba1c_high" and v > 20:  # mmol/mol → %
-        v = v / 10.929 + 2.15
-    return v, (m.group(1) or "").strip()
 
 
 def _polarity(f: Finding, seg: str, s: int, e: int, refs) -> tuple[int, bool]:
@@ -958,10 +1066,15 @@ def _polarity(f: Finding, seg: str, s: int, e: int, refs) -> tuple[int, bool]:
         if re.search(_NEG_W, tail):
             return -1, False
         return 1, False
-    ref = next(((lo, hi, nrm) for p, lo, hi, nrm in refs if e <= p <= e + 40), None)
-    if ref and ref[2]:
-        return -1, False
+    ref = next((r for r in refs if e <= r.pos <= e + 40), None)
     up_is_good = f.mode in ("hi", "pos")
+    if ref and ref.says:
+        if ref.says == "normal":
+            return -1, False
+        if not f.cutoff and not f.need_value:  # "(정상 범위 초과)" says above the range, not above a cut-off
+            if ref.says == "abnormal":
+                return 1, False
+            return (1 if (ref.says == "high") == up_is_good else -1), False
     abnormal = 0 if f.need_value else 1
     fold = _FOLD.search(after[:30]) if f.mode == "hi" else None  # "정상 상한의 5배" (× upper limit)
     if fold:
@@ -984,10 +1097,12 @@ def _polarity(f: Finding, seg: str, s: int, e: int, refs) -> tuple[int, bool]:
         t = _TITER.search(after[:30])
         if t:
             return (1 if int(t.group(1)) >= f.titer else -1), True
-        if f.thr is not None:
-            num = _number(after, f)
-            if num:
-                return (1 if num[0] > f.thr else -1), True
+        num = _number(after, f)
+        if num and ref and ref.hi is not None:
+            v, hi = _vs_ref(f, num, ref.hi, ref)
+            return (1 if v > hi else -1), True
+        if num and f.thr is not None:
+            return (1 if num[0] > f.thr else -1), True
         if _NEG_BEFORE.search(before):
             return -1, False
         if _POS_BEFORE.search(before):
@@ -1001,11 +1116,17 @@ def _polarity(f: Finding, seg: str, s: int, e: int, refs) -> tuple[int, bool]:
     num = _number(after, f)
     if num is None:
         return 0, False
-    v, cmp_ = num
-    if ref and f.mode == "hi" and ref[1] is not None:
-        return (1 if v > ref[1] * f.ref_mult else -1), True
-    if ref and f.mode == "lo" and ref[0] is not None:
-        return (1 if v < ref[0] else -1), True
+    v, cmp_ = num[0], num[1]
+    # a printed reference range wins over the default threshold; cut-off findings ("AST > 1000") only take "within
+    # the range" from it
+    if ref and f.mode == "hi" and ref.hi is not None:
+        rv, hi = _vs_ref(f, num, ref.hi, ref)
+        if rv <= hi or not f.cutoff:
+            return (1 if rv > hi * f.ref_mult else -1), True
+    if ref and f.mode == "lo" and ref.lo is not None:
+        rv, lo = _vs_ref(f, num, ref.lo, ref)
+        if rv >= lo or not f.cutoff:
+            return (1 if rv < lo else -1), True
     if f.thr is None:
         return 0, False
     if f.mode == "hi":
