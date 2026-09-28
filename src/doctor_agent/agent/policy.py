@@ -5,6 +5,7 @@ from doctor_agent.agent import anchoring, confidence, grounding, kb_hints, promp
 from doctor_agent.agent.ledger import CODE_SOURCE, Finding
 from doctor_agent.agent.parser import _json_objects, extract_action_json, parse_action
 from doctor_agent.agent.state import CaseState
+from doctor_agent.agent.subagents.orchestrator import SubagentManager
 from doctor_agent.config import AgentConfig
 from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.llm.client import LLMClient
@@ -44,8 +45,11 @@ class Policy:
         self._conf_params = None  # confidence parameters, loaded on first use (per case)
         self._planner_logged = ""  # last planner suggestions written to the safety log
         self._interp_done = 0  # turns already given to the result interpreter
+        self.subagents = SubagentManager(llm, cfg)  # specialist sub-agents (per case, only when triggered)
+        self._anchoring_fired: dict | None = None  # premature-closure entry shown in this step (advocate trigger)
 
     def next_action(self, state: CaseState) -> Action:
+        self.subagents.degraded = self.degraded  # low-time mode: no sub-agent call from here on (radiology included)
         try:
             self._interpret_results(state)
         except Exception as e:  # noqa: BLE001 — each result is guarded; this only catches a bug in the bookkeeping
@@ -55,15 +59,17 @@ class Policy:
             return self._final_diagnosis(state)
 
         hints = self._hints(state)
+        self._anchoring_fired = None
         try:
             alert, advice = self._advisors(state)
         except Exception as e:  # noqa: BLE001 — each advisor is guarded; this only catches a bug in the composition
             self._advisor_error(state, "advisors", e)
             alert, advice = "", []
+        sub_hints = self._subagent_hints(state)
         if self.degraded:  # time budget running low: short prompt, no extra review/pushback calls
             hints = hints[:MAX_HINTS_DEGRADED] + [prompts.LOW_TIME_HINT]
         else:
-            hints = hints + advice
+            hints = hints + advice + sub_hints
         for attempt in range(MAX_ATTEMPTS):  # retries: parse failure, repeated action, safety pushback, review hold
             raw = self.llm.chat(prompts.build_step_messages(state.view(), state.turn_count, self.cfg.max_turns, hints,
                                                             alert=alert))
@@ -102,7 +108,7 @@ class Policy:
                     hints = hints + [hint]
                     continue
             if action.type == ActionType.DIAGNOSE and len(state.reviews) < MAX_REVIEWS and remaining > 3 and not self.degraded:
-                reviewed = self._review(state, action)
+                reviewed = self._review(state, action, self._advocate_note(state, action))
                 if reviewed.type != ActionType.DIAGNOSE and state.asked(reviewed):
                     hints = hints + ["검토의 지적: " + "; ".join(state.reviews[-1]["issues"]) + ". 이를 해결할 다른 행동을 고르세요."]
                     continue
@@ -235,6 +241,7 @@ class Policy:
             if entry:
                 if entry.get("kind") == "premature_closure":
                     state.anchoring_shown = True  # shown once per case, counted only once really in the prompt
+                    self._anchoring_fired = entry
                 if entry["layer"] == "planner":  # shown every turn, logged only when the suggestions change
                     if entry["msg"] == self._planner_logged:
                         continue
@@ -341,12 +348,19 @@ class Policy:
         stats["unavailable"] += int(interp.unavailable)
         if any(r == "error" for r in reasons):
             stats["errors"] += 1
-        if reasons:  # the optional extra gpt-oss reading (prompts.RESULT_INTERPRETER_PROMPT) is NOT called: count only
+        if reasons:  # counted here; the LLM reading itself is the radiology sub-agent (below, capped per case)
             stats["needs_llm"] += 1
             for r in reasons:
                 stats["llm_reasons"][r] = stats["llm_reasons"].get(r, 0) + 1
         for f in _interp_findings(interp, turn):
             state.findings.add(f)
+        called = None
+        if reasons:  # optional extra gpt-oss reading (radiology sub-agent, prompts.RESULT_INTERPRETER_PROMPT)
+            try:
+                called = self.subagents.radiology(state, turn, interp.test_name or t.action.content, t.response, line,
+                                                  interp)
+            except Exception as e:  # noqa: BLE001
+                self._advisor_error(state, "subagent", e)
         crit = []
         for i in interp.critical():
             if i.polarity == "absent":
@@ -360,7 +374,9 @@ class Policy:
             "turn": turn, "layer": "result_interp", "kind": "reading", "test": interp.test_name,
             "test_kind": interp.kind, "critical": [c["summary"] for c in crit], "needs_llm": bool(reasons),
             "llm_reasons": reasons,
-            "msg": line + (f" · LLM 판독 필요({', '.join(reasons)}; 호출 안 함)" if reasons else "")})
+            "llm_called": called is not None,
+            "msg": line + (f" · LLM 판독 필요({', '.join(reasons)}; {'호출함' if called is not None else '호출 안 함'})"
+                           if reasons else "")})
 
     def _result_hint(self, state: CaseState) -> tuple[str, dict | None]:
         """Code reading of the latest action's result (EXAM/TEST), on the prompt right after it."""
@@ -392,7 +408,36 @@ class Policy:
             self._advisor_error(state, "result_interp", e)
             return ""
 
-    def _review(self, state: CaseState, action: Action) -> Action:
+    # ---- specialist sub-agents (agent/subagents/; guarded, switchable, capped; see docs/architecture.md) ----
+    def _subagent_hints(self, state: CaseState) -> list[str]:
+        """Consult / anchoring-moment advocate triggers for this step, then every queued sub-agent hint (radiology
+        from the result reading above, consult, advocate) within cfg.max_subagent_chars."""
+        try:
+            self.subagents.degraded = self.degraded
+            self.subagents.before_step(state, self._anchoring_fired)
+            return self.subagents.take_hints()
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "subagent", e)
+            return []
+
+    def _advocate_note(self, state: CaseState, action: Action) -> str:
+        """Pre-review advocate (once per case, only when the code confidence of the proposal is low): a note for the
+        review view, or ""."""
+        def score() -> float:
+            if self._conf_params is None:
+                self._conf_params = confidence.load_params()
+            return confidence.assess(state, action.content, self.cfg, self._conf_params).score
+        try:
+            self.subagents.degraded = self.degraded
+            return self.subagents.advocate_for_review(state, action.content, action.reason, score)
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "subagent", e)
+            return ""
+
+    def subagent_summary(self, state: CaseState) -> dict:
+        return self.subagents.summary(state)
+
+    def _review(self, state: CaseState, action: Action, note: str = "") -> Action:
         """Pre-diagnosis review by the same LLM in a reviewer role. The reviewer only fills structured fields
         (key findings explained or not, contradictions, confirmatory evidence, unresolved dangers); the verdict and
         any renaming are decided here in code. Returns the (possibly refined) diagnosis, or the reviewer's next
@@ -402,6 +447,8 @@ class Policy:
             view += "\n\n[지식베이스 경고] " + warn
         if criteria := diagnostic_criteria.render_for_review(action.content, _case_findings(state)):
             view += "\n\n" + criteria
+        if note:  # pre-review advocate sub-agent (prompts.ADVOCATE_REVIEW_NOTE)
+            view += "\n\n" + note
         raw = self.llm.chat(prompts.build_review_messages(view, action.content, action.reason,
                                                           state.turn_count, self.cfg.max_turns))
         objs = _json_objects(raw or "")

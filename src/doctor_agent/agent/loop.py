@@ -136,6 +136,12 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
             raise AssertionError("Fixed LLM was not called for this case")
         log.error("rule violation risk: no successful LLM call for this case (attempts=%d)", guard.attempts)
     try:
+        subagents = policy.subagent_summary(state)
+    except Exception as e:  # noqa: BLE001 — record-only field
+        if not submission:
+            raise
+        subagents = {"error": str(e)[:200]}
+    try:
         normalized = kb_hints.normalize_hint(diagnosis, state.initial_info) if cfg.agent.use_kb else {}
     except Exception as e:  # noqa: BLE001 — record-only field
         if not submission:
@@ -153,6 +159,8 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
         # result interpreter counters (n, needs_llm = would need the optional extra LLM reading, llm_reasons, critical,
         # unavailable, errors); {} when AGENT_USE_RESULT_INTERPRETER is off
         "result_interp": state.interp_stats,
+        # specialist sub-agents: calls by name, ok / fail, skip reasons, 참고 DDx refs (docs/architecture.md)
+        "subagents": subagents,
         "llm_calls": llm.call_count - calls_before,
         # record only: the submitted diagnosis above is not changed
         "diagnosis_normalized": normalized,

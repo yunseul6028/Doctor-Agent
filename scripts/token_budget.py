@@ -306,6 +306,9 @@ class ScriptedDoctor:
         elif kind == "final":
             out = {"findings": [], "ddx": self._ddx("최종"), "type": "DIAGNOSE", "content": self.dx[0],
                    "reason": "지금까지의 소견으로 가장 가능성이 높음", "confidence": 0.6}
+        elif kind == "other" and messages and messages[0].get("content") not in (prompts.SYSTEM, prompts.REVIEW_SYSTEM):
+            # a specialist sub-agent call (no builder captured it, other role): empty answer, script unchanged
+            kind, out = "subagent", {}
         else:
             out = self._step_json(refused=bool(hints) and "이미 했습니다" in hints[-1])
         text = json.dumps(out, ensure_ascii=False)

@@ -1,6 +1,6 @@
 """Prompts. Medical content is owned by clinical-strategist. Record changes in docs/experiments.md."""
 
-PROMPT_VERSION = "v8-result-interp"
+PROMPT_VERSION = "v9-subagents"
 
 SYSTEM = """당신은 환자를 진료하는 숙련된 의사입니다.
 매 턴마다 아래 행동 중 정확히 하나만 합니다.
@@ -44,10 +44,10 @@ JSON 한 줄로만 출력하세요:
 
 
 # Result interpreter (agent/result_interpreter.py). The code reading is wired into the policy (RESULT_HINT,
-# RESULT_CRITICAL_ALERT below). This LLM prompt is NOT CALLED YET: future hook for one extra gpt-oss call per result
-# when result_interpreter.needs_llm(interp) is true (long / serial / unmapped reports; the policy only counts these in
-# result["result_interp"]). The code reading is passed as a draft so the small model only corrects it. Separate role
-# from the diagnosing doctor: it must not diagnose.
+# RESULT_CRITICAL_ALERT below). This LLM prompt is used by the "radiology" sub-agent (agent/subagents/orchestrator.py,
+# since v9-subagents): one extra gpt-oss call when result_interpreter.needs_llm(interp) is true (long / serial /
+# unmapped reports), at most AgentConfig.max_llm_radiology per case. The code reading is passed as a draft so the small
+# model only corrects it. Separate role from the diagnosing doctor: it must not diagnose.
 RESULT_INTERPRETER_PROMPT = """당신은 검사 결과 판독 보조입니다. 진단하지 말고, 결과 글에 적힌 소견만 정리하세요.
 규칙:
 1. 결과 글에 있는 소견만 씁니다. 글에 없는 소견을 추측해서 넣지 마세요.
@@ -86,6 +86,19 @@ CONFIDENCE_PUSHBACK = ("제안한 진단 '{dx}'의 확신도가 낮습니다({sc
 RESULT_HINT = "검사 결과 판독(코드 요약, 원문과 다르면 원문 우선): {line}"
 # critical result: shown once per finding, in the top-of-prompt alert slot (TRIAGE_ALERT) next to the triage text
 RESULT_CRITICAL_ALERT = "즉시 조치가 필요한 결과: {items}. 이 결과가 뜻하는 위험 질환의 확인과 조치를 먼저 고려하세요."
+
+
+# specialist sub-agents (agent/subagents/; ≤ AgentConfig.max_subagent_chars per step prompt, separate from the advisor
+# budget). The hint body is the sub-agent's own short Korean text; it is labelled as an opinion, not evidence.
+SUBAGENT_HINT = "{label} (참고 의견, 사실 근거 아님): {text}"
+SUBAGENT_LABELS = {"consult": "전문의 자문", "advocate": "반대 의견 검토", "radiology": "결과 판독 보조(LLM)"}
+# advocate before the pre-diagnosis review: appended to the review view (the reviewer weighs it; code decides the verdict)
+ADVOCATE_REVIEW_NOTE = "[반대 의견 검토(자문, 참고)] {text}"
+
+
+def subagent_hint(name: str, text: str, specialty: str = "") -> str:
+    label = SUBAGENT_LABELS.get(name.split(":", 1)[0], "자문")
+    return SUBAGENT_HINT.format(label=f"{label}({specialty})" if specialty else label, text=text)
 
 
 def result_hint(line: str) -> str:

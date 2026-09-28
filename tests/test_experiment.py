@@ -32,6 +32,10 @@ def test_committed_profiles_resolve():
     assert "v6-no-interp" not in [c["name"] for c in dev["conditions"]]
     no_interp = ex.resolve_profile(cfg, "smoke", ["v6-no-interp"])["conditions"][0]
     assert no_interp["env"] == {"AGENT_USE_RESULT_INTERPRETER": "0"} and no_interp["commit"] is None
+    # same for the specialist sub-agent ablation
+    assert "v6-no-subagents" not in [c["name"] for c in dev["conditions"]]
+    no_sub = ex.resolve_profile(cfg, "smoke", ["v6-no-subagents"])["conditions"][0]
+    assert no_sub["env"] == {"AGENT_USE_SUBAGENTS": "0"} and no_sub["commit"] is None
     # smoke is a subset of dev and covers every set
     dev_paths = {p.resolve() for _, p in dev["cases"]}
     assert all(p.resolve() in dev_paths for _, p in smoke["cases"])

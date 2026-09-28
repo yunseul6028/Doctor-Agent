@@ -46,6 +46,25 @@ keyword patient, no judge; the dummy doctor ignores hints, so scores cannot move
 the ledgers. `scripts/token_budget.py --tokenizer chars --limit 3`: the result hint adds 30.5 tokens mean (max 102;
 present in 72% of step prompts). **Measure v6 vs. v6-no-interp on gpt-oss-20b before relying on it.**
 
+### 2026-09-28 · prompt `v8-result-interp` → `v9-subagents` (framework only, no LLM run yet)
+Specialist sub-agent framework wired into the policy (`docs/architecture.md` "Specialist sub-agents"): extra calls of
+the same fixed gpt-oss-20b in another role, only when triggered, each at most once per case and ≤ 3 per case in total
+(`AGENT_MAX_SUBAGENT_CALLS`): **consult** (routed specialty share ≥ 0.6 from turn 3, or model confidence < 0.5 on 3
+consecutive turns from turn 6), **advocate** (the turn the anchoring hint fires, else before a pre-diagnosis review of a
+proposal with code confidence < 0.65 → note in the review view), **LLM radiology** (a `needs_llm` result, 1 per case;
+findings into the ledger as source `llm_radiology`, grounding-checked, never replacing a code reading). Skipped in
+low-time mode, with ≤ 3 turns left or at the cap. Hints: separate budget `AGENT_MAX_SUBAGENT_CHARS` = 600 after the
+advisor hints; new wording `prompts.SUBAGENT_HINT`, `ADVOCATE_REVIEW_NOTE`; sub-agent DDx candidates are shown as a
+"참고(자문, 미확인)" line of the DDx ledger view but kept out of the live DDx. `SYSTEM` / `REVIEW_SYSTEM` unchanged.
+Content modules (`consult.py`, `advocate.py`, `knowledge/specialty.py`) come from the content branches; without them
+consult / advocate are skipped (`module_missing`). Ablation condition `v6-no-subagents` (`AGENT_USE_SUBAGENTS=0`),
+**not** in `dev`. Tests switch sub-agents off by default (`tests/conftest.py`); `tests/test_subagents.py` turns them on.
+Dummy smoke on this branch (16 sample cases, keyword patient, no judge; content modules absent; the dummy doctor
+ignores roles, so the 2 radiology calls got an action JSON back and failed as bad JSON — handled, case went on):
+Accuracy / Efficiency / Safety 0.062 / 0.91 / 0.385 (unchanged), 5.4 turns, 8.69 LLM calls per case (8.56 before: the
+2 radiology calls). **Measure v6 vs. v6-no-subagents on gpt-oss-20b before relying on it**; the trigger thresholds
+(0.6 share, 0.5 / 0.65 confidence) are uncalibrated.
+
 ## 2026-09-26 → 09-27: changes since the last LLM run (no LLM calls)
 
 Everything below was measured offline (rules, KB, case files). None of it has an Accuracy/Efficiency/Safety score yet.

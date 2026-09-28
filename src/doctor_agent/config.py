@@ -84,6 +84,27 @@ class AgentConfig:
     # (triage/critical-result alert > triage hint > result reading > anchoring > starting DDx > planner)
     max_advisor_chars: int = field(default_factory=lambda: int(_num("AGENT_MAX_ADVISOR_CHARS", 900)))
 
+    # specialist sub-agents (agent/subagents/; docs/architecture.md "Specialist sub-agents"): extra calls of the same
+    # fixed LLM in another role, only when triggered. Master switch (condition v6-no-subagents turns it off) + one per kind
+    use_subagents: bool = field(default_factory=lambda: _flag("AGENT_USE_SUBAGENTS", "1"))
+    use_consult: bool = field(default_factory=lambda: _flag("AGENT_USE_CONSULT", "1"))
+    use_advocate: bool = field(default_factory=lambda: _flag("AGENT_USE_ADVOCATE", "1"))
+    use_llm_radiology: bool = field(default_factory=lambda: _flag("AGENT_USE_LLM_RADIOLOGY", "1"))  # + result interpreter
+    max_subagent_calls: int = field(default_factory=lambda: int(_num("AGENT_MAX_SUBAGENT_CALLS", 3)))  # per case
+    max_llm_radiology: int = 1  # LLM result readings per case
+    # separate prompt budget for sub-agent hints (the advisor budget above is untouched)
+    max_subagent_chars: int = field(default_factory=lambda: int(_num("AGENT_MAX_SUBAGENT_CHARS", 600)))
+    # reasoning effort of sub-agent calls ("none" = parameter not sent)
+    subagent_reasoning_effort: str = field(
+        default_factory=lambda: os.getenv("AGENT_SUBAGENT_REASONING_EFFORT", "low").strip().lower() or "low")
+    consult_min_turns: int = 3        # routed consult: from this many turns on ...
+    consult_min_share: float = 0.6    # ... when one specialty holds this share of the top-DDx mass
+    consult_low_conf: float = 0.5     # stuck consult: model confidence below this ...
+    consult_low_conf_turns: int = 3   # ... on this many consecutive parsed turns ...
+    consult_low_conf_after: int = 6   # ... from this many turns on
+    advocate_conf_below: float = 0.65  # pre-review advocate: code confidence of the proposed diagnosis below this
+    subagent_min_remaining_turns: int = 4  # skip all sub-agents when fewer turns than this remain (i.e. <= 3)
+
     # --- runtime robustness (see docs/architecture.md "Runtime") ---
     # submission mode: never raise out of run_case (log instead); dev mode: fail loudly (≥1 LLM call rule, billing)
     submission: bool = field(default_factory=lambda: _flag("AGENT_SUBMISSION", "0"))

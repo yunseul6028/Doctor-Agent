@@ -73,6 +73,12 @@
       "env": {
         "AGENT_USE_RESULT_INTERPRETER": "0"
       }
+    },
+    "v6-no-subagents": {
+      "description": "current checkout, specialist sub-agents off (consult, advocate, LLM radiology: no extra LLM calls). Not in the dev profile (cost); run it explicitly when needed.",
+      "env": {
+        "AGENT_USE_SUBAGENTS": "0"
+      }
     }
   }
 }
