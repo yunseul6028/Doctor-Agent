@@ -143,12 +143,16 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
         normalized = {"error": str(e)}
     return {
         "diagnosis": diagnosis,
-        "turns": [{**t.action.to_dict(), "reason": t.action.reason, "ddx": t.ddx, "response": t.response} for t in state.turns],
+        "turns": [{**t.action.to_dict(), "reason": t.action.reason, "ddx": t.ddx, "response": t.response,
+                   **({"interp": t.interp} if t.interp else {})} for t in state.turns],
         "n_turns": state.turn_count,
         "ddx": state.ddx,
         "findings": state.findings.as_list(),
         "reviews": state.reviews,
         "safety_log": state.safety_log,
+        # result interpreter counters (n, needs_llm = would need the optional extra LLM reading, llm_reasons, critical,
+        # unavailable, errors); {} when AGENT_USE_RESULT_INTERPRETER is off
+        "result_interp": state.interp_stats,
         "llm_calls": llm.call_count - calls_before,
         # record only: the submitted diagnosis above is not changed
         "diagnosis_normalized": normalized,

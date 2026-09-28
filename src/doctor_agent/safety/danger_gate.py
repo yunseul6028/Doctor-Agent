@@ -11,6 +11,9 @@ API
 - next_rule_out_action(danger, state) -> (ActionType, content, reason) | None
 - gate(state, proposed_dx, remaining_turns, max_gate_turns=3, gate_turns_used=0) -> dict
 
+Critical results: a critical imaging / ECG finding the policy's result interpreter read as present
+(state.result_criticals, see CRITICAL_RESULT_DANGER) confirms the matching danger and puts it on the checked list.
+
 Evidence is read only from the environment's text (initial info + responses), never from the doctor's own questions
 ("객혈이 있나요?" is not a hemoptysis finding). A result counts for a rule-out only when it is read as normal; an
 unavailable or unreadable result marks the step as done (so it is not repeated) but rules nothing out.
@@ -283,6 +286,7 @@ class _Ctx:
         self.spo2 = self._latest(_RE_SPO2, int, "spo2")
         self.temp = self._latest_temp()
         self.onset_h = self._onset_hours()
+        self.critical = critical_result_dangers(state)  # result interpreter (see CRITICAL_RESULT_DANGER)
 
     # -- readers ----------------------------------------------------------------------------
     def _measured(self, t: _Turn) -> dict[str, list[float]]:
@@ -1380,6 +1384,28 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
 
 RULE_OUT: dict[str, RuleOut] = {r.name: r for r in RULE_OUT_TABLE}
 
+# Critical imaging / ECG results read by agent/result_interpreter.py (present, not hedged) that confirm a can't-miss
+# diagnosis. The policy keeps them in state.result_criticals (only when AGENT_USE_RESULT_INTERPRETER is on); the gate
+# treats them as confirming evidence next to its own readers, and adds the danger to the checked list even when the
+# chief complaint / DDx ledger did not raise it (so the one-time "confirmed_other" hint can fire). Only findings that
+# are the disease itself are listed (widened mediastinum, no intrauterine pregnancy, positive blood culture are not).
+CRITICAL_RESULT_DANGER: dict[str, str] = {
+    "IMG:cxr_ptx": "긴장성 기흉", "IMG:ct_dissection": "대동맥 박리", "IMG:aaa_imaging": "복부 대동맥류 파열",
+    "ECG:ecg_stemi": "급성 관상동맥 증후군", "IMG:ct_sah": "지주막하 출혈", "IMG:ctpa_pe": "폐색전증",
+    "IMG:free_air": "장 천공", "IMG:ct_ich": "뇌출혈", "IMG:subdural_hematoma": "뇌출혈",
+    "IMG:stroke_imaging": "급성 허혈성 뇌졸중", "IMG:testis_no_flow": "고환 염전",
+}
+
+
+def critical_result_dangers(state) -> dict[str, list[str]]:
+    """{danger name: evidence} from the critical results the policy's result interpreter read in this case."""
+    out: dict[str, list[str]] = {}
+    for c in getattr(state, "result_criticals", None) or []:
+        name = CRITICAL_RESULT_DANGER.get(str(c.get("concept", "")))
+        if name and c.get("polarity") == "present":
+            out.setdefault(name, []).append(f"{c.get('test', '')}: {c.get('summary') or c.get('label', '')}"[:120])
+    return out
+
 
 # --------------------------------------------------------------------------------------------
 # Lookup
@@ -1410,6 +1436,8 @@ def _applies(r: RuleOut, c: _Ctx) -> bool:
 
 
 def _status(r: RuleOut, c: _Ctx) -> tuple[str, list[str]]:
+    if ev := c.critical.get(r.name):
+        return "confirmed", ev
     if (ev := r.confirm(c)) is not None:
         return "confirmed", ev
     if (ev := r.rule_out(c)) is not None:
@@ -1457,6 +1485,9 @@ def _dangers(state, c: _Ctx, exclude: str | None) -> list[dict]:
             found[r.name]["p"] = max(found[r.name]["p"], e.p)
         else:
             found[r.name] = {"source": "ddx_ledger", "p": e.p}
+    for name in c.critical:
+        if name in RULE_OUT and name not in found:
+            found[name] = {"source": "critical_result", "p": 0.0}
     excluded = lookup(exclude) if exclude else None
     out = []
     for order, r in enumerate(RULE_OUT_TABLE):

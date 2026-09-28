@@ -14,6 +14,7 @@ DX_STATUS = {"유력": "유력", "active": "유력", "배제": "배제", "ruled 
              "위험": "위험", "cant_miss": "위험", "must_rule_out": "위험"}
 SAME_ITEM = 0.6
 UNVERIFIED_TAG = " (미확인)"  # appended to findings not found in what the environment said
+CODE_SOURCE = "result_interpreter"  # Finding.source of items read by agent/result_interpreter.py (grounded by construction)
 
 
 @dataclass
@@ -24,6 +25,7 @@ class Finding:
     turn: int = 0
     verified: bool | None = None  # set by agent/grounding.py: found (True) / not found (False) in the environment's text
     span: str = ""  # evidence text that grounded it
+    source: str = ""  # "" = reported by the model; CODE_SOURCE = read from a result text by code (verified=True)
 
 
 @dataclass
@@ -37,13 +39,18 @@ class FindingsLedger:
             if not isinstance(r, dict) or not str(r.get("item", "")).strip():
                 continue
             status = FINDING_STATUS.get(str(r.get("status", "")).strip().lower().replace(" ", ""), "양성")
-            new = Finding(str(r["item"]).strip(), status, str(r.get("detail", "")).strip(), turn)
-            for i, old in enumerate(self.items):
-                if similarity(old.item, new.item) >= SAME_ITEM:
-                    self.items[i] = new  # later information about the same item wins
-                    break
-            else:
-                self.items.append(new)
+            self.add(Finding(str(r["item"]).strip(), status, str(r.get("detail", "")).strip(), turn))
+
+    def add(self, new: Finding) -> None:
+        """Merge one finding: later information about the same item wins, except that a model report never replaces
+        a code reading of the same result (same or later turn): the code read the text itself."""
+        for i, old in enumerate(self.items):
+            if old.item == new.item or similarity(old.item, new.item) >= SAME_ITEM:
+                if old.source == CODE_SOURCE and not new.source and old.turn >= new.turn:
+                    return
+                self.items[i] = new
+                return
+        self.items.append(new)
 
     def render(self, exclude_unverified: bool = False) -> str:
         """Grouped by status. Findings the grounding check did not find in the environment's responses

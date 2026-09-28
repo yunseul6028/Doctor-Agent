@@ -1,6 +1,6 @@
 """Prompts. Medical content is owned by clinical-strategist. Record changes in docs/experiments.md."""
 
-PROMPT_VERSION = "v7-advisors"
+PROMPT_VERSION = "v8-result-interp"
 
 SYSTEM = """당신은 환자를 진료하는 숙련된 의사입니다.
 매 턴마다 아래 행동 중 정확히 하나만 합니다.
@@ -43,9 +43,11 @@ JSON 한 줄로만 출력하세요:
 {"key_findings": [{"finding": "...", "status": "설명됨|설명 안 됨"}], "contradicting": ["..."], "confirmation": "...|없음", "unresolved_danger": ["..."], "next": {"type": "ASK|EXAM|TEST", "content": "...", "reason": "..."}, "final_diagnosis": "", "refine_evidence": ""}"""
 
 
-# Result interpreter (agent/result_interpreter.py): NOT CALLED YET. Future hook for one extra gpt-oss call per result
-# when result_interpreter.needs_llm(interp) is true (long / serial / unmapped reports). The code reading is passed as a
-# draft so the small model only corrects it. Separate role from the diagnosing doctor: it must not diagnose.
+# Result interpreter (agent/result_interpreter.py). The code reading is wired into the policy (RESULT_HINT,
+# RESULT_CRITICAL_ALERT below). This LLM prompt is NOT CALLED YET: future hook for one extra gpt-oss call per result
+# when result_interpreter.needs_llm(interp) is true (long / serial / unmapped reports; the policy only counts these in
+# result["result_interp"]). The code reading is passed as a draft so the small model only corrects it. Separate role
+# from the diagnosing doctor: it must not diagnose.
 RESULT_INTERPRETER_PROMPT = """당신은 검사 결과 판독 보조입니다. 진단하지 말고, 결과 글에 적힌 소견만 정리하세요.
 규칙:
 1. 결과 글에 있는 소견만 씁니다. 글에 없는 소견을 추측해서 넣지 마세요.
@@ -78,6 +80,20 @@ TRIAGE_ALERT = "⚠ 우선 확인: {text}\n진단 추론보다 환자 상태 안
 # confidence: one pushback per case when the code-computed confidence of a proposed diagnosis is low
 CONFIDENCE_PUSHBACK = ("제안한 진단 '{dx}'의 확신도가 낮습니다({score:.2f}; {reasons}). 1순위와 2순위 후보를 가장 잘 "
                        "가르는 남은 질문·진찰·검사 하나를 먼저 하세요. 확진 근거가 이미 있으면 reason에 그 근거를 쓰고 진단하세요.")
+
+
+# result interpreter (code reading of the latest EXAM/TEST result; ≤ AgentConfig.result_hint_chars, advisor budget)
+RESULT_HINT = "검사 결과 판독(코드 요약, 원문과 다르면 원문 우선): {line}"
+# critical result: shown once per finding, in the top-of-prompt alert slot (TRIAGE_ALERT) next to the triage text
+RESULT_CRITICAL_ALERT = "즉시 조치가 필요한 결과: {items}. 이 결과가 뜻하는 위험 질환의 확인과 조치를 먼저 고려하세요."
+
+
+def result_hint(line: str) -> str:
+    return RESULT_HINT.format(line=line)
+
+
+def result_critical_alert(items: list[str]) -> str:
+    return RESULT_CRITICAL_ALERT.format(items=", ".join(items[:4])[:200])
 
 
 def confidence_pushback(dx: str, score: float, reasons: list[str]) -> str:

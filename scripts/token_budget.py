@@ -136,6 +136,7 @@ HINT_TYPES = [  # (prefix, label) in the order Policy._hints builds them, then t
     ("아직 안 한 최소 안전 확인", "hint.safety_checks"),
     ("결과가 제공되지 않은 요청", "hint.unavailable"),
     ("[임상 결정 규칙", "hint.clinical_rules"),
+    (prompts.RESULT_HINT.split("(")[0], "hint.result_interp"),
     ("목표 턴 수", "hint.target_turns"),
     ("고려해 볼 다른 질환", "hint.kb_candidates"),
     ("감별 포인트", "hint.kb_discriminator"),

@@ -31,6 +31,21 @@ doctor ignores hints, so scores cannot move): mean max prompt 2,322 → 2,619 ch
 (the confidence pushback), Accuracy / Efficiency / Safety 0.062 / 0.91 / 0.385 in both. **Measure v6 vs.
 v6-no-advisors on gpt-oss-20b before relying on it**; the 0.3 pushback threshold was not calibrated for the new model.
 
+### 2026-09-28 · prompt `v7-advisors` → `v8-result-interp` (no LLM run yet)
+The code-first result interpreter is wired into the policy (`docs/architecture.md` "Result interpreter wired into the
+policy"): every EXAM/TEST result is read by code into the findings ledger (verified, source `result_interpreter`;
+"not provided" / pending → 결과없음, never 음성), the latest reading is a hint (`prompts.RESULT_HINT`, ≤ 300 chars, in the
+advisor budget after the triage hint), critical results get a one-time top-of-prompt alert
+(`prompts.RESULT_CRITICAL_ALERT`, in the triage alert slot) and critical IMG/ECG readings confirm the matching
+can't-miss danger in `danger_gate`. `SYSTEM` / `REVIEW_SYSTEM` unchanged. The optional LLM reading
+(`RESULT_INTERPRETER_PROMPT`) is still not called; results that would need it are counted in `result["result_interp"]`.
+Ablation condition `v6-no-interp` (`AGENT_USE_RESULT_INTERPRETER=0`), **not** in `dev`. Dummy smoke (16 sample cases,
+keyword patient, no judge; the dummy doctor ignores hints, so scores cannot move): Accuracy / Efficiency / Safety
+0.062 / 0.91 / 0.385 with the interpreter on and off, 5.4 turns, 8.56 LLM calls per case in both; 54 results read,
+2 would need the LLM reading (both `unmapped_findings`), 3 critical, 13 "not provided", 0 errors, 130 code findings in
+the ledgers. `scripts/token_budget.py --tokenizer chars --limit 3`: the result hint adds 30.5 tokens mean (max 102;
+present in 72% of step prompts). **Measure v6 vs. v6-no-interp on gpt-oss-20b before relying on it.**
+
 ## 2026-09-26 → 09-27: changes since the last LLM run (no LLM calls)
 
 Everything below was measured offline (rules, KB, case files). None of it has an Accuracy/Efficiency/Safety score yet.
@@ -43,7 +58,7 @@ Everything below was measured offline (rules, KB, case files). None of it has an
 | Cases | Full augmentation of all sets → `data/cases_aug` (267); rule-based quality gate `scripts/check_cases.py` | hard issues **48 → 0** (45 placeholder search terms, 2 sex/age-inconsistent tests, 1 vital conflict); 15 cases / 57 edits; 2,278 soft issues left as a review list (`data/labels/case_quality_2026-09-27.json`) |
 | KB | Matching/ranking/normalisation rework (09-26), then curated test-result → disease links `kb_tests.py` (262 concepts, 452 links, 95 PMID-verified refs) | see below |
 | Eval | One-command experiment runner (profiles smoke/dev/full, cost guard, token metering, compare, log, share page) | `tests/test_experiment.py` |
-| Result interpreter (09-28, not wired) | `agent/result_interpreter.py`: code-first reading of EXAM/TEST result text (negation, hedges, comparison, sections, organ-aware report words, critical values, supportive kb_tests links); new prompt `RESULT_INTERPRETER_PROMPT` added to `prompts.py` but **not called** (PROMPT_VERSION unchanged) | gold (concept+polarity): fresh set P/R 0.879/0.879 before the fixes it prompted, dev + fresh 1.00 after (same author, optimistic); `tests/test_result_interpreter.py` |
+| Result interpreter (09-28; wired later the same day, prompt `v8-result-interp`) | `agent/result_interpreter.py`: code-first reading of EXAM/TEST result text (negation, hedges, comparison, sections, organ-aware report words, critical values, supportive kb_tests links); new prompt `RESULT_INTERPRETER_PROMPT` added to `prompts.py` but **not called** (PROMPT_VERSION unchanged) | gold (concept+polarity): fresh set P/R 0.879/0.879 before the fixes it prompted, dev + fresh 1.00 after (same author, optimistic); `tests/test_result_interpreter.py` |
 
 KB offline benchmark (`scripts/eval_kb.py`, gold diagnosis rank in `candidates(k=50)` from the case text; dev = sample +
 clinicalqa 111, held-out = agentclinic + diagnosisarena 156; `data/labels/kb_eval_2026-09-27.json`):

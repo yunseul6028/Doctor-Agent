@@ -10,6 +10,7 @@ class Turn:
     action: Action
     response: str
     ddx: list[dict] = field(default_factory=list)  # DDx snapshot at the time of this action
+    interp: dict | None = None  # EXAM/TEST only: result_interpreter reading of `response` (set by the policy)
 
 
 @dataclass
@@ -29,6 +30,12 @@ class CaseState:
     confidence_pushback: bool = False  # already pushed back once on a low code-computed confidence
     anchoring_shown: bool = False  # the premature-closure (anchoring) hint was shown
     triage_level: str = ""  # last triage level logged (a new safety_log entry only when it changes)
+    # result interpreter (agent/result_interpreter.py, wired in the policy): critical items read so far
+    # [{turn, test, concept, label, polarity, kind, summary}], keys already shown in the top-of-prompt alert, and
+    # per-case counters (n results read, needs_llm, reasons, critical, unavailable, errors) for sizing a future LLM call
+    result_criticals: list[dict] = field(default_factory=list)
+    critical_alerted: set = field(default_factory=set)
+    interp_stats: dict = field(default_factory=dict)
     safety_log: list[dict] = field(default_factory=list)  # grounding / gate / precondition / advisor events (viewer)
     view_max_chars: int = 0  # prompt-length cap for view(); set from AgentConfig.max_view_chars by the loop
 

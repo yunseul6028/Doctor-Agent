@@ -31,6 +31,7 @@ import re
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 
+from doctor_agent.agent.ledger import CODE_SOURCE
 from doctor_agent.agent.text import similarity
 from doctor_agent.nlp import LEXICON, Finding, normalize, parse
 from doctor_agent.nlp import findings as _nlp  # the layer's rules are reused, never copied
@@ -762,10 +763,14 @@ def check_findings(ledger, evidence: "str | Evidence", qa: list[tuple[str, str]]
                    unavailable: list[str] | None = None) -> list:
     """Set `verified` and `span` on every finding of a FindingsLedger; returns the findings found unverified.
     양성/음성 findings are checked against the evidence (item text + numbers in the detail); 결과없음 findings against the
-    list of requests the environment said it had no result for (left unchecked when that list is not given)."""
+    list of requests the environment said it had no result for (left unchecked when that list is not given). Findings
+    the result interpreter read from a result text (source == ledger.CODE_SOURCE) are kept verified."""
     ev = _as_evidence(evidence)
     bad = []
     for f in ledger.items:
+        if getattr(f, "source", "") == CODE_SOURCE:  # read from the result text by code: grounded by construction
+            f.verified = True
+            continue
         if f.status == "결과없음":
             if unavailable is None:
                 f.verified, f.span = None, ""

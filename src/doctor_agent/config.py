@@ -76,7 +76,12 @@ class AgentConfig:
     # a proposed diagnosis whose code-computed confidence is below this gets one pushback per case
     confidence_pushback_below: float = field(default_factory=lambda: _num("AGENT_CONFIDENCE_PUSHBACK_BELOW", 0.3))
     planner_k: int = 3  # suggestions shown by the question planner
-    # total characters the advisor hints may add to one step prompt (triage > anchoring > starting DDx > planner)
+    # code-first result interpreter (agent/result_interpreter.py): reads each EXAM/TEST result into the findings ledger,
+    # a one-line hint on the next prompt and a one-time alert for critical results (condition v6-no-interp turns it off)
+    use_result_interpreter: bool = field(default_factory=lambda: _flag("AGENT_USE_RESULT_INTERPRETER", "1"))
+    result_hint_chars: int = 300  # cap on the result-reading hint (part of max_advisor_chars)
+    # total characters the advisor hints may add to one step prompt
+    # (triage/critical-result alert > triage hint > result reading > anchoring > starting DDx > planner)
     max_advisor_chars: int = field(default_factory=lambda: int(_num("AGENT_MAX_ADVISOR_CHARS", 900)))
 
     # --- runtime robustness (see docs/architecture.md "Runtime") ---

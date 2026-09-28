@@ -106,6 +106,7 @@ def test_classify_hint_covers_policy_hints():
     assert tb.classify_hint("아직 안 한 최소 안전 확인 (근거 지침): 심전도") == "hint.safety_checks"
     assert tb.classify_hint("결과가 제공되지 않은 요청 (다시 …): 뇌 MRI") == "hint.unavailable"
     assert tb.classify_hint("[임상 결정 규칙: …]\n■ Wells") == "hint.clinical_rules"
+    assert tb.classify_hint(prompts.result_hint("[흉부 X선] 있음: 기흉")) == "hint.result_interp"
     assert tb.classify_hint("목표 턴 수를 넘었습니다. 충분히 확신하면 진단하세요.") == "hint.target_turns"
     assert tb.classify_hint("고려해 볼 다른 질환 (참고용 …): 결핵") == "hint.kb_candidates"
     assert tb.classify_hint("감별 포인트 A vs B (참고용 …)") == "hint.kb_discriminator"
