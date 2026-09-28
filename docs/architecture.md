@@ -168,6 +168,22 @@ KB hints (`agent/kb_hints.py`, per case `seen` set, each ≤ 400 chars):
 - `normalize_hint`: standard Korean name + KCD code; warning when the code is sex-restricted and the patient's sex differs
   (used in the review view and in the result record).
 
+Next-question planner (`agent/question_planner.py`, not wired into the policy yet; CPU, ≈3 ms/call warm, p95 6 ms):
+- `suggest(state, k=3, include_safety=True) -> list[Suggestion]`; `Suggestion(type "ASK"|"EXAM"|"TEST", content_ko,
+  targets[dx], expected_value, cost_tier ask|exam|lab|imaging|invasive, source, citation, safety, features, note)`.
+- Hypotheses = top 4 live DDx-ledger entries (else `state.ddx`, else KB candidates) resolved to KB profiles + an "other"
+  hypothesis (p 0.2); can't-miss ("위험") entries ×1.5. P(feature|dx) from profile symptoms/risks (Orphanet frequency
+  class or source consensus) and curated test results (link weight 3/2/1 → 0.9/0.65/0.35), with a small leak.
+- Value = expected information gain over the action's joint outcomes × tier weight (1/.95/.9/.75/.5). Several results
+  of one test (e.g. ECG: STEMI / pericarditis pattern) form one action (`TEST_RULES`: result → request wording).
+- Excluded: already done (`state.asked`, earlier TEST/EXAM naming the test), features already known from the case text
+  or findings ledger (nlp concepts → KB terms, `kb_tests.detect`), questions about a hypothesis itself, and TEST/EXAM
+  that `preconditions.check` blocks (warn → `note`). Pending protocol checks are appended with `source="protocol:<id>"`,
+  `safety=True`; a ranked action that completes one is also marked.
+- `render_for_prompt(suggestions) -> str`: "추천 다음 행동 (참고): 1) [검사] 심전도 (감별: …) …" ≤ 300 chars, protocol
+  items left out (the protocol hint already shows them).
+- Offline check (cases_aug, 267 cases, no LLM, DDx seeded from KB candidates ± gold dx): see the planner commit message.
+
 ## Runtime (competition robustness)
 
 - **Entry point** `run.py`: case source by `--env local|official` or `DOCTOR_ENV`. Submission mode by default
