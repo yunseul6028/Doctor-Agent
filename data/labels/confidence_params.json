@@ -1,0 +1,94 @@
+{
+ "params": {
+  "bias": -2.6352,
+  "weights": {
+   "margin": 4.3072,
+   "verified_support": 0.4402,
+   "contradictions": -0.8337,
+   "confirmatory_test": 0.6186,
+   "criteria_met": 1.9983,
+   "dangers_unresolved": 0.0,
+   "kb_agreement": 0.0,
+   "turns_used": 0.5
+  },
+  "theta_high": 0.85,
+  "theta_low": 0.65,
+  "source": "calibrate"
+ },
+ "n_samples": 1446,
+ "n_positive": 814,
+ "n_final": 226,
+ "n_final_positive": 200,
+ "auc_hand_set_all": 0.7086206963580381,
+ "auc_hand_set_final": 0.7449038461538462,
+ "auc_fitted_all_insample": 0.8144953425807856,
+ "auc_fitted_final_insample": 0.8031730769230769,
+ "auc_cv_all": 0.8037051363791871,
+ "auc_cv_final": 0.7956730769230769,
+ "feature_auc_final": {
+  "margin": 0.7472115384615384,
+  "verified_support": 0.5769230769230769,
+  "contradictions": 0.4933653846153846,
+  "confirmatory_test": 0.6180769230769231,
+  "criteria_met": 0.6196153846153846,
+  "dangers_unresolved": 0.5755769230769231,
+  "kb_agreement": 0.46826923076923077,
+  "turns_used": 0.32711538461538464
+ },
+ "simulate_hand_set": {
+  "cases": 226,
+  "acc_actual": 0.885,
+  "acc_sim": 0.8584,
+  "turns_actual": 6.398,
+  "turns_sim": 5.708,
+  "stopped_earlier": 58,
+  "would_continue_at_end": 90,
+  "would_continue_and_wrong": 17
+ },
+ "simulate_hand_set_matched": {
+  "theta_high": 0.85,
+  "cases": 226,
+  "acc_actual": 0.885,
+  "acc_sim": 0.8805,
+  "turns_actual": 6.398,
+  "turns_sim": 6.181,
+  "stopped_earlier": 25,
+  "would_continue_at_end": 172,
+  "would_continue_and_wrong": 22
+ },
+ "simulate_fitted_insample": {
+  "cases": 226,
+  "acc_actual": 0.885,
+  "acc_sim": 0.885,
+  "turns_actual": 6.398,
+  "turns_sim": 6.106,
+  "stopped_earlier": 34,
+  "would_continue_at_end": 103,
+  "would_continue_and_wrong": 18
+ },
+ "simulate_cv": {
+  "cases": 226,
+  "acc_actual": 0.885,
+  "acc_sim": 0.8761,
+  "turns_actual": 6.3983,
+  "turns_sim": 6.0841,
+  "stopped_earlier": 40,
+  "would_continue_at_end": 104,
+  "would_continue_and_wrong": 17
+ },
+ "method": "class-balanced logistic regression, L2=2.0 towards the hand-set defaults, sign-constrained, turns_used fixed; theta_high = lowest of (0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95) keeping replay accuracy within 0.005 of the actual runs, theta_low = theta_high - 0.2; leave-one-run-out CV AUC",
+ "labels": "final decision point: judged accuracy == 1; earlier points: top live DDx names the answer (or the final diagnosis when judged correct) by confidence.same_disease (a proxy)",
+ "files": [
+  "run_20260925_005054.json",
+  "run_20260925_005355.json",
+  "run_20260925_010657.json",
+  "run_20260925_024617.json",
+  "run_20260925_031315.json",
+  "run_20260925_135709.json",
+  "run_20260926_052026.json",
+  "run_20260926_202333.json",
+  "run_20260926_202610.json",
+  "run_20260926_204021.json",
+  "run_20260926_204404.json"
+ ]
+}

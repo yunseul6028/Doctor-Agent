@@ -221,3 +221,27 @@ Order inside `Policy.next_action` for each proposed action:
 2. DIAGNOSE only: protocol safety pushback (once) → **can't-miss gate** (`safety/danger_gate.gate`: forces the next rule-out action for an unresolved can't-miss diagnosis, ≤ `max_gate_turns`=3 per case, never when ≤2 turns remain; a confirmed *other* danger only yields a one-time hint) → pre-diagnosis review (with diagnostic criteria).
 3. TEST/EXAM (incl. gate/review follow-ups): **pre-test preconditions** (`safety/preconditions.check`: block → swap in the prerequisite, e.g. brain CT before LP, β-hCG before abdominal CT; block without alternative → ask the model for another action; warn → annotate the reason).
 All three are guarded (exceptions are logged, never raised), recorded in `result["safety_log"]` (shown per turn in the viewer), and switchable for ablations: `AGENT_USE_GROUNDING`, `AGENT_USE_DANGER_GATE`, `AGENT_USE_PRECONDITIONS` (experiment condition `v6-no-safety`).
+
+## Confidence and stop rule (`agent/confidence.py`, 2026-09-28; not wired in yet)
+Code-computed replacement for the LLM's self-reported confidence. Pure code over one `CaseState` (no LLM, CPU, stdlib,
+never raises, nothing kept between calls or cases).
+- API: `assess(state, proposed_dx=None, cfg=AgentConfig, params=None) -> Assessment(score, components, recommendation,
+  reasons_ko, proposed, dangers)`; `recommendation` ∈ `diagnose` | `continue` | `must_continue`. Lower-level:
+  `features(state, dx)`, `score_of(components, params)`, `decide(score, turn_count, max_turns, target_turns, dangers,
+  params, gate_left)`.
+- Score = `sigmoid(bias + Σ w·x)` over 8 features in [0, 1]: `margin` (ledger p of the proposal − best other live DDx),
+  `verified_support` (grounded "for" items /3), `contradictions` (grounded "against" /2), `confirmatory_test` (support
+  grounded in a TEST/EXAM response, a confirmed can't-miss dx, or a criteria decision), `criteria_met`
+  (`diagnostic_criteria`), `dangers_unresolved` (actionable unresolved can't-miss dangers /2), `kb_agreement`
+  (1/rank in `kb.candidates`), `turns_used` (turns / target_turns). Missing features use neutral values.
+- Rule: ≤1 turn left → diagnose; actionable unresolved danger with >2 turns left and gate budget left → must_continue;
+  score ≥ θ_high (0.85) → diagnose; < θ_low (0.65) → continue; in between → diagnose from `target_turns` on.
+- Parameters: defaults in code (`DEFAULT_PARAMS`); `AGENT_CONFIDENCE_PARAMS=<json>` overrides (dev). `calibrate(paths)`
+  (`scripts/calibrate_confidence.py [--write] eval/results/run_*.json`) rebuilds states at every decision
+  point of saved runs (`state_from_result`), fits a class-balanced logistic regression (Newton, L2 towards the hand-set
+  prior, sign-constrained, `turns_used` fixed), picks θ_high on a coarse grid at matched replay accuracy, and writes
+  `data/labels/confidence_params.json` (dev only, not shipped).
+- 2026-09-28 calibration (11 runs, 226 cases, 1446 decision points, Gemini/Gemma doctors): final-diagnosis AUC
+  (correct vs. not) 0.745 hand-set → 0.796 leave-one-run-out; `margin` alone 0.747. `dangers_unresolved` and
+  `kb_agreement` fitted to weight 0. Replay (leave-one-run-out, stop at the first "diagnose"): accuracy 0.885 → 0.876,
+  mean turns 6.40 → 6.08. Earlier labels are a name-matching proxy (`same_disease`). **Re-validate on gpt-oss-20b.**
