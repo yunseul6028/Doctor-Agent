@@ -17,8 +17,19 @@
 | 2026-09-26 | Findings ledger + DDx ledger + pre-diagnosis review | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (original) | standard | 0.90 | 0.89 | 0.85 | – | reviewer: 0 holds, 6 diagnosis names revised |
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
 
-Prompt `v6-kb-strict-review` (current: KB hints, code-decided review, evidence-gated renaming) has **no LLM run yet**.
+Prompt `v6-kb-strict-review` (KB hints, code-decided review, evidence-gated renaming) has **no LLM run yet**.
 The first rows for it should come from `eval/experiment.py` on the competition model (see below).
+
+### 2026-09-28 · prompt `v6-kb-strict-review` → `v7-advisors` (no LLM run yet)
+The four advisor modules are wired into the policy (`docs/architecture.md` "Advisors wired into the policy"): triage
+alert above the case view for unstable patients (or missing vitals with a red flag), turn-1 starting DDx, one-time
+anchoring (premature-closure) hint, per-turn question-planner suggestions (KB on), and one code-confidence pushback when
+a proposed diagnosis scores < 0.3. `SYSTEM` / `REVIEW_SYSTEM` are unchanged; new wording is `prompts.TRIAGE_ALERT` and
+`prompts.CONFIDENCE_PUSHBACK`. Advisor text ≤ `AGENT_MAX_ADVISOR_CHARS` = 900 per step prompt. Ablation condition:
+`v6-no-advisors` (added to the `dev` profile). Dummy smoke only (16 sample cases, keyword patient, no judge; the dummy
+doctor ignores hints, so scores cannot move): mean max prompt 2,322 → 2,619 chars, mean LLM calls per case 7.56 → 8.56
+(the confidence pushback), Accuracy / Efficiency / Safety 0.062 / 0.91 / 0.385 in both. **Measure v6 vs.
+v6-no-advisors on gpt-oss-20b before relying on it**; the 0.3 pushback threshold was not calibrated for the new model.
 
 ## 2026-09-26 → 09-27: changes since the last LLM run (no LLM calls)
 

@@ -1,18 +1,24 @@
+import logging
 import re
 
-from doctor_agent.agent import grounding, kb_hints, prompts
+from doctor_agent.agent import anchoring, confidence, grounding, kb_hints, prompts, question_planner
 from doctor_agent.agent.parser import _json_objects, extract_action_json, parse_action
 from doctor_agent.agent.state import CaseState
 from doctor_agent.config import AgentConfig
 from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.llm.client import LLMClient
 from doctor_agent.knowledge import clinical_rules, diagnostic_criteria
-from doctor_agent.safety import danger_gate, preconditions, protocols
+from doctor_agent.safety import danger_gate, preconditions, protocols, triage
+
+log = logging.getLogger("doctor_agent.policy")
 
 MAX_RULES_IN_PROMPT = 2  # keep prompts short for the small fixed LLM
 MAX_ATTEMPTS = 4
 MAX_REVIEWS = 2  # pre-diagnosis reviews per case (each hold costs a turn)
 MAX_HINTS_DEGRADED = 2  # hints kept when the time budget runs low (can't-miss + pending safety checks come first)
+# triage flags that make an "unknown" level (vitals not measured yet) urgent enough for the top-of-prompt alert
+TRIAGE_RED_FLAGS = ("ams", "chest_pain", "syncope", "bleeding", "anaphylaxis", "airway", "respiratory", "seizure",
+                    "sepsis_suspected", "trauma")
 # a question sent as EXAM/TEST ("목이 뻣뻣한가요?") is really an ASK
 _QUESTION_END = re.compile(r"(\?|？|나요|세요|니까|까요|있어요|없어요|하셨어요|드세요)\s*$")
 
@@ -34,6 +40,8 @@ class Policy:
         self.cfg = cfg
         self._kb_seen: set = set()  # KB hints already shown in this case (Policy is created per case)
         self.degraded = False  # set by the loop when the case time budget runs low (runtime.CaseBudget)
+        self._conf_params = None  # confidence parameters, loaded on first use (per case)
+        self._planner_logged = ""  # last planner suggestions written to the safety log
 
     def next_action(self, state: CaseState) -> Action:
         remaining = self.cfg.max_turns - state.turn_count
@@ -41,10 +49,18 @@ class Policy:
             return self._final_diagnosis(state)
 
         hints = self._hints(state)
+        try:
+            alert, advice = self._advisors(state)
+        except Exception as e:  # noqa: BLE001 — each advisor is guarded; this only catches a bug in the composition
+            self._advisor_error(state, "advisors", e)
+            alert, advice = "", []
         if self.degraded:  # time budget running low: short prompt, no extra review/pushback calls
             hints = hints[:MAX_HINTS_DEGRADED] + [prompts.LOW_TIME_HINT]
-        for _ in range(MAX_ATTEMPTS):  # retries: parse failure, repeated action, safety pushback, review hold
-            raw = self.llm.chat(prompts.build_step_messages(state.view(), state.turn_count, self.cfg.max_turns, hints))
+        else:
+            hints = hints + advice
+        for attempt in range(MAX_ATTEMPTS):  # retries: parse failure, repeated action, safety pushback, review hold
+            raw = self.llm.chat(prompts.build_step_messages(state.view(), state.turn_count, self.cfg.max_turns, hints,
+                                                            alert=alert))
             parsed = parse_action(raw)
             if parsed is None:
                 hints = hints + ["정해진 형식의 JSON 한 줄로만 출력하세요."]
@@ -72,6 +88,11 @@ class Policy:
                 if gated is not None:
                     return self._safe(state, gated)
                 if hint:
+                    hints = hints + [hint]
+                    continue
+                # low code-computed confidence: one pushback per case, only with >= 2 attempts left (so the retry
+                # budget cannot run out on it) and never close to the turn cap
+                if attempt < MAX_ATTEMPTS - 2 and remaining > 3 and (hint := self._confidence(state, action)):
                     hints = hints + [hint]
                     continue
             if action.type == ActionType.DIAGNOSE and len(state.reviews) < MAX_REVIEWS and remaining > 3 and not self.degraded:
@@ -157,6 +178,123 @@ class Policy:
                 entry["replaced_with"] = first.to_dict()
                 return first
         return None
+
+    # ---- advisors (each guarded and switchable; they only add hints / one pushback, never pick the action) ----
+    def _advisor_error(self, state: CaseState, layer: str, e: Exception) -> None:
+        log.warning("advisor %s failed: %s", layer, e)
+        state.safety_log.append({"turn": state.turn_count + 1, "layer": layer, "error": f"{type(e).__name__}: {e}"[:200]})
+
+    def _confidence(self, state: CaseState, action: Action) -> str | None:
+        """One pushback per case when the code-computed confidence of the proposed diagnosis is below
+        cfg.confidence_pushback_below. "must_continue" (an actionable unresolved can't-miss danger) is left to the
+        danger gate, which has already had its say, so a diagnosis is never blocked twice for the same reason."""
+        if not self.cfg.use_confidence or state.confidence_pushback:
+            return None
+        try:
+            if self._conf_params is None:
+                self._conf_params = confidence.load_params()
+            a = confidence.assess(state, action.content, self.cfg, self._conf_params)
+            push = a.recommendation != "must_continue" and a.score < self.cfg.confidence_pushback_below
+            state.safety_log.append({
+                "turn": state.turn_count + 1, "layer": "confidence", "proposed": action.content, "score": a.score,
+                "recommendation": a.recommendation, "pushback": push, "components": a.components,
+                "msg": f"진단({action.content}) 확신도 {a.score:.2f} → {a.recommendation}" + (" · 재고 요청" if push else "")})
+            if not push:
+                return None
+            state.confidence_pushback = True
+            return prompts.confidence_pushback(action.content, a.score, a.reasons_ko)
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "confidence", e)
+            return None
+
+    def _advisors(self, state: CaseState) -> tuple[str, list[str]]:
+        """(top-of-prompt alert, extra hints) from triage, the anchoring check, the starting DDx and the question
+        planner. Within cfg.max_advisor_chars in total, filled in that priority order; a hint that does not fit is
+        dropped (not cut) and is neither logged nor counted as shown."""
+        alert, triage_hint = self._triage(state)
+        if self.degraded:  # low-time mode: only the triage alert survives (the other hints would be cut anyway)
+            return alert, []
+        items = [(triage_hint, None), self._anchoring(state), self._initial_ddx(state), self._planner(state)]
+        budget = max(0, self.cfg.max_advisor_chars - len(alert))
+        out = []
+        for text, entry in items:
+            if not text or len(text) > budget:
+                continue
+            out.append(text)
+            budget -= len(text)
+            if entry:
+                if entry.get("kind") == "premature_closure":
+                    state.anchoring_shown = True  # shown once per case, counted only once really in the prompt
+                if entry["layer"] == "planner":  # shown every turn, logged only when the suggestions change
+                    if entry["msg"] == self._planner_logged:
+                        continue
+                    self._planner_logged = entry["msg"]
+                state.safety_log.append(entry)
+        return alert, out
+
+    def _triage(self, state: CaseState) -> tuple[str, str]:
+        """(alert, hint). Unstable, or vitals unknown with a red flag → alert at the top of the prompt; concerning →
+        ordinary hint; stable / unknown without red flags → nothing (a level change is still logged)."""
+        if not self.cfg.use_triage:
+            return "", ""
+        try:
+            res = triage.assess(state)
+            level = res["level"]
+            red = [k for k in TRIAGE_RED_FLAGS if (res.get("flags") or {}).get(k)]
+            top = level == "unstable" or (level == "unknown" and bool(red))
+            text = triage.render_for_prompt(state, res) if top or level == "concerning" else ""
+            if level != state.triage_level:
+                state.triage_level = level
+                state.safety_log.append({
+                    "turn": state.turn_count + 1, "layer": "triage", "level": level, "why": res.get("why_ko", ""),
+                    "red_flags": red, "shown": ("top" if top else "hint") if text else "",
+                    "msg": text or f"중증도 {level}: {res.get('why_ko', '')}"})
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "triage", e)
+            return "", ""
+        return (text, "") if top else ("", text)
+
+    def _initial_ddx(self, state: CaseState) -> tuple[str, dict | None]:
+        """Broad starting differential, turn 1 only."""
+        if not self.cfg.use_anchoring or state.turn_count:
+            return "", None
+        try:
+            ddx = anchoring.initial_differential(state.initial_info)
+            names = [str(d.get("dx")) for d in ddx]
+            return anchoring.render_for_prompt(ddx), {"turn": 1, "layer": "anchoring", "kind": "initial_ddx",
+                                                      "ddx": names, "msg": "초기 감별 목록: " + ", ".join(names)}
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "anchoring", e)
+            return "", None
+
+    def _anchoring(self, state: CaseState) -> tuple[str, dict | None]:
+        """Premature-closure check from turn anchoring.MIN_TURNS on, each turn until it fires; shown once per case."""
+        if not self.cfg.use_anchoring or state.anchoring_shown or state.turn_count < anchoring.MIN_TURNS:
+            return "", None
+        try:
+            chk = anchoring.anchoring_check(state)
+            if not chk or not chk.get("prompt_ko"):
+                return "", None
+            return str(chk["prompt_ko"]), {
+                "turn": state.turn_count + 1, "layer": "anchoring", "kind": "premature_closure", "dx": chk.get("dx"),
+                "reasons": chk.get("reasons"), "msg": f"'{chk.get('dx')}' 조기 고정 의심: {chk.get('why_ko', '')}"}
+        except Exception as e:  # noqa: BLE001
+            state.anchoring_shown = True  # a failing check is not retried every turn
+            self._advisor_error(state, "anchoring", e)
+            return "", None
+
+    def _planner(self, state: CaseState) -> tuple[str, dict | None]:
+        """Most discriminating next actions (KB information gain), every turn; needs the KB (use_kb)."""
+        if not (self.cfg.use_planner and self.cfg.use_kb):
+            return "", None
+        try:
+            sugg = question_planner.suggest(state, k=self.cfg.planner_k)
+            shown = [f"{s.type}: {s.content_ko}" for s in sugg if not s.source.startswith("protocol:")]
+            return question_planner.render_for_prompt(sugg), {"turn": state.turn_count + 1, "layer": "planner",
+                                                               "suggestions": shown, "msg": "; ".join(shown)}
+        except Exception as e:  # noqa: BLE001
+            self._advisor_error(state, "planner", e)
+            return "", None
 
     def _review(self, state: CaseState, action: Action) -> Action:
         """Pre-diagnosis review by the same LLM in a reviewer role. The reviewer only fills structured fields
