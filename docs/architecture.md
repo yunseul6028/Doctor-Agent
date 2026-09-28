@@ -415,3 +415,58 @@ Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_inter
 6. **Logs** (`safety_log`, viewer label "결과 판독"): `{"layer": "result_interp", "kind": "reading", "turn": <result
    turn>, test, test_kind, critical, needs_llm, llm_reasons, msg}` per result; `{"kind": "critical_alert", items, msg}`
    when an alert is shown; `{"layer": "result_interp", "error"}` on any exception (the case goes on as if off).
+
+## Specialty routing (`knowledge/specialty.py`, 2026-09-28; not wired yet)
+
+Routing and evidence slicing for runtime specialist consults (code only, stdlib, CPU, no network; the consult prompt
+and the call site belong to agent-engineer / clinical-strategist). Six fixed ids: `cardio`, `resp_id`, `gi_liver`,
+`neuro`, `rheum_immune`, `peds_obgyn` (`SPECIALTIES`, Korean labels `SPECIALTY_KO`).
+
+API (every function catches all errors):
+- `specialty_of(dx_name) -> str | None`; `specialty_detail(dx_name) -> {specialty, group, how, code, name}`. `group` also
+  names buckets outside the six (`endo_metab, renal_uro, heme_onc, psych, derm, ent_eye, msk_ortho, tox_trauma,
+  symptom, other`); `how` ∈ `override, kcd, do, keyword, none`.
+  Order: `OVERRIDES` (short curated regex list where the ICD chapter misleads: endocarditis → cardio, pregnancy/neonatal
+  words → peds_obgyn, meningitis/encephalitis → neuro, pneumonia/pleurisy/ILD → resp_id, hepatitis/haemochromatosis/
+  Wilson/mesenteric ischaemia → gi_liver, sepsis → resp_id, anaphylaxis/serum sickness → rheum_immune) →
+  `kb.normalize_diagnosis()` KCD code → `KCD_TABLE` (chapter/block ranges, most specific first; e.g. A00–A09 and
+  B15–B19 → gi_liver, other A/B → resp_id, I60–I69 → neuro, M00–M19/M30–M36/M45–M46 → rheum_immune, O/P, N70–N98,
+  most Q → peds_obgyn) → nearest mapped Disease Ontology ancestor (`DO_MAP`, organ classes before system-wide ones) →
+  `FALLBACK` organ keywords → None.
+  Latency: the KB fuzzy step runs only for short Korean names (`FUZZY_MAX_KEY` 14 compact chars); it costs 40–100 ms on
+  long English names (`kb.normalize_diagnosis(text, fuzzy=False)` / `_resolve(..., fuzzy=False)` added for this).
+- `route(state) -> (specialty | None, share, [Korean reasons])`. Candidates = live `ddx_ledger` entries (else
+  `state.ddx`), top `TOP_K` 5; mass = p (else rank weights 1/(r+1)); share = mass per specialty / total mass (unmapped
+  candidates stay in the total). Patient-context override first: infant (< 1 y) → peds_obgyn, share 1.0; child (< 18 y,
+  `nlp.findings.age_from_text`, then `clinical_rules.rule_age_years`) or current pregnancy
+  (`safety.protocols.PREDICATES["current_pregnancy"]` on initial info + responses) → peds_obgyn when the top-1 candidate
+  is age/pregnancy-relevant or the relevant share ≥ `CONTEXT_SHARE` 0.3 (relevant = maps to peds_obgyn; child: KCD P/Q,
+  pediatric-named KB profile or `PEDIATRIC_DX`; pregnancy: KCD O or a pregnancy word). Otherwise argmax over the six.
+  Suggested caller gate: `MIN_TURNS` 3 and share ≥ `MIN_SHARE` 0.6.
+- `resources(specialty, state) -> {specialty, criteria, rules, protocols, kb_candidates}` ({} on error / unknown id),
+  bounded by `MAX_ITEMS` (3/4/3/4): criteria = `diagnostic_criteria.CRITERIA` sets tagged for the specialty
+  (`CRITERIA_SPECIALTY`) or naming a current candidate, candidate-named first; the first such set is evaluated
+  (`evaluate`, band + met/not_met/unknown counts) on initial info + last 8 responses + verified findings ledger;
+  rules = `clinical_rules.RULES` tagged for the specialty (`RULE_SPECIALTY`) with `applies` = `Rule.applies_to(chief
+  complaint)` (applicable first; the two first tagged rules when none applies); protocols = `protocols.protocols_for`
+  on the chief complaint with can't-miss list, pending checks (`pending_checks`) and `in_specialty`
+  (`CATEGORY_SPECIALTY`); kb_candidates = the ledger's own candidates in the specialty, then `kb.candidates()` (last 8
+  positive / 4 negative findings, sex/age) filtered to the specialty, each with 3 typical findings and 2 decisive tests.
+  `render_resources(res, max_chars=700)` → Korean block "[… 분과 참고 자료: 확진 근거가 아니라 감별·검사 계획용]".
+- `warm()`: load the KB and build its lazy indexes once at start-up (normalize/fuzzy bigram indexes, sex table,
+  prevalence), so the first case does not pay ~1–2 s.
+- The slice tables must cover every criteria id, rule id and protocol category (`tests/test_specialty.py` fails when
+  a new one is added elsewhere without an entry; an empty tuple is allowed).
+
+Offline numbers (`eval/offline/eval_specialty.py`, metrics `data/labels/specialty_gold_v1_metrics.json`):
+- Gold set `data/labels/specialty_gold_v1.jsonl`, 116 names (100 Korean, 16 English; 22 outside the six), labelled
+  before any output. Labelling guide: organ system first; infections → resp_id unless the organ is GI/liver (gi_liver)
+  or the CNS (neuro); stroke → neuro; systemic autoimmune, vasculitis, inflammatory arthritis, gout, allergy/
+  anaphylaxis → rheum_immune; pregnancy, female genital, neonatal and congenital syndromes → peds_obgyn; everything
+  else → None with a bucket. `also` lists acceptable alternatives. First pass: strict 110/116 (94.8%), lenient 113/116
+  (97.4%); after fixes made while reading those errors: strict 113/116 (97.4%), lenient 116/116.
+- cases_aug (267): cardio 26, resp_id 32, gi_liver 36, neuro 37, rheum_immune 19, peds_obgyn 20, outside 97 (36.3%):
+  heme_onc 25, renal_uro 13, other 13, psych 11, derm 11, endo_metab 10, msk_ortho 9, ent_eye 5.
+- Routing replay (224 non-dummy trajectories of 2026-09-25/26 runs): a consult fires (≥ 3 turns, share ≥ 0.6) in 151
+  (67.4%), mean firing turn 3.1; routed = gold specialty 130/151 (86.1%), 130/139 (93.5%) when the gold is inside the six.
+  Warm latency (shared machine, load 7–20): route mean 0.8 ms, p95 1.7 ms; resources mean 11 ms, p95 24 ms.

@@ -1,0 +1,116 @@
+{"name": "급성 심근경색", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Acute myocardial infarction", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "불안정 협심증", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "심방세동", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "대동맥 박리", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "울혈성 심부전", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Hypertrophic cardiomyopathy", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "감염성 심내막염", "specialty": "cardio", "also": ["resp_id"], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 심낭염", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "폐색전증", "specialty": "cardio", "also": ["resp_id"], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "심부정맥 혈전증", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "대동맥판 협착증", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Wolff-Parkinson-White syndrome", "specialty": "cardio", "also": [], "group": "cardio", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 류마티스열", "specialty": "rheum_immune", "also": ["cardio"], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "지역사회획득 폐렴", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "폐결핵", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "천식", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "COPD 급성 악화", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "자발성 기흉", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Sarcoidosis", "specialty": "resp_id", "also": ["rheum_immune"], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "인플루엔자", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "패혈증", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "연쇄상구균 인두염", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "전염성 단핵구증", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "쯔쯔가무시병", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "HIV infection", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Lyme disease", "specialty": "resp_id", "also": ["rheum_immune", "neuro"], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "말라리아", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "특발성 폐섬유증", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "폐암", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "백일해", "specialty": "resp_id", "also": ["peds_obgyn"], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "COVID-19", "specialty": "resp_id", "also": [], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "대상포진", "specialty": "resp_id", "also": ["neuro"], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 충수염", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 담낭염", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 췌장염", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "원발성 담즙성 담관염", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "크론병", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "궤양성 대장염", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Celiac disease", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "소화성 궤양 천공", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "위식도 역류질환", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "알코올성 간경변", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 A형 간염", "specialty": "gi_liver", "also": ["resp_id"], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "윌슨병", "specialty": "gi_liver", "also": ["neuro"], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "장폐색", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "대장암", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Hemochromatosis", "specialty": "gi_liver", "also": [], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Clostridioides difficile infection", "specialty": "gi_liver", "also": ["resp_id"], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 위장염", "specialty": "gi_liver", "also": ["resp_id"], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "중증근무력증", "specialty": "neuro", "also": ["rheum_immune"], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "길랑-바레 증후군", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "다발성 경화증", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "허혈성 뇌졸중", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "지주막하 출혈", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "편두통", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "파킨슨병", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "세균성 수막염", "specialty": "neuro", "also": ["resp_id"], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "단순포진 뇌염", "specialty": "neuro", "also": ["resp_id"], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "뇌전증", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "양성 발작성 두위 현훈", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "알츠하이머병", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "근위축성 측삭 경화증", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Bell palsy", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "교모세포종", "specialty": "neuro", "also": [], "group": "neuro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "전신홍반루푸스", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "류마티스 관절염", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "통풍", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "강직성 척추염", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "거대세포동맥염", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "다카야수 동맥염", "specialty": "rheum_immune", "also": ["cardio"], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "쇼그렌 증후군", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "피부근염", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "아나필락시스", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Behcet disease", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "전신경화증", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "류마티스 다발근통", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Granulomatosis with polyangiitis", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "반응성 관절염", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "가와사키병", "specialty": "rheum_immune", "also": ["peds_obgyn", "cardio"], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "섬유근육통", "specialty": "rheum_immune", "also": [], "group": "rheum_immune", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "자궁외 임신", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "자간전증", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "난소 염전", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "골반염", "specialty": "peds_obgyn", "also": ["resp_id"], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "다낭성 난소 증후군", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "자궁내막증", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "신생아 황달", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "영아 비후성 유문 협착증", "specialty": "peds_obgyn", "also": ["gi_liver"], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "장중첩증", "specialty": "gi_liver", "also": ["peds_obgyn"], "group": "gi_liver", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "크룹", "specialty": "resp_id", "also": ["peds_obgyn"], "group": "resp_id", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Turner syndrome", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "태반 조기 박리", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "임신성 당뇨병", "specialty": "peds_obgyn", "also": [], "group": "peds_obgyn", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "당뇨병성 케톤산증", "specialty": null, "also": [], "group": "endo_metab", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "그레이브스병", "specialty": null, "also": [], "group": "endo_metab", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "부신 기능 부전", "specialty": null, "also": [], "group": "endo_metab", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "쿠싱 증후군", "specialty": null, "also": [], "group": "endo_metab", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 신손상", "specialty": null, "also": [], "group": "renal_uro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 신우신염", "specialty": null, "also": ["resp_id"], "group": "renal_uro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "요로결석", "specialty": null, "also": [], "group": "renal_uro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "IgA 신병증", "specialty": null, "also": [], "group": "renal_uro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "철결핍성 빈혈", "specialty": null, "also": [], "group": "heme_onc", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Acute myeloid leukemia", "specialty": null, "also": [], "group": "heme_onc", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "호지킨 림프종", "specialty": null, "also": [], "group": "heme_onc", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "면역성 혈소판 감소증", "specialty": null, "also": ["rheum_immune"], "group": "heme_onc", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "주요 우울장애", "specialty": null, "also": [], "group": "psych", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "Panic disorder", "specialty": null, "also": [], "group": "psych", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "건선", "specialty": null, "also": [], "group": "derm", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 중이염", "specialty": null, "also": [], "group": "ent_eye", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "급성 폐쇄각 녹내장", "specialty": null, "also": [], "group": "ent_eye", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "요추 추간판 탈출증", "specialty": null, "also": ["neuro"], "group": "msk_ortho", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "일산화탄소 중독", "specialty": null, "also": [], "group": "tox_trauma", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "저나트륨혈증", "specialty": null, "also": [], "group": "renal_uro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "횡문근융해증", "specialty": null, "also": [], "group": "renal_uro", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}
+{"name": "척추 압박골절", "specialty": null, "also": [], "group": "msk_ortho", "labeler": "knowledge-rag agent (Claude Opus 5.5), by hand before any specialty_of output, 2026-09-28"}

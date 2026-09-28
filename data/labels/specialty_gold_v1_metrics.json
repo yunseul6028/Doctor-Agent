@@ -1,0 +1,456 @@
+{
+ "_note": "knowledge/specialty.py offline metrics (eval/offline/eval_specialty.py, 2026-09-28, no LLM). Gold set data/labels/specialty_gold_v1.jsonl was hand-labelled by the knowledge-rag agent (Claude Opus 5.5) before any specialty_of output was seen. first_pass = the first implementation (KB fuzzy step on); final = after fixes made while looking at the first-pass errors and the cases_aug listing (optimistic on this gold set). Routing uses local run files (eval/results, not in git; non-dummy runs 2026-09-25/26, Gemini/Gemma doctors); timings measured on a shared machine under load average 7-20 on 10 cores.",
+ "first_pass": {
+  "gold": {
+   "n": 116,
+   "strict": 0.948,
+   "lenient": 0.974,
+   "per_label": {
+    "cardio": "13/13",
+    "gi_liver": "17/18",
+    "neuro": "15/15",
+    "none": "22/22",
+    "peds_obgyn": "9/11",
+    "resp_id": "19/20",
+    "rheum_immune": "15/17"
+   },
+   "errors": [
+    {
+     "name": "급성 류마티스열",
+     "gold": "rheum_immune",
+     "also": [
+      "cardio"
+     ],
+     "pred": "cardio",
+     "how": "kcd",
+     "code": "I00",
+     "kb_name": "류마티스열",
+     "lenient_ok": true
+    },
+    {
+     "name": "특발성 폐섬유증",
+     "gold": "resp_id",
+     "also": [],
+     "pred": "rheum_immune",
+     "how": "do",
+     "code": "",
+     "kb_name": "특발성 폐섬유증",
+     "lenient_ok": false
+    },
+    {
+     "name": "Hemochromatosis",
+     "gold": "gi_liver",
+     "also": [],
+     "pred": null,
+     "how": "do",
+     "code": "",
+     "kb_name": "혈색소증",
+     "lenient_ok": false
+    },
+    {
+     "name": "다카야수 동맥염",
+     "gold": "rheum_immune",
+     "also": [
+      "cardio"
+     ],
+     "pred": "cardio",
+     "how": "kcd",
+     "code": "I77.6",
+     "kb_name": "상세불명의 동맥염",
+     "lenient_ok": true
+    },
+    {
+     "name": "다낭성 난소 증후군",
+     "gold": "peds_obgyn",
+     "also": [],
+     "pred": null,
+     "how": "kcd",
+     "code": "E28.2",
+     "kb_name": "다낭성 난소증후군",
+     "lenient_ok": false
+    },
+    {
+     "name": "영아 비후성 유문 협착증",
+     "gold": "peds_obgyn",
+     "also": [
+      "gi_liver"
+     ],
+     "pred": "gi_liver",
+     "how": "kcd",
+     "code": "K31.1",
+     "kb_name": "성인 비대성 유문협착",
+     "lenient_ok": true
+    }
+   ]
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 16,
+     "gi_liver": 13,
+     "none": 47,
+     "resp_id": 12,
+     "peds_obgyn": 10,
+     "rheum_immune": 4,
+     "cardio": 5
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 11,
+     "cardio": 8,
+     "peds_obgyn": 3,
+     "none": 34,
+     "rheum_immune": 14,
+     "neuro": 10
+    },
+    "diagnosisarena": {
+     "cardio": 10,
+     "none": 16,
+     "neuro": 8,
+     "resp_id": 8,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "none": 2,
+     "peds_obgyn": 1
+    }
+   },
+   "all": {
+    "neuro": 38,
+    "gi_liver": 35,
+    "none": 99,
+    "resp_id": 32,
+    "peds_obgyn": 18,
+    "rheum_immune": 19,
+    "cardio": 26
+   },
+   "outside_share": 0.371,
+   "outside_by_group": {
+    "heme_onc": 25,
+    "other": 16,
+    "renal_uro": 13,
+    "endo_metab": 12,
+    "psych": 11,
+    "derm": 10,
+    "ent_eye": 6,
+    "msk_ortho": 5,
+    "symptom": 1
+   },
+   "how": {
+    "kcd": 183,
+    "keyword": 32,
+    "do": 14,
+    "none": 16,
+    "override": 22
+   }
+  }
+ },
+ "final": {
+  "gold": {
+   "n": 116,
+   "strict": 0.974,
+   "lenient": 1.0,
+   "per_label": {
+    "cardio": "13/13",
+    "gi_liver": "17/18",
+    "neuro": "15/15",
+    "none": "22/22",
+    "peds_obgyn": "10/11",
+    "resp_id": "20/20",
+    "rheum_immune": "16/17"
+   },
+   "errors": [
+    {
+     "name": "급성 류마티스열",
+     "gold": "rheum_immune",
+     "also": [
+      "cardio"
+     ],
+     "pred": "cardio",
+     "how": "kcd",
+     "code": "I00",
+     "kb_name": "류마티스열",
+     "lenient_ok": true
+    },
+    {
+     "name": "Clostridioides difficile infection",
+     "gold": "gi_liver",
+     "also": [
+      "resp_id"
+     ],
+     "pred": "resp_id",
+     "how": "keyword",
+     "code": "",
+     "kb_name": "",
+     "lenient_ok": true
+    },
+    {
+     "name": "영아 비후성 유문 협착증",
+     "gold": "peds_obgyn",
+     "also": [
+      "gi_liver"
+     ],
+     "pred": "gi_liver",
+     "how": "kcd",
+     "code": "K31.1",
+     "kb_name": "성인 비대성 유문협착",
+     "lenient_ok": true
+    }
+   ]
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 16,
+     "gi_liver": 14,
+     "none": 46,
+     "rheum_immune": 4,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "none": 32,
+     "rheum_immune": 14,
+     "neuro": 10
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 17,
+     "neuro": 7,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "none": 2,
+     "peds_obgyn": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "none": 97,
+    "rheum_immune": 19,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "cardio": 26
+   },
+   "outside_share": 0.363,
+   "outside_by_group": {
+    "heme_onc": 25,
+    "renal_uro": 13,
+    "other": 13,
+    "psych": 11,
+    "derm": 11,
+    "endo_metab": 10,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 182,
+    "keyword": 36,
+    "do": 11,
+    "override": 25,
+    "none": 13
+   }
+  },
+  "routing": {
+   "trajectories": 224,
+   "fired": 151,
+   "fired_share": 0.674,
+   "fired_correct": 130,
+   "fired_precision": 0.861,
+   "gold_in_six": 156,
+   "fired_gold_in_six": 139,
+   "fired_precision_gold_in_six": 0.935,
+   "final_snapshot_agreement": 0.825,
+   "fired_by_specialty": {
+    "gi_liver": 45,
+    "cardio": 31,
+    "resp_id": 21,
+    "neuro": 31,
+    "peds_obgyn": 4,
+    "rheum_immune": 19
+   },
+   "fire_turn_mean": 3.09,
+   "fired_on_wrong_final": 16,
+   "fired_on_wrong_final_correct_specialty": 11,
+   "route_time": {
+    "n": 1438,
+    "mean_ms": 0.75,
+    "p95_ms": 1.68,
+    "max_ms": 25.18
+   },
+   "resources_time": {
+    "n": 151,
+    "mean_ms": 11.24,
+    "p95_ms": 23.54,
+    "max_ms": 130.83
+   },
+   "examples_wrong": [
+    {
+     "run": "run_20260925_010657.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.778,
+     "why": [
+      "상위 감별 3개 중 소화기·간담췌(gi_liver) 비중 78%: 급성 위장관염/장염 44%, 장폐색 (Mechanical/Paralytic ileus) 33%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 70%: 대동맥 박리 40%, 대동맥 축착 20%, 본태성 고혈압 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "neuro",
+     "share": 0.7,
+     "why": [
+      "상위 감별 5개 중 신경(neuro) 비중 70%: 루이소체 치매 30%, 알츠하이머병 20%, 크로이츠펠트-야콥병 20%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_521",
+     "gold": "뇌정맥동혈전증",
+     "gold_spec": "neuro",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.8,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 80%: 뇌정맥동 혈전증 80%"
+     ]
+    },
+    {
+     "run": "run_20260926_052026.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 80%: 대동맥 박리 40%, 고혈압성 뇌증 20%, 대동맥 축착 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 이차성 고혈압 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "neuro",
+     "share": 1.0,
+     "why": [
+      "상위 감별 4개 중 신경(neuro) 비중 100%: 비타민 B12 결핍에 의한 인지 및 신경계 장애 50%, 알츠하이머병 30%, 정상압 수두증 10%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_940",
+     "gold": "만성 골수성 백혈병",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 80%: 간경화 50%, 만성 간염 15%, 간세포암 15%"
+     ]
+    }
+   ]
+  }
+ }
+}
