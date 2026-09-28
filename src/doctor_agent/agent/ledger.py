@@ -15,6 +15,9 @@ DX_STATUS = {"유력": "유력", "active": "유력", "배제": "배제", "ruled 
 SAME_ITEM = 0.6
 UNVERIFIED_TAG = " (미확인)"  # appended to findings not found in what the environment said
 CODE_SOURCE = "result_interpreter"  # Finding.source of items read by agent/result_interpreter.py (grounded by construction)
+LLM_RADIOLOGY_SOURCE = "llm_radiology"  # Finding.source of items read by the LLM radiology sub-agent (grounding-checked)
+REF_STATUS = "참고"  # DDx candidates suggested by a sub-agent (DdxLedger.refs): reference only, never auto-confirmed
+MAX_REFS = 4
 
 
 @dataclass
@@ -25,7 +28,9 @@ class Finding:
     turn: int = 0
     verified: bool | None = None  # set by agent/grounding.py: found (True) / not found (False) in the environment's text
     span: str = ""  # evidence text that grounded it
-    source: str = ""  # "" = reported by the model; CODE_SOURCE = read from a result text by code (verified=True)
+    # "" = reported by the model; CODE_SOURCE = read from a result text by code (verified=True);
+    # LLM_RADIOLOGY_SOURCE = read from a result text by the LLM radiology sub-agent (checked by grounding like "")
+    source: str = ""
 
 
 @dataclass
@@ -42,11 +47,12 @@ class FindingsLedger:
             self.add(Finding(str(r["item"]).strip(), status, str(r.get("detail", "")).strip(), turn))
 
     def add(self, new: Finding) -> None:
-        """Merge one finding: later information about the same item wins, except that a model report never replaces
-        a code reading of the same result (same or later turn): the code read the text itself."""
+        """Merge one finding: later information about the same item wins, except that a model report (or an LLM
+        radiology reading) never replaces a code reading of the same result (same or later turn): the code read the
+        text itself."""
         for i, old in enumerate(self.items):
             if old.item == new.item or similarity(old.item, new.item) >= SAME_ITEM:
-                if old.source == CODE_SOURCE and not new.source and old.turn >= new.turn:
+                if old.source == CODE_SOURCE and new.source != CODE_SOURCE and old.turn >= new.turn:
                     return
                 self.items[i] = new
                 return
@@ -92,6 +98,23 @@ def _merge(old: list[str], new: object) -> list[str]:
 @dataclass
 class DdxLedger:
     entries: list[DxEntry] = field(default_factory=list)
+    # "참고" candidates from specialist sub-agents: shown in the view, but kept out of `entries` so confidence,
+    # anchoring, the can't-miss gate, the planner and the forced-diagnosis fallback never treat them as live DDx.
+    # A ref leaves this list when the main model itself lists the same diagnosis in its ddx.
+    refs: list[DxEntry] = field(default_factory=list)
+
+    def add_ref(self, dx: str, why: str = "") -> bool:
+        """Adds a sub-agent candidate as 참고 (p=0). False when it is already in the ledger or the refs are full."""
+        dx = str(dx or "").strip()
+        if not dx or self._find(dx) is not None or any(same_dx(r.dx, dx) for r in self.refs) \
+                or len(self.refs) >= MAX_REFS:
+            return False
+        why = str(why or "").strip()
+        self.refs.append(DxEntry(dx, 0.0, REF_STATUS, [why] if why else []))
+        return True
+
+    def refs_list(self) -> list[dict]:
+        return [{"dx": r.dx, "status": r.status, "why": r.support[0] if r.support else ""} for r in self.refs]
 
     def _find(self, dx: str) -> DxEntry | None:
         return next((e for e in self.entries if same_dx(e.dx, dx)), None)  # keeps the first entry's display name
@@ -107,6 +130,7 @@ class DdxLedger:
             if e is None:
                 e = DxEntry(dx)
                 self.entries.append(e)
+                self.refs = [x for x in self.refs if not same_dx(x.dx, dx)]  # the model adopted a 참고 candidate
             try:
                 e.p = max(0.0, min(1.0, float(r.get("p", e.p))))
             except (TypeError, ValueError):
@@ -120,7 +144,7 @@ class DdxLedger:
         return live + [e for e in self.entries if e.status == "배제"]
 
     def render(self) -> str:
-        if not self.entries:
+        if not self.entries and not self.refs:
             return ""
         lines = []
         for i, e in enumerate(x for x in self.ranked() if x.status != "배제"):
@@ -134,6 +158,9 @@ class DdxLedger:
         ruled = [f"{e.dx}({', '.join(e.against[-2:]) or '근거 미기재'})" for e in self.entries if e.status == "배제"]
         if ruled:
             lines.append("배제됨: " + "; ".join(ruled))
+        if self.refs:
+            lines.append("참고(자문, 미확인): " + "; ".join(f"{r.dx}({r.support[0][:40]})" if r.support else r.dx
+                                                       for r in self.refs))
         return "\n".join(lines)
 
     def as_list(self) -> list[dict]:

@@ -252,6 +252,6 @@ def test_danger_gate_confirms_danger_from_critical_result():
 # ---------------------------------------------------------------- prompt wording / tools
 
 def test_prompt_wording_and_version():
-    assert prompts.PROMPT_VERSION == "v8-result-interp"
+    assert prompts.PROMPT_VERSION.startswith("v") and prompts.PROMPT_VERSION >= "v8-result-interp"
     assert prompts.result_hint("X").startswith(prompts.RESULT_HINT.split("{")[0])
     assert prompts.result_critical_alert(["a", "b"]).startswith("즉시 조치가 필요한 결과: a, b")

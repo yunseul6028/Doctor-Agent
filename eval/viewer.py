@@ -173,7 +173,8 @@ function renderCases(all, run) {
     const safetyAt = {};
     (c.safety_log || []).forEach(e => { (safetyAt[e.turn] = safetyAt[e.turn] || []).push(e); });
     const LAYER = { grounding: "사실 확인", danger_gate: "위험 질환 관문", preconditions: "검사 전 확인",
-                    confidence: "확신도", anchoring: "감별 넓히기", planner: "추천 행동", triage: "중증도", result_interp: "결과 판독", advisors: "보조 모듈" };
+                    confidence: "확신도", anchoring: "감별 넓히기", planner: "추천 행동", triage: "중증도", result_interp: "결과 판독", advisors: "보조 모듈",
+                    subagent: "전문 자문" };
     const safetyHtml = n => (safetyAt[n + 1] || []).map(e => {
       let msg = e.error ? "오류: " + e.error
         : e.msg ? e.msg

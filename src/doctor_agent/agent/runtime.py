@@ -104,6 +104,7 @@ class GuardedLLM:
         self.dead = False
         self.errors: list[str] = []
         self.prompt_chars: list[int] = []
+        self.subagent_calls = 0  # attempted sub-agent calls (agent/subagents/runner.py increments it)
         llm = cfg.llm
         self.call_timeout_s = llm.timeout_s * (llm.max_retries + 1) + 30.0
 
@@ -111,7 +112,13 @@ class GuardedLLM:
     def call_count(self) -> int:
         return self.inner.call_count
 
-    def chat(self, messages: list[dict]) -> str:
+    @property
+    def supports_options(self) -> bool:
+        """Sub-agent calls may pass json_schema / expect_json / reasoning_effort / deadline (used only when the inner
+        client supports options; ignored otherwise)."""
+        return True
+
+    def chat(self, messages: list[dict], **overrides) -> str:
         if self.dead:
             raise LLMUnavailable("LLM disabled for this case after repeated failures")
         remaining = self.budget.remaining()
@@ -134,6 +141,13 @@ class GuardedLLM:
             if self.degraded or self.final_mode:
                 opts["reasoning_effort"] = "low" if self.cfg.llm.reasoning_effort != "none" else None
             opts["deadline"] = self.budget.deadline(self.final_mode)
+            for k in ("json_schema", "expect_json", "reasoning_effort"):
+                if overrides.get(k) is not None:
+                    opts[k] = overrides[k]
+            if opts.get("reasoning_effort") and self.cfg.llm.reasoning_effort == "none":
+                opts["reasoning_effort"] = None  # "none": the parameter is never sent
+            if overrides.get("deadline") is not None:
+                opts["deadline"] = min(d for d in (opts["deadline"], overrides["deadline"]) if d is not None)
         timeout = self.call_timeout_s
         if self.budget.enabled:
             # the watchdog runs on real time; the budget clock may be injected, so only use its *duration*
@@ -169,4 +183,4 @@ class GuardedLLM:
     def stats(self) -> dict:
         return {"llm_attempts": self.attempts, "llm_errors": self.errors[-5:], "llm_disabled": self.dead,
                 "prompt_chars_max": max(self.prompt_chars, default=0),
-                "prompt_chars_total": sum(self.prompt_chars)}
+                "prompt_chars_total": sum(self.prompt_chars), "subagent_calls": self.subagent_calls}

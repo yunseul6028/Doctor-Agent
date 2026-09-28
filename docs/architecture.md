@@ -1,6 +1,6 @@
 # Architecture
 
-Current as of 2026-09-28 (prompt `v7-advisors`). When an interface changes, update this file first.
+Current as of 2026-09-28 (prompt `v9-subagents`). When an interface changes, update this file first.
 
 ```
 run.py ──> case source (env/factory.py: local | official)          ← official.py is a TODO until the guide is out
@@ -34,6 +34,7 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 | `agent/text.py` | Char-bigram similarity, history-question detection, DDx name-variant matching (`same_dx`). |
 | `agent/prompts.py` | All prompts (`SYSTEM`, `REVIEW_SYSTEM`, final prompt, `LOW_TIME_HINT`, advisor wording `TRIAGE_ALERT` / `CONFIDENCE_PUSHBACK`). Version changes → `docs/experiments.md`. |
 | `agent/confidence.py`, `agent/anchoring.py`, `agent/question_planner.py`, `safety/triage.py` | Advisors (code only): confidence score + stop rule, starting DDx + anchoring check, information-gain next-action planner, unstable-patient triage. Wiring: "Advisors wired into the policy". |
+| `agent/subagents/` | Specialist sub-agents (same fixed LLM, other role): `base.py` contract, `runner.py` one never-raising call, `orchestrator.py` triggers/caps/logs; content modules `consult.py`, `advocate.py` (+ `knowledge/specialty.py`). See "Specialist sub-agents". |
 | `agent/kb_hints.py` | KB → short hints (candidates, discriminators, diagnosis normalisation). Fail-safe: any KB error = no hint. |
 | `agent/runtime.py` | `CaseBudget` (wall clock), `GuardedLLM` (failure cap, watchdog, deadlines, gpt-oss options, prompt-size stats). |
 | `llm/client.py`, `llm/harmony.py` | `OpenAICompatClient` (retries, 429 wait, billing detection, length retry, structured output), `DummyLLM`; harmony-format cleanup. |
@@ -61,7 +62,9 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 
 0. **Read new results** (`AGENT_USE_RESULT_INTERPRETER`) — every EXAM/TEST response not read yet goes through
    `result_interpreter.interpret` (see "Result interpreter wired into the policy"): reading on the `Turn`, code
-   findings into the findings ledger, critical items kept for the alert and the gate.
+   findings into the findings ledger, critical items kept for the alert and the gate; a `needs_llm` result may get
+   the LLM radiology sub-agent reading. After the advisors, the consult / anchoring-moment advocate triggers run
+   (`Policy._subagent_hints`); the pre-review advocate runs just before step 6. See "Specialist sub-agents".
 
 Remaining turns ≤ 1 → final-diagnosis prompt. Otherwise the hints are built once, then up to 4 attempts
 (`MAX_ATTEMPTS`); each retry adds one corrective hint:
@@ -105,6 +108,8 @@ All attempts used → final-diagnosis prompt.
    latest result (`prompts.RESULT_HINT`), anchoring check, turn-1 starting DDx, question planner — together ≤
    `max_advisor_chars`. The triage alert for an unstable patient and new critical results are placed above the case
    view instead (`build_step_messages(alert=...)`, triage text first, then `prompts.RESULT_CRITICAL_ALERT`).
+8. Sub-agent hints (`Policy._subagent_hints`, see "Specialist sub-agents"): radiology > consult > advocate, ≤
+   `max_subagent_chars` (600, separate budget), only on the step right after the call; none in low-time mode.
 
 In low-time mode only the first 2 hints are kept, plus `prompts.LOW_TIME_HINT` (and the alert, if any). All hints are labelled as reference,
 not evidence. Categories are detected from the **initial information only**; conditional checks may also use what was
@@ -409,9 +414,98 @@ Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_inter
    the chief complaint nor the DDx ledger raised it (source `critical_result`) → a different proposed diagnosis gets
    the one-time `confirmed_other` hint; a proposed diagnosis that matches is allowed as a confirmed danger.
    `confidence.assess` sees it through `danger_gate`. Labs (K, glucose, ...) are alerted but not mapped to the gate.
-5. **LLM reading** (plan item 6): **not implemented**. `needs_llm` results are only counted: `result["result_interp"]`
-   = `{n, needs_llm, llm_reasons: {reason: count}, critical, unavailable, errors}` per case, and the reading's
-   `safety_log` message says "LLM 판독 필요(…; 호출 안 함)". Use these counts to size the extra call.
+5. **LLM reading** (plan item 6): since `v9-subagents` the "radiology" sub-agent (see "Specialist sub-agents") reads
+   a `needs_llm` result with `RESULT_INTERPRETER_PROMPT`, at most `max_llm_radiology` (1) per case. `needs_llm`
+   results are still counted: `result["result_interp"]` = `{n, needs_llm, llm_reasons: {reason: count}, critical,
+   unavailable, errors}` per case; the reading's `safety_log` entry has `llm_called` and its message says
+   "LLM 판독 필요(…; 호출함 | 호출 안 함)".
 6. **Logs** (`safety_log`, viewer label "결과 판독"): `{"layer": "result_interp", "kind": "reading", "turn": <result
    turn>, test, test_kind, critical, needs_llm, llm_reasons, msg}` per result; `{"kind": "critical_alert", items, msg}`
    when an alert is shown; `{"layer": "result_interp", "error"}` on any exception (the case goes on as if off).
+
+## Specialist sub-agents (2026-09-28, prompt `v9-subagents`)
+Runtime "specialists" under the main doctor LLM: the **same fixed gpt-oss-20b** through the same `GuardedLLM`, with a
+different role prompt and a different evidence slice, called **only when triggered**. They never pick the action; their
+output is a short hint for the next main prompt, "참고" DDx candidates and log entries. The "≥ 1 LLM call per case with
+case information" rule stays satisfied by the main loop; sub-agent calls are extra.
+
+### Interface contract (shared with the content branches; do not deviate)
+```python
+# src/doctor_agent/agent/subagents/base.py
+@dataclass
+class SubagentCall:
+    name: str                 # e.g. "consult:cardio", "advocate", "radiology"
+    messages: list[dict]      # chat messages for the fixed LLM
+    json_schema: dict | None  # optional structured output
+    max_chars_out: int = 600  # cap of the rendered hint
+
+@dataclass
+class SubagentResult:
+    name: str
+    ok: bool
+    hint_ko: str              # short Korean text injected into the NEXT main prompt (<= max_chars_out)
+    ddx_add: list[dict]       # [{"name": str, "why": str}] added to the DDx ledger as "참고" (never auto-confirmed)
+    suggested_actions: list[dict]  # [{"type": "ASK|EXAM|TEST", "content": str, "why": str}]
+    red_flags: list[str]
+    raw: dict                 # parsed JSON for logging
+```
+Content modules (owned by the content branches):
+- `agent/subagents/consult.py`: `SPECIALTIES: dict[str, SpecialtySpec]`, `build_consult(state, specialty, resources) ->
+  SubagentCall`, `parse_consult(text) -> SubagentResult`.
+- `agent/subagents/advocate.py`: `build_advocate(state, proposed_dx: str | None, reason: str) -> SubagentCall`,
+  `parse_advocate(text) -> SubagentResult`.
+- `knowledge/specialty.py`: `route(state) -> (specialty id | None, share of top-DDx mass, reasons)` with ids cardio,
+  resp_id, gi_liver, neuro, rheum_immune, peds_obgyn; `resources(specialty, state) -> dict` (criteria/rule names + short
+  texts, KB slice).
+
+Framework (pipeline branch):
+- `agent/subagents/runner.py`: `run(llm, call, deadline=None, *, parse=None, clock=time.monotonic) -> SubagentResult`.
+  One call of the fixed LLM with `json_schema`, `expect_json=True`, `reasoning_effort=AgentConfig.
+  subagent_reasoning_effort` ("low") and the deadline (GuardedLLM also applies the case budget deadline; the earlier
+  one wins). `parse` defaults to a generic JSON reader (`parser._json_objects` on the harmony-cleaned text: keys
+  `hint_ko`/`hint`/`summary`, `ddx_add`, `suggested_actions`, `red_flags`); every result is sanitised (types, lengths,
+  `hint_ko` ≤ `max_chars_out`). **Never raises**: LLM errors, time-outs, budget exhaustion, empty/bad JSON or an
+  exception in the parser → `ok=False` (the main loop hits the same guard on its next call if the LLM is really gone).
+  Counts `GuardedLLM.subagent_calls` (in `result["runtime"]`).
+- `agent/subagents/orchestrator.py`: `SubagentManager` (one per `Policy`, i.e. per case): triggers, caps, skip
+  reasons, logging, hint queue, summary. Content modules are imported lazily; a missing module or an exception inside
+  one (route / resources / build / parse) is logged once and disables that sub-agent for the case.
+- `DdxLedger.refs` (`agent/ledger.py`): "참고" candidates from sub-agents, rendered as one line of the DDx ledger view
+  ("참고(자문, 미확인): …"). They are **not** in `entries`, so confidence, anchoring, the gate, the planner and the
+  forced-diagnosis fallback never see them; a ref is dropped from `refs` when the main model itself puts the same
+  diagnosis in its `ddx` (the model's own decision, not an automatic promotion). ≤ 4 refs.
+
+### Triggers (each at most once per case; all switches default on)
+| Sub-agent | Switch | Trigger | Output goes to |
+|---|---|---|---|
+| Consult (`consult:<specialty>`) | `AGENT_USE_CONSULT` | start of `next_action`: (a) `turn_count ≥ 3` and `specialty.route(state)` returns a specialty with share ≥ 0.6, or (b) `turn_count ≥ 6` and the model's own `confidence` < 0.5 on each of the last 3 parsed turns (then the routed specialty is used whatever its share; none → skip `no_specialty`) | hint on the main prompt of this `next_action` (the prompt right after the call), `ddx_add` → refs |
+| Advocate (`advocate`) | `AGENT_USE_ADVOCATE` | (a) the turn the anchoring (premature-closure) hint is really shown (`proposed_dx` = the anchored top DDx, reason = the check's `why_ko`) → hint on the same prompt, next to the anchoring hint; else (b) a DIAGNOSE proposal that is about to go to the pre-diagnosis review (same guards: < 2 reviews, > 3 turns left, not degraded) with code confidence (`confidence.assess`) < 0.65 → its hint is appended to the **review view** as `[반대 의견 검토(자문)]` (the reviewer decides hold/approve; no extra turn is spent) | as left; `ddx_add` → refs |
+| LLM radiology (`radiology`) | `AGENT_USE_LLM_RADIOLOGY` (+ `AGENT_USE_RESULT_INTERPRETER`) | a result read by the code interpreter with `result_interpreter.needs_llm(interp)` true; ≤ `max_llm_radiology` (1) per case | `prompts.build_result_interpreter_messages` (`RESULT_INTERPRETER_PROMPT`, code reading as draft, result text ≤ 3000 chars). Items → findings ledger with `source="llm_radiology"` (있음 → 양성, 의심 → 양성 "의심", 없음 → 음성; detail site/value/test/"LLM 판독"; ≤ 6 items). They go through the **grounding check like model findings** (not trusted by construction) and never replace a code reading of the same item (`FindingsLedger.add`). Critical present items → `state.result_criticals` with concept `llm:<finding>` (one-time alert; not mapped to the danger gate). Summary → hint `prompts.SUBAGENT_HINT` on the next main prompt |
+
+Why the advocate has two moments: (a) is cheap (no hold, the hint only redirects exploration) and coincides with the
+moment code already suspects anchoring; (b) is the last chance before a low-confidence diagnosis and only enriches the
+existing review (it cannot add turns: the review is skipped with ≤ 3 turns left or in low-time mode). The cap is one
+advocate call per case, whichever comes first.
+
+### Global guards and budget
+- Master switch `AGENT_USE_SUBAGENTS` (default on; ablation condition `v6-no-subagents`, **not** in `dev`).
+- Skip all sub-agents when: low-time mode (`policy.degraded`), remaining turns ≤ 3, or the per-case cap
+  `AGENT_MAX_SUBAGENT_CALLS` (3) of attempted calls is reached. A trigger that fires but is skipped is logged once per
+  (sub-agent, reason).
+- Hints: **separate budget** `AGENT_MAX_SUBAGENT_CHARS` (600) per step prompt, after the advisor hints (the triage /
+  critical-result alert stays on top; the advisor budget of 900 is untouched, so no safety hint is ever displaced by a
+  sub-agent). Order inside it: radiology > consult > advocate; a hint longer than what is left is cut (not dropped: it
+  cost an LLM call). A hint is shown on one `next_action` (all its attempts) and then cleared. Not shown in low-time
+  mode.
+- Reasoning effort `AGENT_SUBAGENT_REASONING_EFFORT` (default `low`; `none` keeps the parameter unsent).
+- Expected extra calls: 0 in most cases; ≤ 3 per case (consult 1 + advocate 1 + radiology 1).
+
+### Logs and result
+- `safety_log` entries with `layer="subagent"`: `kind="call"` (`name`, `trigger`, `ok`, `elapsed_s`, `hint`, `ddx_add`,
+  `red_flags`, `suggested_actions`, `error`, `msg`), `kind="skip"` (`name`, `reason`, `msg`), `kind="error"` (content
+  module failure). Viewer label "전문 자문".
+- `result["subagents"]` = `{"enabled", "calls": {name: n}, "ok", "fail", "skipped": {"name:reason": n},
+  "refs": [...], "llm_radiology_findings": n}`.
+- Tests: `tests/conftest.py` sets `AGENT_USE_SUBAGENTS=0` (older tests pin the scripted LLM call sequence);
+  `tests/test_subagents.py` switches them on per test and installs fake content modules via `sys.modules`.
+  `scripts/token_budget.py`'s scripted doctor answers sub-agent prompts with `{}` (not counted as steps).
