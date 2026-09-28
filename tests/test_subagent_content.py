@@ -52,8 +52,28 @@ def sys_msg(call: SubagentCall) -> str:
 
 # --- spec references point to real ids in the existing modules -----------------------------------------------------
 
-def test_six_specialties():
-    assert set(SPECIALTY_IDS) == {"cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn"}
+def test_specialty_ids():
+    assert set(SPECIALTY_IDS) == {"cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn",
+                                  "heme_onc", "renal_uro"}
+
+
+def test_kdigo_aki_owned_by_renal_uro_only():
+    owners = {sid for sid, s in SPECIALTIES.items() if "kdigo_aki_2012" in s.criteria_ids}
+    assert owners == {"renal_uro"}
+
+
+def test_heme_onc_and_renal_uro_content():
+    heme = user_msg(build_consult(case("67세 남성. 주호소: 두 달째 피곤하고 체중이 줄었어요"), "heme_onc"))
+    assert "말초혈액 도말" in heme and "SPEP" in heme and "혈액 악성 종양(백혈병·림프종)" in heme  # fatigue protocol
+    neck = user_msg(build_consult(case("45세 남성. 주호소: 한 달 전부터 만져지는 목 멍울"), "heme_onc"))
+    assert "림프종" in neck.split("[환자 구분]")[1]  # neck_mass protocol can't-miss rendered
+    assert "HUS" in user_msg(build_consult(case(CHILD), "heme_onc"))
+    s = case("72세 남성. 주호소: 이틀째 소변이 거의 안 나와요")
+    s.ddx_ledger.update([{"dx": "급성 신손상", "p": 0.5, "status": "유력"}])
+    renal = user_msg(build_consult(s, "renal_uro"))
+    assert "KDIGO" in renal and "수신증" in renal and "고칼륨" in renal
+    assert "KDIGO" not in user_msg(build_consult(s, "gi_liver"))
+    assert "고환 염전" in user_msg(build_consult(case(CHILD), "renal_uro"))
 
 
 @pytest.mark.parametrize("sid", sorted(SPECIALTIES))
@@ -73,9 +93,9 @@ def test_spec_references_exist(sid):
 
 def test_every_protocol_category_has_an_owner():
     owned = {c for s in SPECIALTIES.values() for c in s.protocol_categories}
-    # categories deliberately left to the generic prompt (no specialty consult adds value over the protocol itself)
-    unowned = set(PROTOCOLS_BY_CATEGORY) - owned
-    assert unowned <= {"fatigue", "neck_mass"}, unowned
+    # fatigue / neck_mass were unowned until heme_onc was added (2026-09-28)
+    assert set(PROTOCOLS_BY_CATEGORY) <= owned, set(PROTOCOLS_BY_CATEGORY) - owned
+    assert {"fatigue", "neck_mass"} <= set(SPECIALTIES["heme_onc"].protocol_categories)
 
 
 # --- prompt builds, per specialty and branch --------------------------------------------------------------------

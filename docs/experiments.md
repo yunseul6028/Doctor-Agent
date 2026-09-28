@@ -246,3 +246,11 @@ Offline only (`python eval/offline/eval_specialty.py --results <dir with run_*.j
   on the 16 fired cases whose final answer was wrong, 11 were routed to the gold specialty.
 - Next: wire a consult behind `MIN_TURNS`/`MIN_SHARE`, measure with gpt-oss-20b; consider adding `heme_onc` and
   `renal_uro` (together 14% of cases_aug gold diagnoses).
+
+### 2026-09-28 · consult content: `heme_onc` and `renal_uro` specialties (`agent/subagents/consult.py`, no LLM, not wired)
+Content only; the consult is not wired into the loop, so no Accuracy / Efficiency / Safety row yet.
+- Two new `SpecialtySpec`s (covering ~14% of `cases_aug` gold diagnoses that fell outside the six). `fatigue` and
+  `neck_mass` protocols now owned by `heme_onc`; `kdigo_aki_2012` moved to `renal_uro` only.
+- Consult size: turn 0 950–1,104 tokens, worst case ≤ 2,929 tokens (o200k_harmony).
+- Next: after routing emits these ids, measure consult on/off on gpt-oss-20b, focusing on heme/renal gold cases
+  (Accuracy) and whether suggested tests stay within the discriminating set (Efficiency).
