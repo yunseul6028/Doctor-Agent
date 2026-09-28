@@ -65,6 +65,16 @@ Accuracy / Efficiency / Safety 0.062 / 0.91 / 0.385 (unchanged), 5.4 turns, 8.69
 2 radiology calls). **Measure v6 vs. v6-no-subagents on gpt-oss-20b before relying on it**; the trigger thresholds
 (0.6 share, 0.5 / 0.65 confidence) are uncalibrated.
 
+### 2026-09-28 · specialist sub-agent content (not wired, no LLM run)
+Content only (`agent/subagents/consult.py`, `advocate.py`; see `docs/architecture.md` "Specialist sub-agent content"):
+six specialist consult prompts (cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn with a pediatric /
+pregnant / reproductive-age-female branch) and a devil's-advocate diagnostic time-out prompt, with tolerant parsers.
+Not part of any prompt version until the framework wires it. Sizes (tiktoken `o200k_harmony`, messages only, without
+the harmony wrapper): consult system 374 tokens; full consult turn 0 = 832–1,090 tokens, worst case (60 turns,
+80 findings, 8 DDx, 2 kB resources) 2,657–2,759 tokens; advocate 584 (turn 0) / 2,361 (worst). Each call adds one
+gpt-oss call. **Measure on gpt-oss-20b as ablations** (consult on/off, advocate on/off) with per-metric scores before
+relying on them; the parsers were tested only on hand-written outputs.
+
 ## 2026-09-26 → 09-27: changes since the last LLM run (no LLM calls)
 
 Everything below was measured offline (rules, KB, case files). None of it has an Accuracy/Efficiency/Safety score yet.
