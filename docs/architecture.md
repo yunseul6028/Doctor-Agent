@@ -221,3 +221,20 @@ Order inside `Policy.next_action` for each proposed action:
 2. DIAGNOSE only: protocol safety pushback (once) → **can't-miss gate** (`safety/danger_gate.gate`: forces the next rule-out action for an unresolved can't-miss diagnosis, ≤ `max_gate_turns`=3 per case, never when ≤2 turns remain; a confirmed *other* danger only yields a one-time hint) → pre-diagnosis review (with diagnostic criteria).
 3. TEST/EXAM (incl. gate/review follow-ups): **pre-test preconditions** (`safety/preconditions.check`: block → swap in the prerequisite, e.g. brain CT before LP, β-hCG before abdominal CT; block without alternative → ask the model for another action; warn → annotate the reason).
 All three are guarded (exceptions are logged, never raised), recorded in `result["safety_log"]` (shown per turn in the viewer), and switchable for ablations: `AGENT_USE_GROUNDING`, `AGENT_USE_DANGER_GATE`, `AGENT_USE_PRECONDITIONS` (experiment condition `v6-no-safety`).
+
+## Broad starting DDx and anchoring check (`agent/anchoring.py`, 2026-09-28; not wired yet)
+Two pure functions for the policy (the lead wires them in; no state kept between calls or cases):
+- `initial_differential(initial_info) -> list[{"dx", "tag": 위험|흔함|KB, "source", "category"?, "kcd"?}]` (≤ 8, deduplicated
+  with `same_dx`): up to 3 can't-miss diagnoses (`safety/protocols` via `detect_categories`), 4 common causes from the
+  `COMMON` table (per chief-complaint category + 12 extra complaint categories such as dizziness, diarrhea, vision loss;
+  each category cites an AAFP review or the protocol guideline, PubMed-checked 2026-09-28; pediatric rows and 3 categories
+  are marked "미검증"), 1 KB candidate (`kb.candidates` on the chief complaint), then fill. Sex/age filters
+  (`kb.patient_profile` + `clinical_rules.rule_age_years` on the demographics). `render_for_prompt(ddx)` ≤ 300 chars,
+  meant to be shown once at turn 1.
+- `anchoring_check(state) -> {"dx", "p", "reasons", "why_ko", "prompt_ko", "suggested_actions"} | None`: only after
+  `MIN_TURNS`=3 turns, top live DDx p ≥ 0.4 and the same top in the last snapshot. Reasons: `stable_untested` (top since
+  turn ≤ 2 and no EXAM/TEST named it, its KB tests/decisive results or its discriminating results vs. the 2nd candidate),
+  `weak_support` (p ≥ 0.6 with ≤ 1 distinct supporting item found in the initial info + responses and not marked
+  unverified), `contradicted` (≥ 2 distinct "against" items that are grounded findings, not "결과 없음/확인 필요").
+  `prompt_ko` is a devil's-advocate request (two alternatives that explain the findings + the result that would refute
+  the current top, then pick that action). The caller must show it at most once per case.
