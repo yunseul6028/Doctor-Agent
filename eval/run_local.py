@@ -332,7 +332,7 @@ def main(argv: list[str] | None = None) -> Path | None:
         encoding="utf-8",
     )
     print(f"saved: {path}")
-    if not args.no_view:
+    if not args.no_view and args.doctor != "dummy":  # dummy runs are hidden from the viewer
         from eval import viewer
 
         viewer.webbrowser.open(viewer.build().as_uri())

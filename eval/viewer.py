@@ -247,13 +247,20 @@ if (!RUNS.length) {
 """
 
 
-def build() -> Path:
+def is_dummy(data: dict) -> bool:
+    """Scripted smoke-test runs (--doctor dummy): they only check that the code runs, their scores mean nothing."""
+    return data.get("doctor_model") == "dummy"
+
+
+def build(include_dummy: bool = False) -> Path:
     runs = []
     for p in sorted(RESULTS.glob("run_*.json"), reverse=True):  # newest first
         try:
-            runs.append({"name": p.stem, "data": json.loads(p.read_text(encoding="utf-8"))})
+            data = json.loads(p.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             continue
+        if include_dummy or not is_dummy(data):
+            runs.append({"name": p.stem, "data": data})
     data = json.dumps(runs, ensure_ascii=False).replace("</", "<\\/")
     out = RESULTS / "viewer.html"
     RESULTS.mkdir(parents=True, exist_ok=True)
@@ -261,9 +268,9 @@ def build() -> Path:
     return out
 
 
-def build_share(out: Path) -> Path:
+def build_share(out: Path, include_dummy: bool = False) -> Path:
     """Page body for publishing as a hosted artifact: no document skeleton (the host adds it)."""
-    html = build().read_text(encoding="utf-8")
+    html = build(include_dummy).read_text(encoding="utf-8")
     start = html.index("<title>")
     body = html[start:].replace("</head>\n<body>\n", "", 1)
     body = body.rsplit("</body>", 1)[0]
@@ -276,11 +283,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-open", action="store_true")
     ap.add_argument("--share", metavar="PATH", help="also write a share-ready page (no html/head/body skeleton)")
+    ap.add_argument("--include-dummy", action="store_true", help="also show scripted smoke-test runs (--doctor dummy)")
     args = ap.parse_args()
-    out = build()
+    out = build(args.include_dummy)
     print(f"viewer: {out}")
     if args.share:
-        print(f"share page: {build_share(Path(args.share))}")
+        print(f"share page: {build_share(Path(args.share), args.include_dummy)}")
     if not args.no_open:
         webbrowser.open(out.as_uri())
 
