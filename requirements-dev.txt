@@ -1,2 +1,4 @@
 pytest
 pyarrow==25.0.1  # read snuh/ClinicalQA parquet (scripts/convert_clinicalqa.py); dev only
+tiktoken>=0.11  # MIT; gpt-oss tokenizer (o200k_harmony) for scripts/token_budget.py; dev only, never shipped
+openai-harmony>=0.0.4  # Apache-2.0; cross-checks the harmony prompt rendering in tests/test_token_budget.py; dev only

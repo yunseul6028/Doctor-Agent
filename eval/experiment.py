@@ -45,6 +45,17 @@ DEFAULTS = {
     "completion_tokens_per_call": 1000.0,  # gpt-oss reasoning (low effort) + action JSON; max_tokens 2048
     "patient_calls_per_case": 10.0,     # one patient answer per non-diagnosis turn
 }
+# Measured gpt-oss prompt tokens (scripts/token_budget.py; see docs/experiments.md "Prompt token budget"): mean tokens
+# of the step prompt at turn t, full harmony prompt (system + developer + user wrappers), tokenizer o200k_harmony.
+# eval/results/token_budget.json (written by `scripts/token_budget.py --json-out eval/results/token_budget.json`)
+# overrides this table when present. Used for the prompt side when no same-model usage has been recorded yet.
+TOKEN_BUDGET_FILE = RESULTS / "token_budget.json"
+MEASURED_STEP_TOKENS = {1: 987.5, 5: 1582.8, 10: 2019.7, 15: 2489.4, 20: 2901.0, 30: 3713.7, 40: 4283.1, 50: 4702.5,
+                        59: 5082.4}  # 2026-09-28, prompt v6-kb-strict-review, 267 data/cases_aug cases, effort low
+MEASURED_SOURCE = "measured gpt-oss tokenizer (scripts/token_budget.py 2026-09-28, 267 cases)"
+# Output side is an assumption until a gpt-oss run records usage: action JSON ≈ 300 tokens (measured on scripted answers
+# with 3-5 DDx entries) + reasoning at the given effort; capped by max_tokens 2048 (a length retry may add more).
+ASSUMED_COMPLETION_TOKENS = {"low": 1000.0, "medium": 1800.0, "high": 2048.0}
 DEFAULT_MARGIN = 1.3
 DEFAULT_MAX_CALLS = 300  # doctor calls above which --yes is required
 DEFAULT_MAX_COST = 5000.0  # KRW (10% of the ~50,000 KRW credits) above which --yes is required (when prices are known)
@@ -222,11 +233,53 @@ def parse_env_pairs(pairs: list[str]) -> dict:
 
 # ---------------------------------------------------------------- cost estimate
 
-def history_stats(dirs: list[Path], doctor_model: str | None = None) -> dict:
+def load_measured(path: Path | None = None) -> dict:
+    """{"curve": {turn: mean step-prompt tokens}, "source": str} from scripts/token_budget.py output, else the
+    committed MEASURED_STEP_TOKENS table."""
+    path = Path(path) if path else TOKEN_BUDGET_FILE
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        curve = {int(k): float(v) for k, v in (data.get("step_mean_by_turn") or {}).items()}
+        if curve:
+            m = data.get("meta") or {}
+            return {"curve": curve, "source": f"measured {path.name} ({m.get('date', '?')}, {m.get('cases', '?')} cases, "
+                                              f"{m.get('tokenizer', '?')})"}
+    except (OSError, ValueError, AttributeError, TypeError):
+        pass
+    return {"curve": dict(MEASURED_STEP_TOKENS), "source": MEASURED_SOURCE}
+
+
+def measured_prompt_tokens_per_call(n_turns: float, curve: dict) -> float | None:
+    """Mean step-prompt tokens per call for a case that lasts `n_turns` turns: mean of the per-turn curve over turns
+    1..n (turns between measured points interpolated linearly; beyond the last point the last value)."""
+    pts = sorted((int(k), float(v)) for k, v in (curve or {}).items())
+    if not pts:
+        return None
+    n = max(1, int(round(n_turns)))
+
+    def at(t: int) -> float:
+        if t <= pts[0][0]:
+            return pts[0][1]
+        for (a, va), (b, vb) in zip(pts, pts[1:]):
+            if a <= t <= b:
+                return va + (vb - va) * (t - a) / (b - a)
+        return pts[-1][1]
+
+    return sum(at(t) for t in range(1, n + 1)) / n
+
+
+def _is_gpt_oss(model: str | None) -> bool:
+    return model is None or "gpt-oss" in model.lower()
+
+
+def history_stats(dirs: list[Path], doctor_model: str | None = None, *, measured: dict | None = None,
+                  effort: str | None = None) -> dict:
     """Per-case doctor calls / tokens and patient turns from past result files (dummy runs ignored).
 
-    Calls and turns are model-independent enough to pool; tokens per call are taken from runs of the same doctor
-    model when they recorded usage, else from any run with usage, else DEFAULTS."""
+    Calls and turns are model-independent enough to pool. Tokens per call, in order of preference: recorded usage of
+    runs with the same doctor model; for a gpt-oss doctor (or unknown model) the measured gpt-oss prompt tokens
+    (`measured`, default load_measured(), evaluated at the mean case length) and ASSUMED_COMPLETION_TOKENS[effort];
+    usage of runs with any other model; DEFAULTS."""
     calls, turns, tok_same, tok_any, files = [], [], [], [], 0
     for d in dirs:
         for p in sorted(Path(d).glob("run_*.json")):
@@ -249,16 +302,31 @@ def history_stats(dirs: list[Path], doctor_model: str | None = None) -> dict:
                     if doctor_model and data.get("doctor_model") == doctor_model:
                         tok_same.append(item)
     mean = lambda xs: sum(xs) / len(xs) if xs else None  # noqa: E731
-    tok = tok_same or tok_any
-    return {
+    out = {
         "files": files,
         "n_cases": len(calls),
         "doctor_calls_per_case": mean(calls),
         "patient_calls_per_case": mean(turns),
-        "prompt_tokens_per_call": mean([t[0] for t in tok]),
-        "completion_tokens_per_call": mean([t[1] for t in tok]),
-        "token_source": ("same model" if tok_same else "other model") + f" ({len(tok)} cases)" if tok else "default",
     }
+    if tok_same or not _is_gpt_oss(doctor_model):
+        tok = tok_same or tok_any
+        return {**out, "prompt_tokens_per_call": mean([t[0] for t in tok]),
+                "completion_tokens_per_call": mean([t[1] for t in tok]),
+                "token_source": ("same model" if tok_same else "other model") + f" ({len(tok)} cases)" if tok else "default"}
+    # gpt-oss without recorded usage: measured prompt tokens + assumed output tokens
+    measured = measured if measured is not None else load_measured()
+    n_turns = out["patient_calls_per_case"] or DEFAULTS["patient_calls_per_case"]
+    pin = measured_prompt_tokens_per_call(n_turns, measured.get("curve") or {})
+    if pin is None:
+        tok = tok_any
+        return {**out, "prompt_tokens_per_call": mean([t[0] for t in tok]),
+                "completion_tokens_per_call": mean([t[1] for t in tok]),
+                "token_source": f"other model ({len(tok)} cases)" if tok else "default"}
+    effort = (effort or os.getenv("DOCTOR_LLM_REASONING_EFFORT") or os.getenv("LLM_REASONING_EFFORT") or "low").lower()
+    pout = ASSUMED_COMPLETION_TOKENS.get(effort, DEFAULTS["completion_tokens_per_call"])
+    return {**out, "prompt_tokens_per_call": pin, "completion_tokens_per_call": pout,
+            "token_source": f"{measured.get('source', 'measured')} at {n_turns:.0f} turns/case; output assumed "
+                            f"(effort {effort})"}
 
 
 def estimate(n_cases: list[int], stats: dict, *, doctor: str = "llm", patient: str = "keyword", judge: str = "none",
@@ -547,7 +615,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"profile={prof['name']} cases={len(prof['cases'])} conditions={','.join(names)} workers={workers}")
     print(f"doctor={doctor_model} @ {host}  patient={args.patient}  judge={args.judge}  persona={args.persona}"
           + (f"  env={sorted(extra)}" if extra else ""))
-    stats = history_stats(_history_dirs(args), doctor_model)
+    stats = history_stats(_history_dirs(args), doctor_model,
+                          effort=view.get("DOCTOR_LLM_REASONING_EFFORT") or view.get("LLM_REASONING_EFFORT"))
     est = estimate([len(prof["cases"])] * len(names), stats, doctor=doctor, patient=args.patient, judge=args.judge,
                    margin=args.margin, price_in=args.price_in, price_out=args.price_out)
     print(format_estimate(est, names))

@@ -70,11 +70,72 @@ Defaults are the cheapest mode: keyword patient + no judge, so only the doctor s
 (`--patient llm --judge llm` opt in; those use `PATIENT_LLM_*`/`JUDGE_LLM_*`, i.e. Gemini). Guard: `--yes` is required
 above `--max-calls` (300 doctor calls) or `--max-cost` (5,000 KRW, when prices are given). A billing error (402 /
 credits depleted) stops the running batch and skips the remaining conditions (exit code 3).
-Cost estimate = cases × doctor calls/case (mean of past result files, else 12) × tokens/call (from recorded usage of
-the same model, else any model, else 3,000 in / 1,000 out), all × margin 1.3. Doctor token usage is recorded per case
+Cost estimate = cases × doctor calls/case (mean of past result files, else 12) × tokens/call, all × margin 1.3.
+Tokens/call: recorded usage of the same doctor model; else, for gpt-oss, the **measured** prompt tokens (see "Prompt
+token budget" below; mean step prompt over a case of the past mean length) + an assumed 1,000 / 1,800 / 2,048 output
+tokens at effort low / medium / high; else usage of any other model; else 3,000 in / 1,000 out. Doctor token usage is recorded per case
 (`usage` in each row) and per run by wrapping the SDK client in `eval/usage.py` (src untouched).
 `--log` appends one table row per condition above and a comparison section (overall, per set, flips, n/a rate) under
 "Auto-logged experiment runs" at the end. The share page path is printed (`eval/results/share_<time>.html` or `--share`).
+
+## Prompt token budget (gpt-oss tokenizer, 2026-09-28, no LLM calls)
+
+`python scripts/token_budget.py [--limit N] [--max-view-chars N] [--json-out eval/results/token_budget.json]`
+replays cases through the real `Policy` (hints, ledgers, capped view, safety layers, KB hints) with a scripted doctor
+that never diagnoses early, so every case runs all 60 turns against the keyword patient. Every prompt is rendered in
+the harmony format exactly as gpt-oss receives it (system message with `Reasoning: low`, our system prompt as the
+developer `# Instructions`, user message, `<|start|>assistant`; identical to `openai-harmony`, which vLLM uses) and
+counted with tiktoken `o200k_harmony` (same ids as the HF `openai/gpt-oss-20b` tokenizer.json on our prompts).
+Review and final prompts are probed on a copy of the state at the checkpoint turns. Dev-only dependencies: `tiktoken`
+(MIT), `openai-harmony` (Apache-2.0, test cross-check). Scripted answers report 1–2 findings per turn (detail ≤ 60
+chars) and a 5-entry DDx with for/against evidence; real gpt-oss answers may be shorter or longer.
+
+All 267 `data/cases_aug` cases, prompt `v6-kb-strict-review`, `AGENT_MAX_VIEW_CHARS=12000` (16,264 real calls + 4,272
+probes, 315 s). Tokens of the full prompt, p50 / p95 / max:
+
+| Turn | step | review | final |
+|---|---|---|---|
+| 1 | 903 / 1,521 / 1,874 | 727 / 755 / 1,031 | 781 / 791 / 802 |
+| 5 | 1,503 / 2,169 / 2,706 | 1,274 / 1,424 / 1,703 | 1,322 / 1,453 / 1,717 |
+| 10 | 1,964 / 2,580 / 3,109 | 1,800 / 1,994 / 2,281 | 1,847 / 2,028 / 2,112 |
+| 20 | 2,846 / 3,406 / 4,192 | 2,693 / 2,908 / 3,192 | 2,739 / 2,932 / 3,227 |
+| 40 | 4,230 / 4,874 / 5,428 | 4,001 / 4,409 / 4,741 | 4,051 / 4,454 / 4,614 |
+| 59 / 60 | 5,017 / 5,718 / 6,312 (59) | 4,787 / 5,302 / 5,720 (59) | 4,887 / 5,385 / 5,734 (60) |
+
+Mean step-prompt tokens per call over a whole case: 1,320 (5 turns), 1,578 (10), 2,051 (20), 2,876 (40), 3,464 (59).
+Retry prompts (parse / duplicate / pushback hints) were 1.5% of step prompts.
+
+Largest contributors (step prompts, mean tokens / share / present): findings ledger 1,147 / 33% / 98%; older-actions
+list 940 / 27% / 92%; system prompt 643 / 19% / 100% (fixed); DDx ledger 245 / 7%; last 4 exchanges 151 / 4%;
+clinical rules hint 95 / 2.7% / 22% (541 tokens p95 when present, the largest hint); harmony wrappers 74 (fixed);
+safety-check hint 41 (max 471); can't-miss hint 38 (max 147); unavailable-requests hint 23; target-turn notice 13;
+KB candidate / discriminator hints ≤ 257 / 124 but present in only 3% / 1% of prompts. All hints together: p50 122,
+p95 717, max 1,361 tokens. The review adds the criteria block (≤ 367 tokens, 4% of reviews).
+
+Budget checks:
+- The 12,000-char view cap was **never reached** (uncapped view chars p50 4,270, p95 6,417, max 7,715 at turn 60).
+  View tokens/char p50 0.64, max 0.71 → a view at the cap would be ≈ 8,550 tokens; worst prompt at the cap ≈
+  743 (fixed) + 1,361 (hints) + 8,553 ≈ 10.7k tokens.
+- Largest measured prompt 6,312 tokens: tiny against the 131,072-token gpt-oss-20b context, but the server may be
+  configured smaller. With `max_tokens` 2048: every prompt fits 8k; with the length retry (2 × 2048 = 4096) only 63%
+  fit 8k, 100% fit 16k. At 4k: 63% of prompts alone fit, 21% with max_tokens.
+- Stress check with `--max-view-chars 4000` (30 cases): 55% of step prompts were cut, max prompt 3,986 tokens; the
+  cap bounds the prompt as expected (fixed + hints + cap × 0.71).
+- Scripted action JSON (no reasoning) is 307 p50 / 446 max tokens; the output assumption above adds the reasoning.
+
+Recommendations (not applied here):
+1. Once the server context `C` (vLLM `--max-model-len`) is known, set `AGENT_MAX_VIEW_CHARS ≤ (C − max_tokens_retry −
+   2,100) / 0.71` (2,100 = fixed + max hints). 16k context: keep 12,000. 8k: ≈ 5,500 with max_tokens 2048 and set
+   `DOCTOR_LLM_MAX_TOKENS_CAP=2048` (no room for the 4096 retry). vLLM rejects prompt + max_tokens > context with an
+   error (400), while Ollama truncates prompts longer than `num_ctx` without an error → check `num_ctx` for local runs.
+2. The findings ledger is the biggest and grows without bound until the view cap (the older-actions list is cut
+   first). Cheapest cuts before touching the view cap: shorter finding `detail`, one compact line for `결과없음` items,
+   and a shorter older-actions line (40 + 60 chars today).
+3. Hint trimming order under pressure (least safety value first): KB discriminator → KB candidates → target-turn notice →
+   clinical rules (render 1 rule instead of 2; 541 tokens p95) → unavailable list; keep can't-miss and pending safety
+   checks last (Safety score). Degraded mode already keeps only the first two hints.
+4. The system prompt (643 tokens, 19%) is identical on every call: prefix caching on the server makes it cheap in
+   latency, but it is billed per call.
 
 ## Open issues (refreshed 2026-09-27)
 - **Nothing since v5 is measured with an LLM.** v6 (KB hints, code-decided review), the 26-category protocols and
