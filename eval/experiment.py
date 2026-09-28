@@ -12,6 +12,11 @@ Profiles and conditions live in eval/experiment_profiles.json. Each condition ru
 current eval/ copied in and are rescored with the current scorer). The first condition is the comparison baseline
 (or --compare-with FILE). Cheapest default: keyword patient + no judge (only the doctor spends credits).
 Keys from .env are passed to the subprocess environment only; they are never printed.
+
+LLM record/replay cache (eval/replay.py): patient/judge default to `--llm-cache auto` (replay on hit, else call +
+record), the doctor to off unless `--cache-doctor` (or `"cache_doctor": true` on a condition, e.g. a frozen baseline).
+`--llm-cache replay` makes zero API calls and stops on the first miss. Hit/miss counts and tokens avoided are printed
+per run and in the comparison.
 """
 import argparse
 import glob
@@ -37,6 +42,8 @@ PROFILES_FILE = ROOT / "eval/experiment_profiles.json"
 RESULTS = ROOT / "eval/results"
 EXPERIMENTS_MD = ROOT / "docs/experiments.md"
 BILLING_ABORT_EXIT = 3  # same as eval/run_local.py
+REPLAY_MISS_EXIT = 4  # same as eval/run_local.py
+CACHE_DIR = ROOT / "eval/cache"
 
 # Conservative fallbacks when no past result file tells us better (see estimate()).
 DEFAULTS = {
@@ -89,7 +96,8 @@ def resolve_profile(cfg: dict, name: str, conditions: list[str] | None = None, r
     unknown = [c for c in names if c not in cfg["conditions"]]
     if unknown:
         raise SystemExit(f"unknown condition(s) {unknown}; choose from {', '.join(cfg['conditions'])}")
-    conds = [{"name": c, "env": dict(cfg["conditions"][c].get("env") or {}), "commit": cfg["conditions"][c].get("commit")}
+    conds = [{"name": c, "env": dict(cfg["conditions"][c].get("env") or {}), "commit": cfg["conditions"][c].get("commit"),
+              "cache_doctor": bool(cfg["conditions"][c].get("cache_doctor", False))}
              for c in names]
     return {"name": name, "description": prof.get("description", ""), "cases": cases, "conditions": conds,
             "workers": int(prof.get("workers", 4))}
@@ -325,18 +333,34 @@ def baseline_worktree(commit: str):
                    capture_output=True, text=True)
     try:
         shutil.rmtree(wt / "eval", ignore_errors=True)
-        shutil.copytree(ROOT / "eval", wt / "eval", ignore=shutil.ignore_patterns("results", "__pycache__"))
+        shutil.copytree(ROOT / "eval", wt / "eval", ignore=shutil.ignore_patterns("results", "cache", "__pycache__"))
         yield wt
     finally:
         subprocess.run(["git", "worktree", "remove", "--force", str(wt)], cwd=ROOT, capture_output=True, text=True)
         shutil.rmtree(parent, ignore_errors=True)
 
 
+def cache_args(mode: str = "off", *, cache_doctor: bool = False, salt: str = "", sample_idx: int = 0,
+               directory: Path = CACHE_DIR) -> list[str]:
+    """run_local flags for the LLM cache (the cache dir is always the current checkout's, also for worktrees).
+    `mode` is the patient/judge mode; with cache_doctor the doctor uses the same mode (auto when mode is off)."""
+    if mode == "off" and not cache_doctor:
+        return []
+    out = ["--llm-cache", mode, "--cache-dir", str(Path(directory).resolve())]
+    if cache_doctor:
+        out += ["--doctor-cache", mode if mode != "off" else "auto"]
+    if salt:
+        out += ["--cache-salt", salt]
+    if sample_idx:
+        out += ["--cache-sample-idx", str(sample_idx)]
+    return out
+
+
 def build_command(root: Path, cases: list[tuple[str, Path]], *, doctor: str, patient: str, judge: str, persona: str,
-                  workers: int, label: str, out: Path, meta: dict) -> list[str]:
+                  workers: int, label: str, out: Path, meta: dict, cache: list[str] | None = None) -> list[str]:
     return [sys.executable, str(root / "eval/run_local.py"), "--doctor", doctor, "--patient", patient,
             "--judge", judge, "--persona", persona, "--workers", str(workers), "--label", label, "--out", str(out),
-            "--no-view", "--meta", json.dumps(meta, ensure_ascii=False),
+            "--no-view", "--meta", json.dumps(meta, ensure_ascii=False), *(cache or []),
             "--cases", *[str(Path(p).resolve()) for _, p in cases]]
 
 
@@ -395,6 +419,19 @@ def usage_line(data: dict) -> str:
     return f"{u['calls']} calls, {u['prompt_tokens']:,} in / {u['completion_tokens']:,} out"
 
 
+def cache_line(data: dict) -> str:
+    """Per-role cache hits/misses and tokens avoided from a result file ('–' when the cache was off)."""
+    block = data.get("llm_cache") or {}
+    roles = block.get("roles") or {}
+    if not roles:
+        return "–"
+    parts = [f"{r} {s['hits']}/{s['hits'] + s['misses']} hit, saved {s['saved_prompt_tokens']:,} in / "
+             f"{s['saved_completion_tokens']:,} out" for r, s in roles.items()]
+    if block.get("saved_krw_doctor") is not None:
+        parts.append(f"~{block['saved_krw_doctor']:.0f} KRW doctor credits saved")
+    return "; ".join(parts)
+
+
 def markdown_log(res: dict, runs: list[dict], ctx: dict) -> tuple[list[str], str]:
     """(table rows for the main experiment table, detailed section) for docs/experiments.md."""
     date = time.strftime("%Y-%m-%d")
@@ -403,6 +440,8 @@ def markdown_log(res: dict, runs: list[dict], ctx: dict) -> tuple[list[str], str
         cond = (data.get("experiment") or {}).get("condition") or info.get("label") or info["name"]
         f = lambda v, d=2: "–" if v is None else f"{v:.{d}f}"  # noqa: E731
         notes = [f"n/a rate {f(ov.get('not_provided'))}", f"doctor usage: {usage_line(data)}", f"`{info['name']}`"]
+        if data.get("llm_cache"):
+            notes.insert(2, f"cache: {cache_line(data)}")
         if ctx.get("note"):
             notes.insert(0, ctx["note"])
         rows.append(f"| {date} | experiment `{ctx['profile']}` / {cond} | {info.get('prompt_version') or '–'} | "
@@ -453,6 +492,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="DOCTOR_LLM_* preset: competition | gemini | local | dummy | env (= .env as is)")
     ap.add_argument("--patient", choices=["keyword", "llm"], default="keyword", help="llm = virtual patient LLM (PATIENT_LLM_*)")
     ap.add_argument("--judge", choices=["none", "llm"], default="none", help="llm = LLM judge (JUDGE_LLM_*)")
+    ap.add_argument("--llm-cache", choices=["off", "record", "replay", "auto"], default="auto",
+                    help="record/replay cache for patient/judge (eval/replay.py); replay = no API calls, stop on a miss")
+    ap.add_argument("--cache-doctor", action="store_true",
+                    help="cache the doctor too (default off; replays identical requests = deterministic doctor)")
+    ap.add_argument("--cache-salt", default="", help="part of every cache key; a new salt forces fresh answers")
+    ap.add_argument("--cache-sample-idx", type=int, default=0, help="k-th stored sample per request (variance runs)")
     ap.add_argument("--persona", default="standard")
     ap.add_argument("--workers", type=int, help="override the profile's parallel cases")
     ap.add_argument("--env", action="append", default=[], metavar="KEY=VALUE",
@@ -547,6 +592,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"profile={prof['name']} cases={len(prof['cases'])} conditions={','.join(names)} workers={workers}")
     print(f"doctor={doctor_model} @ {host}  patient={args.patient}  judge={args.judge}  persona={args.persona}"
           + (f"  env={sorted(extra)}" if extra else ""))
+    print(f"llm cache: patient/judge={args.llm_cache}  doctor="
+          + ((args.llm_cache if args.llm_cache != "off" else "auto") if args.cache_doctor else "off"
+             + (" (on for " + ",".join(c["name"] for c in prof["conditions"] if c["cache_doctor"]) + ")"
+                if any(c["cache_doctor"] for c in prof["conditions"]) else ""))
+          + (f"  salt={args.cache_salt!r}" if args.cache_salt else "")
+          + ("  (estimate below ignores cache hits)" if args.llm_cache != "off" else ""))
     stats = history_stats(_history_dirs(args), doctor_model)
     est = estimate([len(prof["cases"])] * len(names), stats, doctor=doctor, patient=args.patient, judge=args.judge,
                    margin=args.margin, price_in=args.price_in, price_out=args.price_out)
@@ -569,10 +620,12 @@ def main(argv: list[str] | None = None) -> int:
         env = {**base_env, **c["env"]}
         meta = {"profile": prof["name"], "condition": c["name"], "batch": stamp, "doctor_endpoint": args.doctor_endpoint,
                 "env": {**c["env"], **extra}, "commit_override": c["commit"]}
+        cache_doctor = args.cache_doctor or c["cache_doctor"]
+        cache = cache_args(args.llm_cache, cache_doctor=cache_doctor, salt=args.cache_salt, sample_idx=args.cache_sample_idx)
         label = f"{prof['name']}:{c['name']}"
         print(f"\n=== {label} ===" + (f" (worktree at {c['commit']})" if c["commit"] else ""), flush=True)
         kw = dict(doctor=doctor, patient=args.patient, judge=args.judge, persona=args.persona, workers=workers,
-                  label=label, out=out.resolve(), meta=meta)
+                  label=label, out=out.resolve(), meta=meta, cache=cache)
         if c["commit"]:
             with baseline_worktree(c["commit"]) as wt:
                 code, saved = run_subprocess(build_command(wt, prof["cases"], **kw), wt, env)
@@ -583,6 +636,11 @@ def main(argv: list[str] | None = None) -> int:
             code, saved = run_subprocess(build_command(ROOT, prof["cases"], **kw), ROOT, env)
         if code == BILLING_ABORT_EXIT:
             print("\nABORTED: billing error (credits depleted?). Remaining conditions skipped.")
+            aborted = True
+            break
+        if code == REPLAY_MISS_EXIT:
+            print("\nABORTED: llm cache miss in replay mode (no API calls made). Remaining conditions skipped; "
+                  "run once with --llm-cache auto to fill the cache.")
             aborted = True
             break
         if code != 0 or not saved:
@@ -599,6 +657,8 @@ def main(argv: list[str] | None = None) -> int:
     print("\n" + cmp.to_text(res))
     for p, d in zip(files, runs):
         print(f"  usage {p.name}: doctor {usage_line(d)}")
+        if d.get("llm_cache"):
+            print(f"  cache {p.name}: {cache_line(d)}")
 
     if args.log:
         ctx = {"profile": prof["name"], "patient_type": "keyword" if args.patient == "keyword" else args.persona,
