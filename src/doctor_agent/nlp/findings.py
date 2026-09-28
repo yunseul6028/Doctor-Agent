@@ -252,7 +252,8 @@ def _peds_row(table: list[tuple], age: float | None) -> tuple | None:
 _AGE_PERSON = r"(?:남아|여아|남자\s?아이|여자\s?아이|아기|아이|영아|유아|신생아|소년|소녀|어린이|학생|환아|남성|여성|남자|여자|환자|남|여)"
 _AGE_RX = [
     (re.compile(r"생후\s?(\d{1,3})\s?(일|주|개월|달)"), None),
-    (re.compile(r"(\d{1,3})\s?(일|주|개월|달)\s?(?:된|째인?|짜리)?\s?" + _AGE_PERSON), None),
+    # gestational age ("임신 30주", "재태 34주") is not the patient's age
+    (re.compile(r"(?<!임신 )(?<!임신)(?<!재태 )(?<!재태)(?<!\d)(\d{1,3})\s?(일|주|개월|달)\s?(?:된|째인?|짜리)?\s?" + _AGE_PERSON), None),
     (re.compile(r"(?:^|[\s(])(\d{1,3})\s?(세|살)\s?" + _AGE_PERSON), None),
     (re.compile(r"^\s?(\d{1,3})\s?(세|살)(?![가-힣])"), None),
     (re.compile(r"(\d{1,3})[- ](day|week|month|year)s?[- ]old"), None),
