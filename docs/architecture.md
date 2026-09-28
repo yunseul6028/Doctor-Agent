@@ -245,3 +245,20 @@ never raises, nothing kept between calls or cases).
   (correct vs. not) 0.745 hand-set → 0.796 leave-one-run-out; `margin` alone 0.747. `dangers_unresolved` and
   `kb_agreement` fitted to weight 0. Replay (leave-one-run-out, stop at the first "diagnose"): accuracy 0.885 → 0.876,
   mean turns 6.40 → 6.08. Earlier labels are a name-matching proxy (`same_disease`). **Re-validate on gpt-oss-20b.**
+
+## Broad starting DDx and anchoring check (`agent/anchoring.py`, 2026-09-28; not wired yet)
+Two pure functions for the policy (the lead wires them in; no state kept between calls or cases):
+- `initial_differential(initial_info) -> list[{"dx", "tag": 위험|흔함|KB, "source", "category"?, "kcd"?}]` (≤ 8, deduplicated
+  with `same_dx`): up to 3 can't-miss diagnoses (`safety/protocols` via `detect_categories`), 4 common causes from the
+  `COMMON` table (per chief-complaint category + 12 extra complaint categories such as dizziness, diarrhea, vision loss;
+  each category cites an AAFP review or the protocol guideline, PubMed-checked 2026-09-28; pediatric rows and 3 categories
+  are marked "미검증"), 1 KB candidate (`kb.candidates` on the chief complaint), then fill. Sex/age filters
+  (`kb.patient_profile` + `clinical_rules.rule_age_years` on the demographics). `render_for_prompt(ddx)` ≤ 300 chars,
+  meant to be shown once at turn 1.
+- `anchoring_check(state) -> {"dx", "p", "reasons", "why_ko", "prompt_ko", "suggested_actions"} | None`: only after
+  `MIN_TURNS`=3 turns, top live DDx p ≥ 0.4 and the same top in the last snapshot. Reasons: `stable_untested` (top since
+  turn ≤ 2 and no EXAM/TEST named it, its KB tests/decisive results or its discriminating results vs. the 2nd candidate),
+  `weak_support` (p ≥ 0.6 with ≤ 1 distinct supporting item found in the initial info + responses and not marked
+  unverified), `contradicted` (≥ 2 distinct "against" items that are grounded findings, not "결과 없음/확인 필요").
+  `prompt_ko` is a devil's-advocate request (two alternatives that explain the findings + the result that would refute
+  the current top, then pick that action). The caller must show it at most once per case.
