@@ -221,3 +221,22 @@ Order inside `Policy.next_action` for each proposed action:
 2. DIAGNOSE only: protocol safety pushback (once) → **can't-miss gate** (`safety/danger_gate.gate`: forces the next rule-out action for an unresolved can't-miss diagnosis, ≤ `max_gate_turns`=3 per case, never when ≤2 turns remain; a confirmed *other* danger only yields a one-time hint) → pre-diagnosis review (with diagnostic criteria).
 3. TEST/EXAM (incl. gate/review follow-ups): **pre-test preconditions** (`safety/preconditions.check`: block → swap in the prerequisite, e.g. brain CT before LP, β-hCG before abdominal CT; block without alternative → ask the model for another action; warn → annotate the reason).
 All three are guarded (exceptions are logged, never raised), recorded in `result["safety_log"]` (shown per turn in the viewer), and switchable for ablations: `AGENT_USE_GROUNDING`, `AGENT_USE_DANGER_GATE`, `AGENT_USE_PRECONDITIONS` (experiment condition `v6-no-safety`).
+
+## Unstable-patient triage (`safety/triage.py`, 2026-09-28; not wired yet)
+- `assess(state) -> dict`: `level` = `unstable` (any critical signal) / `concerning` (any warning) / `stable` (no
+  warning and core vitals known or requested) / **`unknown`** (no warning yet but vitals missing — missing vitals are
+  never "stable"; treat as "measure vitals first"). Also `signals` [{key, ko, severity critical|warning|unknown,
+  where, cite}], `why_ko`, `citation`, `news2`, `shock_index`, `map`, `qsofa`, `gcs`, `vitals`, `missing`,
+  `unavailable`, `pediatric`, `flags` (ams, chest_pain, sepsis_suspected, bleeding, anaphylaxis, airway, ...).
+- Reads the initial info + every environment response (not the doctor's questions); vitals are the nlp layer's
+  measured values with the patient's age (Fleming 2011 centiles for children), worst value per vital.
+- Thresholds: NEWS2 bands/triggers (adults), qSOFA, shock index (≥1.0 warning, ≥1.4 with SBP ≤100 critical), SIPA and
+  PALS hypotension (children), MAP <65, SpO2 <90, RR ≥30/≤8, GCS ≤8/AVPU P-U, NIAID/FAAN anaphylaxis, airway
+  swelling/stridor, bleeding + instability, chest pain + instability, reproductive-age abdominal pain + SI ≥1.
+  Sources and verification levels are in the module docstring.
+- `priority_actions(state, level_or_assessment)` → [(ActionType, content_ko, reason_ko)] in ABCDE order, skipping
+  actions already done or results already in the text: airway exam, vitals / SpO2, breathing exam, ABGA, ECG,
+  lactate + blood cultures, CBC, β-hCG, bedside ultrasound, glucose, GCS/neuro exam, skin exam. `stable` → [].
+- `render_for_prompt(state, assessment=None, actions=None, max_chars=250)` → one Korean line, "" when stable.
+- Physiologically stable emergencies (STEMI, dissection, SAH with normal vitals) stay `stable` here by design; the
+  can't-miss gate (`danger_gate.py`) and protocols cover them.
