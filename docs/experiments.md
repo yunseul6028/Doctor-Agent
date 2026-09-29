@@ -281,3 +281,68 @@ so no Accuracy / Efficiency / Safety row.
   case ≤ 2,965 tokens, o200k_harmony). `bipolar_dsm5tr` moved from neuro to psych. 15 new citations (PubMed-checked).
 - Next: wire / measure on gpt-oss-20b with the endocrine and psychiatric gold cases (Accuracy) and check that the
   psych consult asks organic-cause tests before settling on a psychiatric diagnosis (Safety).
+
+### 2026-09-29 · trigger calibration: anchoring check, consult, advocate (offline replay, no LLM)
+`python eval/offline/eval_triggers.py [--results DIR]` (repo-relative; `-v` lists the rules picked per fold). No prompt
+change and no LLM run, so no Accuracy / Efficiency / Safety row: these are trigger statistics, not scores.
+**Calibrated on Gemini/Gemma trajectories only (gemini-3.5-flash-lite 160, gemma-4-26b-a4b-it 48, gemini-3.6-flash 16):
+re-run the script on the first gpt-oss-20b runs and re-check every threshold below.**
+- Data: 224 non-dummy trajectories of 9 runs (2026-09-25/26), 1,214 decision points. "Ends wrong" = judged accuracy < 1:
+  26 trajectories but only **12 distinct cases** (56 distinct cases in all; `cqa_328` alone is wrong 5 times). Labels
+  carry judge / name-matching noise. Treat differences under ~5 wrong trajectories as ties.
+- Replay = what the runtime sees before step j+1: `turns[:j]`, the DDx ledger updated with the snapshots of actions
+  1..j (no look-ahead to the snapshot written after response j, which `eval_anchoring.py` / `eval_specialty.py` use; hence
+  57.6% / 75.0% here vs. their 45% / 80.4%), findings reported before that step. Pre-review point = state at the final
+  DIAGNOSE with the final diagnosis as proposal (the runtime reviews the first DIAGNOSE that reaches review; close enough
+  because these runs rarely held). The consult's stuck branch (model confidence) is **not** replayable: the result files
+  do not keep the model's confidence. The code confidence (`confidence.DEFAULT_PARAMS`) was itself fitted on these runs,
+  so every confidence-based rule below is optimistic even out of sample.
+- Search: variants = "first decision point j ≥ t0 where all atoms hold" (anchoring, consult) or "atoms hold at the
+  pre-review point" (advocate); atoms = thresholds on code confidence, top-1 p, top-1 − top-2 margin, grounded support /
+  against counts, confirmatory result, unresolved can't-miss count, number of live candidates, routed specialty share,
+  candidates within the routed specialty, the anchoring check's reasons. Three nested families: *threshold* (the current
+  rule with its own numbers moved), *gated* (current rule ∧ one atom), *full* (any ≤ 2 atoms). Selection on the training
+  part: most wrong trajectories caught with fire rate ≤ target (anchoring 30%, consult 35%, advocate 40%), then precision.
+  Out of sample: 5-fold CV grouped by case id ×20 fold assignments, and leave-one-run-out (training also drops the
+  held-out run's cases, so for the four flash-lite runs it is close to leave-one-model-out).
+
+Lift = precision / base rate (26/224 = 11.6%); 1.0 = no better than random.
+
+| Trigger | Rule | Fire | On wrong | On right | Lift | Median turn | Lift, CV by case | Lift, leave-one-run-out |
+|---|---|---|---|---|---|---|---|---|
+| Anchoring | before: `anchoring_check` from turn 3 | 57.6% | 46.2% (12/26) | 59.1% | 0.80 | 3 | (no fitting) | |
+| | **after: same check from turn 5** | 26.8% | 34.6% (9/26) | 25.8% | 1.29 | 5 | 1.27 (threshold family) | 0.89 |
+| | not adopted, gated: turn ≥ 3 ∧ margin ≤ 0.1 ∧ check | 14.3% | 34.6% | 11.6% | 2.42 | 4 | 1.47 | 0.33 |
+| | not adopted, full: turn ≥ 4 ∧ top-1 p ≤ 0.6 ∧ code conf < 0.4 | 28.6% | 57.7% | 24.7% | 2.02 | 4 | 1.72 | 1.12 |
+| Consult (routed) | before: share ≥ 0.6 from turn 3 | 75.0% | 73.1% (19/26) | 75.3% | 0.97 | 3 | (no fitting) | |
+| | **after: share ≥ 0.6 from turn 5** | 36.2% | 42.3% (11/26) | 35.4% | 1.17 | 5 | 0.71 (threshold family) | 0.36 |
+| | not adopted, gated: turn ≥ 4 ∧ share ≥ 0.6 ∧ margin ≤ 0.2 | 30.8% | 46.2% | 28.8% | 1.50 | 4 | 1.13 | 0.39 |
+| | not adopted, full: turn ≥ 4 ∧ top-1 p ≤ 0.7 ∧ code conf < 0.4 | 29.5% | 57.7% | 25.8% | 1.96 | 4 | 1.39 | 0.34 |
+| Advocate | before: anchoring moment (from turn 3) or pre-review code conf < 0.65 | 75.0% | 88.5% (23/26) | 73.2% | 1.18 | 3 | (no fitting) | |
+| | **after: pre-review code conf < 0.4 only** | 33.0% | 53.8% (14/26) | 30.3% | 1.63 | 4 | 1.54 (threshold family) | 1.64 |
+| | not adopted, gated: pre-review conf < 0.65 ∧ no unresolved can't-miss | 36.2% | 73.1% | 31.3% | 2.02 | 4 | 1.70 | 2.78 |
+
+Reading:
+- The anchoring check and the routed consult, as designed, fire *more* often on trajectories that end right (confident,
+  focused DDx) than on those that end wrong. No variant of either transfers across runs (leave-one-run-out lift ≤ 1.1).
+  In CV the gated / full searches catch −1.9 / +4.8 (anchoring) and +3.2 / +5.7 (consult) more of the 26 wrong
+  trajectories than the threshold search, i.e. about 1–2 distinct cases, and the full rules would change what the
+  trigger means (an "uncertain" detector, not an anchoring or specialty signal). So both keep their rule and only
+  start later (turn 5), halving the fire rate; for the consult no
+  threshold separates wrong cases out of sample (CV 0.71), the choice among thresholds is about cost, and turn 5 was
+  preferred over the in-sample pick (turn 4, share ≥ 0.9; 31.2%, lift 0.98) because it changes one number and matches
+  the anchoring start. The consult's stuck branch is unchanged and adds fires the replay cannot count.
+- The advocate is the one trigger with a transferable signal: low code confidence at the pre-review point (lift 1.5–2.8
+  in every split). The anchoring moment (its other trigger) now defaults off (`AGENT_ADVOCATE_ON_ANCHORING=0`); the
+  threshold goes 0.65 → 0.4. The gated rule ("and no unresolved can't-miss") scored higher but its CV gain is < 1 wrong
+  trajectory and the can't-miss count interacts with the danger gate, which changes with the model: left as a candidate.
+- Fire rates depend strongly on the doctor model (anchoring from turn 5: flash 6%, flash-lite 19%, Gemma 58%; the Gemma
+  lift is 0.57), which is the main reason to redo this on gpt-oss-20b.
+- New defaults (env-overridable, `config.AgentConfig`): `AGENT_ANCHORING_MIN_TURNS` 5 (was 3, `anchoring.MIN_TURNS`),
+  `AGENT_CONSULT_MIN_TURNS` 5 (was 3), `AGENT_CONSULT_MIN_SHARE` 0.6, `AGENT_CONSULT_LOW_CONF` / `_TURNS` / `_AFTER`
+  0.5 / 3 / 6, `AGENT_ADVOCATE_CONF_BELOW` 0.4 (was 0.65), `AGENT_ADVOCATE_ON_ANCHORING` 0 (was always on). The previous
+  behaviour is `AGENT_ANCHORING_MIN_TURNS=3 AGENT_CONSULT_MIN_TURNS=3 AGENT_ADVOCATE_CONF_BELOW=0.65
+  AGENT_ADVOCATE_ON_ANCHORING=1`.
+- Expected sub-agent calls per case on trajectories like these: consult ≈ 0.36 (+ stuck branch), advocate ≈ 0.33 (was
+  ≈ 0.75 + 0.75). What a trigger *does* once fired (does the hint fix wrong cases, does it break right ones) is not
+  measurable offline: run the `v6-no-subagents` ablation on gpt-oss-20b.

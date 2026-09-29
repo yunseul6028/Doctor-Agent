@@ -149,7 +149,7 @@ def _cfg(**over):
     return cfg
 
 
-def _state(n_turns=3, conf=0.9, results=(), initial="55세 남성. 주호소: 흉통"):
+def _state(n_turns=5, conf=0.9, results=(), initial="55세 남성. 주호소: 흉통"):
     st = CaseState(initial_info=initial, confidence=conf)
     for i in range(n_turns):
         st.turns.append(Turn(Action(ActionType.ASK, f"질문 {i + 1}번 무엇인가요?"), "네"))
@@ -212,7 +212,7 @@ def test_runner_passes_gpt_oss_options_through_guarded_llm():
 
 def test_consult_routed_fires_once_hint_on_same_step_and_refs(mods):
     calls = mods()
-    llm, st = Router(), _state(n_turns=3)
+    llm, st = Router(), _state(n_turns=5)
     pol = Policy(llm, _cfg())
     assert pol.next_action(st).type == ActionType.ASK
     assert llm.kinds() == ["consult", "step"]
@@ -229,10 +229,10 @@ def test_consult_routed_fires_once_hint_on_same_step_and_refs(mods):
     assert "전문의 자문" not in llm.user()
 
 
-def test_consult_not_before_turn_3_nor_below_share(mods):
+def test_consult_not_before_min_turns_nor_below_share(mods):
     calls = mods(route=("cardio", 0.5, []))
     llm = Router()
-    Policy(llm, _cfg()).next_action(_state(n_turns=2))
+    Policy(llm, _cfg()).next_action(_state(n_turns=4))  # consult_min_turns = 5
     assert llm.kinds() == ["step"] and not [c for c in calls if c[0] == "route"]
     llm = Router()
     Policy(llm, _cfg()).next_action(_state(n_turns=5, conf=0.2))  # share 0.5, low confidence but before turn 6
@@ -285,7 +285,7 @@ def test_few_remaining_turns_skip(mods):
 
 def test_call_cap(mods):
     mods()
-    llm, st = Router(), _state(n_turns=3, results=[("흉부 X선", LONG_CXR)])
+    llm, st = Router(), _state(n_turns=5, results=[("흉부 X선", LONG_CXR)])
     pol = Policy(llm, _cfg(max_subagent_calls=1))
     pol.next_action(st)
     assert llm.kinds() == ["radiology", "step"]  # radiology used the only call; the routed consult is skipped
@@ -296,7 +296,7 @@ def test_call_cap(mods):
 
 def test_master_switch_off(mods):
     calls = mods()
-    llm, st = Router(), _state(n_turns=3, results=[("흉부 X선", LONG_CXR)])
+    llm, st = Router(), _state(n_turns=5, results=[("흉부 X선", LONG_CXR)])
     pol = Policy(llm, _cfg(use_subagents=False))
     pol.next_action(st)
     assert llm.kinds() == ["step"] and not calls and not _sub(st)
@@ -308,7 +308,7 @@ def test_master_switch_off(mods):
 @pytest.mark.parametrize("boom", ["route", "build"])
 def test_content_module_exception_disables_it_and_case_continues(mods, boom):
     mods(boom=boom)
-    llm, st = Router(), _state(n_turns=3)
+    llm, st = Router(), _state(n_turns=5)
     pol = Policy(llm, _cfg())
     assert pol.next_action(st).type == ActionType.ASK
     st.turns.append(Turn(Action(ActionType.ASK, "추가 질문입니다"), "네"))
@@ -320,22 +320,22 @@ def test_content_module_exception_disables_it_and_case_continues(mods, boom):
 
 def test_parser_bug_and_bad_json_give_not_ok_and_case_continues(mods):
     mods(boom="parse")
-    llm, st = Router(), _state(n_turns=3)
+    llm, st = Router(), _state(n_turns=5)
     pol = Policy(llm, _cfg())
     assert pol.next_action(st).type == ActionType.ASK
     e = _sub(st, "call")[0]
     assert not e["ok"] and "parser" in e["error"] and "전문의 자문" not in llm.user()
     assert pol.subagent_summary(st)["fail"] == 1
     mods()
-    llm, st = Router(consult="엉망 {"), _state(n_turns=3)
+    llm, st = Router(consult="엉망 {"), _state(n_turns=5)
     assert Policy(llm, _cfg()).next_action(st).type == ActionType.ASK and not _sub(st, "call")[0]["ok"]
-    llm, st = Router(raise_for={"consult"}), _state(n_turns=3)
+    llm, st = Router(raise_for={"consult"}), _state(n_turns=5)
     assert Policy(llm, _cfg()).next_action(st).type == ActionType.ASK and not _sub(st, "call")[0]["ok"]
 
 
 def test_missing_modules_are_skipped(mods):
     mods(consult=False, advocate=False)
-    llm, st = Router(), _state(n_turns=3)
+    llm, st = Router(), _state(n_turns=5)
     pol = Policy(llm, _cfg())
     pol.next_action(st)
     pol.next_action(st)
@@ -345,7 +345,7 @@ def test_missing_modules_are_skipped(mods):
 
 # ---------------------------------------------------------------- advocate
 
-def _fake_check(state):
+def _fake_check(state, **kw):
     return {"dx": "A", "p": 0.8, "reasons": ["weak_support"], "why_ko": "근거 부족", "prompt_ko": "[반론 점검] A 고정?",
             "suggested_actions": []}
 
@@ -354,14 +354,24 @@ def test_advocate_at_anchoring_moment_once(mods, monkeypatch):
     calls = mods(route=(None, 0.0, []))
     monkeypatch.setattr(anchoring, "anchoring_check", _fake_check)
     monkeypatch.setattr(anchoring, "initial_differential", lambda info: [])
-    llm, st = Router(), _state(n_turns=3)
-    pol = Policy(llm, _cfg(use_anchoring=True))
+    llm, st = Router(), _state(n_turns=5)
+    pol = Policy(llm, _cfg(use_anchoring=True, advocate_on_anchoring=True))
     pol.next_action(st)
     assert llm.kinds() == ["advocate", "step"]
     user = llm.user()
     assert "[반론 점검] A 고정?" in user and "반대 의견 검토 (참고 의견, 사실 근거 아님): A 말고 C도 설명됩니다." in user
     assert ("advocate", "A", "'A' 조기 고정 의심: 근거 부족") in calls
     assert _sub(st, "call")[0]["trigger"] == "anchoring" and st.ddx_ledger.refs_list()[0]["dx"] == "C"
+
+
+def test_advocate_not_at_anchoring_moment_by_default(mods, monkeypatch):
+    calls = mods(route=(None, 0.0, []))
+    monkeypatch.setattr(anchoring, "anchoring_check", _fake_check)
+    monkeypatch.setattr(anchoring, "initial_differential", lambda info: [])
+    llm, st = Router(), _state(n_turns=5)
+    Policy(llm, _cfg(use_anchoring=True)).next_action(st)
+    assert llm.kinds() == ["step"] and "[반론 점검] A 고정?" in llm.user()  # the check is shown, no advocate call
+    assert not [c for c in calls if c[0] == "advocate"] and not _sub(st, "call")
 
 
 def _assess(score):
@@ -372,7 +382,7 @@ def _assess(score):
 
 def test_advocate_before_review_goes_into_review_view(mods, monkeypatch):
     mods(route=(None, 0.0, []))
-    monkeypatch.setattr(confidence, "assess", _assess(0.4))
+    monkeypatch.setattr(confidence, "assess", _assess(0.3))  # < advocate_conf_below (0.4)
     llm, st = Router(step=DX), _state(n_turns=4)
     st.safety_pushback = True
     pol = Policy(llm, _cfg())
@@ -388,11 +398,12 @@ def test_advocate_before_review_goes_into_review_view(mods, monkeypatch):
 
 def test_advocate_not_called_when_confident_or_no_review(mods, monkeypatch):
     mods(route=(None, 0.0, []))
-    monkeypatch.setattr(confidence, "assess", _assess(0.9))
-    llm, st = Router(step=DX), _state(n_turns=4)
-    st.safety_pushback = True
-    Policy(llm, _cfg()).next_action(st)
-    assert llm.kinds() == ["step", "review"]
+    for score in (0.9, 0.4):  # 0.4: not below the default cut-off
+        monkeypatch.setattr(confidence, "assess", _assess(score))
+        llm, st = Router(step=DX), _state(n_turns=4)
+        st.safety_pushback = True
+        Policy(llm, _cfg()).next_action(st)
+        assert llm.kinds() == ["step", "review"]
     monkeypatch.setattr(confidence, "assess", _assess(0.1))
     llm, st = Router(step=DX), _state(n_turns=4)
     st.safety_pushback, st.reviews = True, [{}] * MAX_REVIEWS  # the review is not run: neither is the advocate
@@ -427,7 +438,7 @@ def test_radiology_merges_findings_marked_and_keeps_code_reading(mods):
 
 def test_radiology_cap_one_per_case_and_bad_json(mods):
     mods(route=(None, 0.0, []))
-    llm, st = Router(radiology="판독 불가"), _state(n_turns=3, results=[("흉부 X선", LONG_CXR)])
+    llm, st = Router(radiology="판독 불가"), _state(n_turns=5, results=[("흉부 X선", LONG_CXR)])
     pol = Policy(llm, _cfg())
     assert pol.next_action(st).type == ActionType.ASK
     assert not _sub(st, "call")[0]["ok"] and not [f for f in st.findings.items if f.source == LLM_RADIOLOGY_SOURCE]
@@ -439,7 +450,7 @@ def test_radiology_cap_one_per_case_and_bad_json(mods):
 
 def test_radiology_needs_result_interpreter(mods):
     mods(route=(None, 0.0, []))
-    llm, st = Router(), _state(n_turns=3, results=[("흉부 X선", LONG_CXR)])
+    llm, st = Router(), _state(n_turns=5, results=[("흉부 X선", LONG_CXR)])
     Policy(llm, _cfg(use_result_interpreter=False)).next_action(st)
     assert llm.kinds() == ["step"]
 
@@ -468,7 +479,7 @@ def test_run_case_summary(mods):
 
     mods()
     case = Path(__file__).resolve().parents[1] / "data/sample_cases/synthetic_001.json"
-    steps = [_step("ASK", f"질문 {i}번 있나요?") for i in range(4)] + [DX]
+    steps = [_step("ASK", f"질문 {i}번 있나요?") for i in range(6)] + [DX]  # consult from turn 5
     cfg = Config()
     cfg.agent = _cfg()
     llm = Router(step=steps)
@@ -493,9 +504,32 @@ def test_whole_case_with_subagent_internals_raising(mods, monkeypatch):
     monkeypatch.setattr(orchestrator.SubagentManager, "before_step", boom)
     monkeypatch.setattr(orchestrator.SubagentManager, "radiology", boom)
     monkeypatch.setattr(orchestrator.SubagentManager, "advocate_for_review", boom)
-    llm, st = Router(), _state(n_turns=3, results=[("흉부 X선", LONG_CXR)])
+    llm, st = Router(), _state(n_turns=5, results=[("흉부 X선", LONG_CXR)])
     assert Policy(llm, _cfg()).next_action(st).type == ActionType.ASK
     assert {e["layer"] for e in st.safety_log if e.get("error")} == {"subagent"}
+
+
+def test_trigger_defaults_and_env_overrides(monkeypatch):
+    """Calibrated defaults (docs/experiments.md "trigger calibration") and their environment overrides."""
+    cfg = Config().agent
+    assert (cfg.anchoring_min_turns, cfg.consult_min_turns, cfg.consult_min_share) == (5, 5, 0.6)
+    assert (cfg.advocate_conf_below, cfg.advocate_on_anchoring) == (0.4, False)
+    assert cfg.anchoring_min_turns == anchoring.MIN_TURNS
+    for k, v in {"AGENT_ANCHORING_MIN_TURNS": "3", "AGENT_CONSULT_MIN_TURNS": "4", "AGENT_CONSULT_MIN_SHARE": "0.8",
+                 "AGENT_CONSULT_LOW_CONF": "0.3", "AGENT_CONSULT_LOW_CONF_TURNS": "2", "AGENT_CONSULT_LOW_CONF_AFTER": "8",
+                 "AGENT_ADVOCATE_CONF_BELOW": "0.65", "AGENT_ADVOCATE_ON_ANCHORING": "1"}.items():
+        monkeypatch.setenv(k, v)
+    cfg = Config().agent
+    assert (cfg.anchoring_min_turns, cfg.consult_min_turns, cfg.consult_min_share) == (3, 4, 0.8)
+    assert (cfg.consult_low_conf, cfg.consult_low_conf_turns, cfg.consult_low_conf_after) == (0.3, 2, 8)
+    assert (cfg.advocate_conf_below, cfg.advocate_on_anchoring) == (0.65, True)
+
+
+def test_consult_min_turns_is_configurable(mods):
+    mods()
+    llm = Router()
+    Policy(llm, _cfg(consult_min_turns=3)).next_action(_state(n_turns=3))
+    assert llm.kinds() == ["consult", "step"]
 
 
 def test_subagent_result_contract_fields():

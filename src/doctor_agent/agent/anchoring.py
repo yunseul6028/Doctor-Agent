@@ -6,9 +6,10 @@ Two pure functions for the policy (the lead wires them in; nothing here keeps st
         can't-miss diagnoses (safety/protocols.py, tag "위험"), common causes per chief-complaint category (COMMON
         below, tag "흔함") and knowledge-base candidates (knowledge/kb.py, tag "KB"); deduplicated.
     render_for_prompt(ddx, max_chars=300) -> str       short Korean text, shown once at turn 1
-    anchoring_check(state) -> dict | None              devil's-advocate prompt when the top live DDx looks
-                                                       prematurely closed (only after MIN_TURNS turns; the caller
-                                                       fires it at most once per case)
+    anchoring_check(state, min_turns=None) -> dict | None
+                                                       devil's-advocate prompt when the top live DDx looks
+                                                       prematurely closed (only after min_turns turns, default
+                                                       MIN_TURNS; the caller fires it at most once per case)
 
 COMMON table: every category cites a review/guideline whose differential covers these causes. Citation.verified =
 bibliographic data checked against PubMed E-utilities on 2026-09-28. The row *content* was written from reviewer
@@ -32,7 +33,11 @@ from doctor_agent.safety import protocols as P
 
 MAX_DDX = 8
 MAX_RENDER = 300
-MIN_TURNS = 3          # anchoring_check never fires before this many turns
+# anchoring_check never fires before this many turns. 5 (was 3): from turn 3 it fired on 59% of the replayed
+# trajectories that ended right and 46% of those that ended wrong; from turn 5 on 26% / 35% (eval/offline/
+# eval_triggers.py, runs of non-competition dev models; re-check on gpt-oss-20b). Same default as
+# AgentConfig.anchoring_min_turns (AGENT_ANCHORING_MIN_TURNS), which the policy passes in.
+MIN_TURNS = 5
 EARLY_TURN = 2         # "since early turns": the top candidate was already top at turn <= EARLY_TURN
 MIN_P = 0.4            # a top candidate below this probability is not "closed"
 WEAK_SUPPORT_P = 0.6   # weak-support trigger: top p >= this with <= 1 grounded supporting finding
@@ -478,10 +483,10 @@ def _concrete_against(items: list[str], env: str) -> list[str]:
     return _grounded([a for a in items if a and not _PENDING.search(a)], env, [])
 
 
-def anchoring_check(state) -> dict | None:
+def anchoring_check(state, min_turns: int | None = None) -> dict | None:
     """Premature-closure check on the current top live DDx. None when it does not apply.
 
-    Fires (after MIN_TURNS turns, top p >= MIN_P, and the same top in the last two snapshots) when any of:
+    Fires (after `min_turns` turns, default MIN_TURNS; top p >= MIN_P, and the same top in the last two snapshots) when any of:
       stable_untested: top unchanged since turn <= EARLY_TURN and no EXAM/TEST so far named it or one of its KB
                        tests / decisive results / discriminating results vs. the 2nd candidate;
       weak_support:    p >= WEAK_SUPPORT_P but <= 1 distinct supporting item grounded in the environment's text
@@ -489,7 +494,7 @@ def anchoring_check(state) -> dict | None:
       contradicted:    >= MIN_AGAINST distinct, grounded findings listed against it (not "결과 없음"/"확인 필요").
     Returns {"dx", "p", "reasons", "why_ko", "prompt_ko", "suggested_actions"}; the caller shows it at most once."""
     turns = list(getattr(state, "turns", []) or [])
-    if len(turns) < MIN_TURNS:
+    if len(turns) < (MIN_TURNS if min_turns is None else min_turns):
         return None
     live = _current(state)
     if not live:

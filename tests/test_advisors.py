@@ -132,34 +132,41 @@ def test_initial_ddx_off_switch():
 
 
 def _fake_check(calls):
-    def check(state):
+    def check(state, **kw):
         calls.append(state.turn_count)
         return {"dx": "A", "p": 0.8, "reasons": ["weak_support"], "why_ko": "근거 부족", "prompt_ko": "[반론 점검] A 고정?",
                 "suggested_actions": []}
     return check
 
 
-def test_anchoring_check_from_turn_3_shown_once(monkeypatch):
+def test_anchoring_check_from_min_turns_shown_once(monkeypatch):
     calls = []
     monkeypatch.setattr(anchoring, "anchoring_check", _fake_check(calls))
     llm = Recording(ASK)
     pol = Policy(llm, _cfg(use_triage=False))
-    st = _state(n_turns=2)
+    st = _state(n_turns=4)
     pol.next_action(st)
-    assert calls == [] and "[반론 점검]" not in llm.user(0)  # not before MIN_TURNS
-    st.turns.append(Turn(Action(ActionType.ASK, "세 번째 질문입니다"), "네"))
+    assert calls == [] and "[반론 점검]" not in llm.user(0)  # not before cfg.anchoring_min_turns (5)
+    st.turns.append(Turn(Action(ActionType.ASK, "다섯 번째 질문입니다"), "네"))
     pol.next_action(st)
-    assert calls == [3] and "[반론 점검] A 고정?" in llm.user(1) and st.anchoring_shown
-    st.turns.append(Turn(Action(ActionType.ASK, "네 번째 질문입니다"), "네"))
+    assert calls == [5] and "[반론 점검] A 고정?" in llm.user(1) and st.anchoring_shown
+    st.turns.append(Turn(Action(ActionType.ASK, "여섯 번째 질문입니다"), "네"))
     pol.next_action(st)
-    assert calls == [3] and "[반론 점검]" not in llm.user(2)
+    assert calls == [5] and "[반론 점검]" not in llm.user(2)
     assert [e["kind"] for e in _layers(st, "anchoring")] == ["premature_closure"]
+
+
+def test_anchoring_check_min_turns_from_config(monkeypatch):
+    seen = []
+    monkeypatch.setattr(anchoring, "anchoring_check", lambda s, min_turns=None: seen.append((s.turn_count, min_turns)))
+    Policy(Recording(ASK), _cfg(use_triage=False, anchoring_min_turns=3)).next_action(_state(n_turns=3))
+    assert seen == [(3, 3)]
 
 
 def test_anchoring_check_keeps_trying_until_it_fires(monkeypatch):
     results = [None, {"prompt_ko": "[반론 점검] 지금", "dx": "A"}]
-    monkeypatch.setattr(anchoring, "anchoring_check", lambda s: results.pop(0))
-    llm, st = Recording(ASK), _state(n_turns=3)
+    monkeypatch.setattr(anchoring, "anchoring_check", lambda s, **kw: results.pop(0))
+    llm, st = Recording(ASK), _state(n_turns=5)
     pol = Policy(llm, _cfg(use_triage=False))
     pol.next_action(st)
     assert not st.anchoring_shown
@@ -171,13 +178,13 @@ def test_anchoring_check_keeps_trying_until_it_fires(monkeypatch):
 def test_anchoring_check_off_switch(monkeypatch):
     calls = []
     monkeypatch.setattr(anchoring, "anchoring_check", _fake_check(calls))
-    Policy(Recording(ASK), _cfg(use_anchoring=False)).next_action(_state(n_turns=4))
+    Policy(Recording(ASK), _cfg(use_anchoring=False)).next_action(_state(n_turns=6))
     assert calls == []
 
 
 def test_anchoring_hint_dropped_by_budget_is_not_marked_shown(monkeypatch):
     monkeypatch.setattr(anchoring, "anchoring_check", _fake_check([]))
-    llm, st = Recording(ASK), _state(n_turns=3)
+    llm, st = Recording(ASK), _state(n_turns=5)
     Policy(llm, _cfg(use_triage=False, max_advisor_chars=5)).next_action(st)
     assert "[반론 점검]" not in llm.user() and not st.anchoring_shown and not _layers(st, "anchoring")
 
@@ -309,11 +316,11 @@ def test_advisor_exception_is_logged_not_raised(monkeypatch, target, attr, layer
 def test_anchoring_check_exception_is_logged_once(monkeypatch):
     calls = []
 
-    def boom(state):
+    def boom(state, **kw):
         calls.append(1)
         raise RuntimeError("advisor bug")
     monkeypatch.setattr(anchoring, "anchoring_check", boom)
-    st, pol = _state(n_turns=3), Policy(Recording(ASK), _cfg())
+    st, pol = _state(n_turns=5), Policy(Recording(ASK), _cfg())
     pol.next_action(st)
     st.turns.append(Turn(Action(ActionType.ASK, "네 번째 질문입니다"), "네"))
     pol.next_action(st)

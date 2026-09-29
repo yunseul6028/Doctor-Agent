@@ -285,11 +285,12 @@ class Policy:
             return "", None
 
     def _anchoring(self, state: CaseState) -> tuple[str, dict | None]:
-        """Premature-closure check from turn anchoring.MIN_TURNS on, each turn until it fires; shown once per case."""
-        if not self.cfg.use_anchoring or state.anchoring_shown or state.turn_count < anchoring.MIN_TURNS:
+        """Premature-closure check from turn cfg.anchoring_min_turns on, each turn until it fires; shown once."""
+        min_turns = getattr(self.cfg, "anchoring_min_turns", anchoring.MIN_TURNS)
+        if not self.cfg.use_anchoring or state.anchoring_shown or state.turn_count < min_turns:
             return "", None
         try:
-            chk = anchoring.anchoring_check(state)
+            chk = anchoring.anchoring_check(state, min_turns=min_turns)
             if not chk or not chk.get("prompt_ko"):
                 return "", None
             return str(chk["prompt_ko"]), {

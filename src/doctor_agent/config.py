@@ -71,6 +71,8 @@ class AgentConfig:
     # switched off for ablation experiments (condition v6-no-advisors turns all four off).
     use_confidence: bool = field(default_factory=lambda: _flag("AGENT_USE_CONFIDENCE", "1"))
     use_anchoring: bool = field(default_factory=lambda: _flag("AGENT_USE_ANCHORING", "1"))
+    # premature-closure check from this many turns on (anchoring.MIN_TURNS is the same default; calibrated, see below)
+    anchoring_min_turns: int = field(default_factory=lambda: int(_num("AGENT_ANCHORING_MIN_TURNS", 5)))
     use_planner: bool = field(default_factory=lambda: _flag("AGENT_USE_PLANNER", "1"))  # also needs use_kb
     use_triage: bool = field(default_factory=lambda: _flag("AGENT_USE_TRIAGE", "1"))
     # a proposed diagnosis whose code-computed confidence is below this gets one pushback per case
@@ -97,12 +99,21 @@ class AgentConfig:
     # reasoning effort of sub-agent calls ("none" = parameter not sent)
     subagent_reasoning_effort: str = field(
         default_factory=lambda: os.getenv("AGENT_SUBAGENT_REASONING_EFFORT", "low").strip().lower() or "low")
-    consult_min_turns: int = 3        # routed consult: from this many turns on ...
-    consult_min_share: float = 0.6    # ... when one specialty holds this share of the top-DDx mass
-    consult_low_conf: float = 0.5     # stuck consult: model confidence below this ...
-    consult_low_conf_turns: int = 3   # ... on this many consecutive parsed turns ...
-    consult_low_conf_after: int = 6   # ... from this many turns on
-    advocate_conf_below: float = 0.65  # pre-review advocate: code confidence of the proposed diagnosis below this
+    # Trigger thresholds: calibrated on replayed trajectories of non-competition dev models (eval/offline/eval_triggers.py,
+    # docs/experiments.md "trigger calibration"); re-check on gpt-oss-20b runs before trusting them.
+    # routed consult: from consult_min_turns turns on, when one specialty holds >= consult_min_share of the top-DDx mass
+    consult_min_turns: int = field(default_factory=lambda: int(_num("AGENT_CONSULT_MIN_TURNS", 5)))
+    consult_min_share: float = field(default_factory=lambda: _num("AGENT_CONSULT_MIN_SHARE", 0.6))
+    # stuck consult: model confidence < consult_low_conf on consult_low_conf_turns consecutive parsed turns, from
+    # consult_low_conf_after turns on (not replayable offline: the result files do not keep the model's confidence)
+    consult_low_conf: float = field(default_factory=lambda: _num("AGENT_CONSULT_LOW_CONF", 0.5))
+    consult_low_conf_turns: int = field(default_factory=lambda: int(_num("AGENT_CONSULT_LOW_CONF_TURNS", 3)))
+    consult_low_conf_after: int = field(default_factory=lambda: int(_num("AGENT_CONSULT_LOW_CONF_AFTER", 6)))
+    # pre-review advocate: code confidence of the proposed diagnosis below this
+    advocate_conf_below: float = field(default_factory=lambda: _num("AGENT_ADVOCATE_CONF_BELOW", 0.4))
+    # also call the advocate at the anchoring moment (when the premature-closure check fires); off: that moment did
+    # not pick out wrong cases in the replay, the pre-review confidence did
+    advocate_on_anchoring: bool = field(default_factory=lambda: _flag("AGENT_ADVOCATE_ON_ANCHORING", "0"))
     subagent_min_remaining_turns: int = 4  # skip all sub-agents when fewer turns than this remain (i.e. <= 3)
 
     # --- runtime robustness (see docs/architecture.md "Runtime") ---
