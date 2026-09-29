@@ -1,13 +1,12 @@
 """Specialty routing and evidence slicing for runtime specialist consults. Owned by knowledge-rag.
 
-Eight specialty ids (fixed): cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn, heme_onc, renal_uro
-(heme_onc and renal_uro added 2026-09-28, after the first six).
+Ten specialty ids (fixed, append-only): cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn, heme_onc,
+renal_uro, endo_metab, psych (heme_onc and renal_uro added 2026-09-28, endo_metab and psych 2026-09-29).
 
 API
-    specialty_of(dx_name)         -> one of the eight ids | None (diagnosis name, Korean/English free text)
+    specialty_of(dx_name)         -> one of the ten ids | None (diagnosis name, Korean/English free text)
     specialty_detail(dx_name)     -> {"specialty", "group", "how", "code", "name"}   (group also names buckets outside
-                                     the eight: endo_metab, psych, derm, ent_eye, msk_ortho, tox_trauma, symptom,
-                                     other)
+                                     the ten: derm, ent_eye, msk_ortho, tox_trauma, symptom, other)
     route(state)                  -> (specialty | None, share, [Korean reasons])
     resources(specialty, state)   -> {"criteria", "rules", "protocols", "kb_candidates"} (each bounded; {} on error)
     render_resources(res, max_chars=700) -> short Korean text for a consult prompt
@@ -32,6 +31,14 @@ How a name is mapped (specialty_detail)
     rhabdomyolysis, congenital urinary/male genital anomalies (Q53-Q55, Q60-Q64), urinary symptoms (R30-R39).
     Testicular torsion: renal_uro by name; for a child it is on PEDIATRIC_DX, so the child override sends a case
     whose top-1 candidate is torsion to peds_obgyn (whose consult covers torsion); adults stay renal_uro.
+    endo_metab: E00-E90 except E84 (resp_id), E87/E86 and E1x.2 (renal_uro: electrolytes, volume, diabetic kidney),
+    E83.0/E83.1 (gi_liver), E85 amyloidosis and E88.3 (heme_onc), E28 (peds_obgyn); plus endocrine-gland neoplasms
+    (C73-C75, D34-D35, D44: thyroid cancer, pituitary adenoma, adrenal tumours) and, by name, pheochromocytoma/
+    paraganglioma and insulinoma. Hyponatraemia/hyperkalaemia (E87) stay renal_uro; SIADH (E22.2), diabetes insipidus
+    (E23.2) and calcium disorders (E83.5) are endo_metab (renal_uro acceptable in the gold).
+    psych: F05-F99 (delirium F05, organic F06-F09 except MCI F06.7, substance F10-F19, ...) and, by name, NMS,
+    serotonin syndrome, catatonia, alcohol withdrawal / delirium tremens. Dementia/organic amnesia F00-F04 and F06.7 stay
+    neuro (cognitive work-up); Wernicke encephalopathy (E51.2) → neuro by name.
 
 route(state) — the exact rule
     Candidates: live entries of state.ddx_ledger (status != 배제) in ranked order, else state.ddx; top TOP_K.
@@ -47,7 +54,7 @@ route(state) — the exact rule
                name has a pregnancy word.
                → peds_obgyn with share = relevant mass share, when the top-1 candidate is relevant or that share
                >= CONTEXT_SHARE (0.3). Otherwise the organ routing below applies (reason says why).
-    Organ routing: best = argmax share over the eight (ties: fixed SPECIALTIES order); None when nothing maps.
+    Organ routing: best = argmax share over the ten (ties: fixed SPECIALTIES order); None when nothing maps.
     The caller decides when to consult (suggested: MIN_TURNS = 3 and share >= MIN_SHARE = 0.6).
 
 Stdlib only, CPU only, no network, deterministic. Per-case: nothing is stored between calls except the KB's own
@@ -59,10 +66,11 @@ from __future__ import annotations
 import re
 
 SPECIALTIES: tuple[str, ...] = ("cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn", "heme_onc",
-                                "renal_uro")
+                                "renal_uro", "endo_metab", "psych")  # append-only: the order breaks share ties
 SPECIALTY_KO: dict[str, str] = {"cardio": "심장·혈관", "resp_id": "호흡기·감염", "gi_liver": "소화기·간담췌",
                                 "neuro": "신경", "rheum_immune": "류마티스·면역·알레르기", "peds_obgyn": "소아·산부인과",
-                                "heme_onc": "혈액·종양", "renal_uro": "신장·비뇨"}
+                                "heme_onc": "혈액·종양", "renal_uro": "신장·비뇨", "endo_metab": "내분비·대사",
+                                "psych": "정신"}
 TOP_K = 5
 MIN_TURNS = 3        # suggested caller gate: consult only after this many turns ...
 MIN_SHARE = 0.6      # ... and when the routed specialty holds at least this share of the top-DDx mass
@@ -102,6 +110,13 @@ OVERRIDES: tuple[tuple[str, str | None, str], ...] = (
     (r"당뇨병?\s?성?\s?신증|당뇨병?\s?성?\s?콩팥병|diabetic (nephropathy|kidney)", "renal_uro", "renal_uro"),  # → E14
     (r"용혈성\s?(빈혈|요독)|ha?emolytic (an[a]?emia|uremic|uraemic)|g6pd|glucose-6-phosphate|포도당-6-인산", "heme_onc",
      "heme_onc"),  # G6PD deficiency: DO files it under carbohydrate metabolism
+    # endo_metab / psych (2026-09-29)
+    (r"베르니케|wernicke", "neuro", "neuro"),                            # E51.2: an encephalopathy (neuro consult)
+    (r"신경\s?이완제?\s?악성|악성\s?신경\s?이완|neuroleptic malignant|세로토닌\s?증후군|serotonin (syndrome|toxicity)"
+     r"|긴장증|카타토니아|catatoni", "psych", "psych"),                  # G21.0 / T43 / F06.1: psychiatric drugs, catatonia
+    (r"알코올\s?금단|진전\s?섬망|alcohol withdrawal|delirium tremens", "psych", "psych"),
+    (r"갈색\s?세포종|크롬\s?친화\s?세포종|부신경절종|pheochromocytoma|phaeochromocytoma|paraganglioma|인슐린종|insulinoma",
+     "endo_metab", "endo_metab"),                                        # C74.1 / C25.4: hormone-secreting tumours
 )
 
 # KCD/ICD-10 code ranges → (specialty, group). A code matches an entry when its 3-character category lies in
@@ -121,6 +136,7 @@ KCD_TABLE: tuple[tuple[str, str, str | None, str], ...] = (
     ("E142", "E142", "renal_uro", "renal_uro"),
     ("D090", "D090", "renal_uro", "renal_uro"),        # carcinoma in situ of the bladder
     ("E28", "E28", "peds_obgyn", "peds_obgyn"),        # ovarian dysfunction (PCOS)
+    ("F067", "F067", "neuro", "neuro"),                # mild cognitive disorder (MCI)
     # infectious
     ("A00", "A09", "gi_liver", "gi_liver"), ("A80", "A89", "neuro", "neuro"), ("B15", "B19", "gi_liver", "gi_liver"),
     ("A00", "B99", "resp_id", "resp_id"),
@@ -129,6 +145,7 @@ KCD_TABLE: tuple[tuple[str, str, str | None, str], ...] = (
     ("C44", "C44", _O, "derm"),                        # non-melanoma skin cancer
     ("C51", "C58", "peds_obgyn", "peds_obgyn"), ("C60", "C68", "renal_uro", "renal_uro"),
     ("C69", "C69", _O, "ent_eye"), ("C70", "C72", "neuro", "neuro"),
+    ("C73", "C75", "endo_metab", "endo_metab"),        # thyroid, adrenal, other endocrine glands (site first)
     ("D01", "D01", "gi_liver", "gi_liver"), ("D02", "D02", "resp_id", "resp_id"), ("D06", "D06", "peds_obgyn", "peds_obgyn"),
     ("D12", "D13", "gi_liver", "gi_liver"), ("D25", "D28", "peds_obgyn", "peds_obgyn"),
     ("D29", "D30", "renal_uro", "renal_uro"), ("D32", "D33", "neuro", "neuro"),
@@ -136,7 +153,8 @@ KCD_TABLE: tuple[tuple[str, str, str | None, str], ...] = (
     ("D40", "D41", "renal_uro", "renal_uro"), ("D42", "D43", "neuro", "neuro"),
     # benign neoplasms of sites without an id: not an oncology problem
     ("D16", "D16", _O, "msk_ortho"), ("D21", "D21", _O, "msk_ortho"), ("D22", "D23", _O, "derm"),
-    ("D34", "D35", _O, "endo_metab"), ("D44", "D44", _O, "endo_metab"), ("D10", "D36", _O, "other"),
+    ("D34", "D35", "endo_metab", "endo_metab"), ("D44", "D44", "endo_metab", "endo_metab"),  # endocrine glands
+    ("D10", "D36", _O, "other"),
     ("C00", "D49", "heme_onc", "heme_onc"),
     # blood / immune: immunodeficiency and D89 → rheum_immune, sarcoidosis → resp_id, the rest of D50-D89 → heme_onc
     ("D71", "D71", "rheum_immune", "rheum_immune"),    # functional neutrophil disorders (CGD: immunodeficiency)
@@ -144,8 +162,11 @@ KCD_TABLE: tuple[tuple[str, str, str | None, str], ...] = (
     ("D89", "D89", "rheum_immune", "rheum_immune"), ("D50", "D89", "heme_onc", "heme_onc"),
     # endocrine / metabolic
     ("E84", "E84", "resp_id", "resp_id"), ("E87", "E87", "renal_uro", "renal_uro"),  # fluid/electrolyte/acid-base
-    ("E00", "E90", _O, "endo_metab"),
-    ("F00", "F99", _O, "psych"),
+    ("E86", "E86", "renal_uro", "renal_uro"),          # volume depletion (with E87)
+    ("E85", "E85", "heme_onc", "heme_onc"),            # amyloidosis (AL: plasma-cell disorder, SPEP/FLC)
+    ("E00", "E90", "endo_metab", "endo_metab"),
+    ("F00", "F04", "neuro", "neuro"),                  # dementia, organic amnesic syndrome
+    ("F00", "F99", "psych", "psych"),                  # delirium F05, other organic F06-F09, substance F10-F19, ...
     ("G00", "G99", "neuro", "neuro"),
     ("H81", "H82", "neuro", "neuro"), ("H00", "H95", _O, "ent_eye"),
     # circulatory
@@ -203,8 +224,10 @@ DO_MAP: dict[str, tuple[str | None, str]] = {
     "DOID:2914": ("rheum_immune", "rheum_immune"),   # immune system disease
     "DOID:0050117": ("resp_id", "resp_id"),          # disease by infectious agent
     "DOID:162": ("heme_onc", "heme_onc"),            # cancer (organ cancers reach their organ class first)
-    "DOID:28": (None, "endo_metab"), "DOID:0014667": (None, "endo_metab"),
-    "DOID:150": (None, "psych"), "DOID:16": (None, "derm"),
+    "DOID:28": ("endo_metab", "endo_metab"),        # endocrine system disease
+    "DOID:0014667": ("endo_metab", "endo_metab"),   # disease of metabolism
+    "DOID:150": ("psych", "psych"),                  # disease of mental health
+    "DOID:16": (None, "derm"),
     "DOID:5614": (None, "ent_eye"), "DOID:2742": (None, "ent_eye"),
     "DOID:17": (None, "msk_ortho"),
     "DOID:0080015": ("peds_obgyn", "peds_obgyn"),    # physical disorder (congenital)
@@ -214,6 +237,14 @@ _DO_ORDER = {k: i for i, k in enumerate(DO_MAP)}
 # organ keywords, used only when the KB cannot resolve the name
 FALLBACK: tuple[tuple[str, str | None, str], ...] = (
     (r"골절|탈구|염좌|추간판|디스크|힘줄|건\s?파열|fracture|dislocation|sprain|disc herniation|tendon", None, "msk_ortho"),
+    # psych and endocrine words before the organ words ("신경성 식욕부진증" is not neuro, "뇌하수체" is not brain)
+    (r"우울|조현|양극성|조울|공황|불안\s?장애|강박|섬망|정신\s?병|정신증|식욕\s?부진증|폭식증|외상\s?후\s?스트레스|자살"
+     r"|인격\s?장애|depress|schizo|bipolar|panic|anxiety disorder|psychos|psychot|delirium|anorexia nervosa|bulimia"
+     r"|ptsd|suicid", "psych", "psych"),
+    # added after the first gold-v3 pass (2026-09-29): 점액수종 (no KB entry); "갑상" alone matched 갑상혀관낭 (Q89.2)
+    (r"갑상선|갑상샘|점액\s?수종|myx[o]?edema|부신|뇌하수체|당뇨|혈당|케[톤토]\s?산증|고삼투|요붕|쿠싱|[애에]디슨"
+     r"|알도스테론|칼슘\s?혈증|thyroid|thyrotox|adrenal|pituitar|parathyr|diabet|glyc[a]?emi|ketoacidosis"
+     r"|hyperosmolar|insipidus|cushing|addison|aldosteron|calc[a]?emia", "endo_metab", "endo_metab"),
     (r"심장|심근|협심|부정맥|판막|심낭|심실|심방|대동맥|방실|빈맥|서맥|cardi|heart|coronary|aort|arrhythm|tachycard",
      "cardio", "cardio"),
     (r"뇌졸중|뇌경색|뇌출혈|뇌|신경|척수|치매|두통|경련|발작|stroke|cerebr|neur|brain|spinal|dementia|seizure", "neuro",
@@ -256,11 +287,11 @@ _PREG_WORDS = re.compile(r"임신|자간|태반|산후|산욕|분만|유산|양�
 CRITERIA_SPECIALTY: dict[str, tuple[str, ...]] = {
     "sle_2019": ("rheum_immune",), "ra_2010": ("rheum_immune",), "takayasu_2022": ("rheum_immune", "cardio"),
     "gca_2022": ("rheum_immune", "neuro"), "kawasaki_aha2017": ("peds_obgyn", "rheum_immune", "cardio"),
-    "duke_iscvid_2023": ("cardio", "resp_id"), "kdigo_aki_2012": ("renal_uro",), "dka_hhs_2024": (),
+    "duke_iscvid_2023": ("cardio", "resp_id"), "kdigo_aki_2012": ("renal_uro",), "dka_hhs_2024": ("endo_metab",),
     "light_1972": ("resp_id", "heme_onc"),  # malignant effusion
     "sepsis3_2016": ("resp_id", "heme_onc", "renal_uro"),  # neutropenic sepsis, urosepsis
     "jones_2015": ("rheum_immune", "cardio", "peds_obgyn"), "mcdonald_2017": ("neuro",),
-    "ichd3_migraine_tth": ("neuro",), "bipolar_dsm5tr": (), "gout_2015": ("rheum_immune",),
+    "ichd3_migraine_tth": ("neuro",), "bipolar_dsm5tr": ("psych",), "gout_2015": ("rheum_immune",),
 }
 RULE_SPECIALTY: dict[str, tuple[str, ...]] = {
     "wells_pe": ("cardio", "resp_id", "heme_onc"),  # active cancer is a Wells item (cancer-associated VTE)
@@ -277,14 +308,19 @@ RULE_SPECIALTY: dict[str, tuple[str, ...]] = {
 CATEGORY_SPECIALTY: dict[str, tuple[str, ...]] = {
     "chest_pain": ("cardio",), "dyspnea": ("resp_id", "cardio"), "headache": ("neuro",), "neuro": ("neuro",),
     "fever": ("resp_id", "heme_onc"), "abdominal_pain": ("gi_liver", "peds_obgyn"), "allergy": ("rheum_immune",),
-    "syncope": ("cardio", "neuro"), "palpitations": ("cardio",), "hemoptysis_cough": ("resp_id",),
+    "syncope": ("cardio", "neuro"), "hemoptysis_cough": ("resp_id",),
+    "palpitations": ("cardio", "endo_metab"),  # thyrotoxicosis, pheochromocytoma, hypoglycaemia
     "jaundice": ("gi_liver", "peds_obgyn", "heme_onc"),  # haemolysis
     "joint": ("rheum_immune",), "back_pain": ("heme_onc",),  # spinal metastasis
     "rash": ("rheum_immune",), "pruritus": ("gi_liver", "heme_onc", "renal_uro"),  # cholestasis, lymphoma/PV, CKD
     "edema": ("cardio", "renal_uro"),  # nephrotic syndrome / glomerulonephritis
-    "menstrual": ("peds_obgyn",), "fatigue": ("heme_onc",), "cognitive": ("neuro",), "psychiatric": (),
+    "menstrual": ("peds_obgyn", "endo_metab"),  # pituitary tumour, thyroid
+    "fatigue": ("heme_onc", "endo_metab"),  # hypothyroidism, diabetes
+    "cognitive": ("neuro", "psych"),  # delirium, depressive pseudo-dementia
+    "psychiatric": ("psych",),
     "urticaria_chronic": ("rheum_immune",), "hearing_loss": (),
-    "neck_mass": ("heme_onc",), "bleeding": ("heme_onc",), "chronic_weakness": ("neuro", "rheum_immune"),
+    "neck_mass": ("heme_onc",), "bleeding": ("heme_onc",),
+    "chronic_weakness": ("neuro", "rheum_immune", "endo_metab"),  # hypokalaemia, thyroid
     "bilious_vomiting": ("peds_obgyn", "gi_liver"),
 }
 
@@ -497,7 +533,8 @@ def route(state) -> tuple[str | None, float, list[str]]:
             reasons.append(f"{ctx}이지만 선두 후보가 연령·임신 특이 질환이 아니라 장기별 분과로 배정")
         best = max(SPECIALTIES, key=lambda s: (mass[s], -SPECIALTIES.index(s)))
         if mass[best] <= 0:
-            return None, 0.0, reasons + ["상위 감별 후보가 8개 분과 어디에도 속하지 않음: " + ", ".join(unmapped[:3])]
+            return None, 0.0, reasons + [f"상위 감별 후보가 {len(SPECIALTIES)}개 분과 어디에도 속하지 않음: "
+                                         + ", ".join(unmapped[:3])]
         share = mass[best] / total
         reasons.append(f"상위 감별 {len(cands)}개 중 {SPECIALTY_KO[best]}({best}) 비중 {_pct(share)}: "
                        + ", ".join(members[best][:3]))
@@ -505,7 +542,7 @@ def route(state) -> tuple[str | None, float, list[str]]:
         if others:
             reasons.append("다른 분과: " + ", ".join(others))
         if unmapped:
-            reasons.append("8개 분과 밖 후보: " + ", ".join(unmapped[:3]))
+            reasons.append(f"{len(SPECIALTIES)}개 분과 밖 후보: " + ", ".join(unmapped[:3]))
         return best, round(share, 3), reasons
     except Exception as e:  # never break the agent loop
         return None, 0.0, [f"분과 배정 실패({type(e).__name__})"]

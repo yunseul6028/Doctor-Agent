@@ -2,16 +2,18 @@
 
     python eval/offline/eval_specialty.py [--results DIR] [--json OUT] [--fuzzy] [-v]
 
-1. Gold accuracy of specialty_of on data/labels/specialty_gold_v1.jsonl (six ids) and specialty_gold_v2.jsonl (eight
-   ids: new names + corrected copies of v1 items; each hand-labelled before any output was seen;
-   labelling guide in docs/architecture.md "Specialty routing"). strict = predicted == label; lenient = predicted is
+1. Gold accuracy of specialty_of on data/labels/specialty_gold_v1.jsonl (six ids), specialty_gold_v2.jsonl (eight
+   ids: new names + corrected copies of v1 items) and specialty_gold_v3.jsonl (ten ids, endo_metab + psych: new names
+   + corrected copies of v1/v2 items); each hand-labelled before any output was seen;
+   labelling guide in docs/architecture.md "Specialty routing". strict = predicted == label; lenient = predicted is
    the label or one of its "also" alternatives (None counts as correct when listed in "also").
 2. Specialty distribution of the gold diagnoses of data/cases_aug per source (diagnosis first, then aliases), and the
    share outside the eight ids by bucket (which specialties to add next).
 3. Routing simulation on past runs (eval/results/run_*.json by default, doctor_model "dummy" skipped): the per-turn
    DDx snapshots are replayed through route(); a consult "fires" at the first snapshot taken after >= MIN_TURNS turns
    with share >= MIN_SHARE. Reports how often it fires and whether the routed specialty is the gold diagnosis's one.
-   Also times route() and resources() on those states.
+   Also times route() and resources() on those states. --gold-from OUT.json scores the routing against the gold
+   specialties recorded in another run's --json output (like-for-like before/after when the id set changes).
 Paths are relative to the repo root (this file's grandparent's parent).
 """
 from __future__ import annotations
@@ -39,14 +41,21 @@ def _load(name: str) -> list[dict]:
 
 
 def gold_sets() -> dict[str, list[dict]]:
-    """v1 as labelled (six ids), v1 with the v2 corrected copies applied, the v2 new names, and all of them."""
-    v1 = _load("specialty_gold_v1.jsonl")
-    v2p = os.path.join(ROOT, "data/labels/specialty_gold_v2.jsonl")
-    v2 = _load("specialty_gold_v2.jsonl") if os.path.exists(v2p) else []
-    corr = {r["name"]: r for r in v2 if r.get("source") == "v1_corrected"}
-    v1c = [corr.get(r["name"], r) for r in v1]
-    new = [r for r in v2 if r.get("source") == "v2_new"]
-    return {"v1": v1, "v1_corrected": v1c, "v2_new": new, "all": v1c + new}
+    """v1 as labelled (six ids), v1 with the v2 then v3 corrected copies applied, the v2 new names (v3 corrections
+    applied), the v3 new names, and all of them."""
+    def opt(name: str) -> list[dict]:
+        return _load(name) if os.path.exists(os.path.join(ROOT, "data/labels", name)) else []
+    v1, v2, v3 = _load("specialty_gold_v1.jsonl"), opt("specialty_gold_v2.jsonl"), opt("specialty_gold_v3.jsonl")
+    corr2 = {r["name"]: r for r in v2 if r.get("source") == "v1_corrected"}
+    corr3 = {r["name"]: r for r in v3 if r.get("source") == "v3_corrected"}
+    v1c = [corr3.get(r["name"], corr2.get(r["name"], r)) for r in v1]
+    new2 = [corr3.get(r["name"], r) for r in v2 if r.get("source") == "v2_new"]
+    new3 = [r for r in v3 if r.get("source") == "v3_new"]
+    out = {"v1": v1, "v1_corrected": v1c, "v2_new": new2}
+    if new3:
+        out["v3_new"] = new3
+    out["all"] = v1c + new2 + new3
+    return out
 
 
 def gold_accuracy(verbose: bool, rows: list[dict] | None = None, tag: str = "gold") -> dict:
@@ -155,7 +164,7 @@ def _gold_for(case: dict) -> dict:
     return _case_detail({"diagnosis": names[0], "aliases": names[1:]})
 
 
-def simulate(results_dir: str, verbose: bool) -> dict:
+def simulate(results_dir: str, verbose: bool, gold_map: dict | None = None) -> dict:
     files = sorted(glob.glob(os.path.join(results_dir, "run_*.json")))
     n_traj = fired = fired_ok = gold_in_six = fired_gold_in_six = fired_ok_in_six = 0
     final_ok = final_n = 0
@@ -165,6 +174,7 @@ def simulate(results_dir: str, verbose: bool) -> dict:
     t_route: list[float] = []
     t_res: list[float] = []
     examples = []
+    gold_by_case: dict[str, str | None] = {}
     for f in files:
         run = json.load(open(f, encoding="utf-8"))
         if run.get("doctor_model") == "dummy":
@@ -176,6 +186,10 @@ def simulate(results_dir: str, verbose: bool) -> dict:
                 continue
             n_traj += 1
             g = _gold_for(case)
+            key = f"{case.get('case', '')}|{case.get('answer', '')}"
+            if gold_map is not None and key in gold_map:  # like-for-like: the gold ids of another run
+                g = {**g, "specialty": gold_map[key]}
+            gold_by_case[key] = g["specialty"]
             gold_in_six += g["specialty"] is not None
             hit = None
             last = None
@@ -228,7 +242,7 @@ def simulate(results_dir: str, verbose: bool) -> dict:
            "fired_by_specialty": dict(fired_by),
            "fire_turn_mean": round(statistics.mean(fire_turns), 2) if fire_turns else None,
            "fired_on_wrong_final": wrong_fired, "fired_on_wrong_final_correct_specialty": wrong_fired_ok, "route_time": stats(t_route), "resources_time": stats(t_res),
-           "examples_wrong": examples}
+           "examples_wrong": examples, "gold_by_case": gold_by_case}
     print(f"[route] trajectories={n_traj} (gold mapped to an id: {gold_in_six})  consult fires (>= {sp.MIN_TURNS} "
           f"turns, share "
           f">= {sp.MIN_SHARE}): {pct(fired, n_traj)}")
@@ -249,6 +263,7 @@ def main() -> None:
     ap.add_argument("--json", default="")
     ap.add_argument("-v", action="store_true")
     ap.add_argument("--fuzzy", action="store_true", help="turn on the KB fuzzy name step (off at runtime)")
+    ap.add_argument("--gold-from", default="", help="score routing against the gold ids in another run's --json")
     a = ap.parse_args()
     sp.FUZZY = a.fuzzy
     t0 = time.perf_counter()
@@ -258,7 +273,11 @@ def main() -> None:
     res = {"gold": {k: gold_accuracy(a.v, rows, "gold " + k) for k, rows in gs.items() if rows},
            "distribution": distribution(a.v)}
     if os.path.isdir(a.results):
-        res["routing"] = simulate(a.results, a.v)
+        gm = None
+        if a.gold_from:
+            with open(a.gold_from, encoding="utf-8") as f:
+                gm = json.load(f).get("routing", {}).get("gold_by_case")
+        res["routing"] = simulate(a.results, a.v, gm)
     else:
         print(f"[route] no results directory {a.results}: skipped")
     if a.json:

@@ -264,3 +264,20 @@ no Accuracy / Efficiency / Safety row.
 - Trajectory replay (224): consult fires 67.4% → 80.4%; routed = gold specialty 86.1% (130/151, old module vs eight-id
   gold) → 88.9% (160/180). The DKA case still routes to gi_liver: its DDx never contained DKA (endocrine not an id).
 - Needs consult specs for the two ids in `agent/subagents/consult.py` before the routing can use them.
+
+### 2026-09-29 · ten ids: `endo_metab` and `psych` (routing + consult content; code only, no LLM, not wired)
+Offline (`eval/offline/eval_specialty.py`; metrics `data/labels/specialty_gold_v3_metrics.json`). No main prompt change,
+so no Accuracy / Efficiency / Safety row.
+- New gold `specialty_gold_v3.jsonl` (43 new names: 20 endo_metab, 17 psych, 6 boundary controls; + 11 corrected v1/v2
+  copies), labelled before any ten-id output. First pass: new names strict 42/43 (97.7%), all 207 names 203/207; after one
+  keyword fix (점액수종) 43/43 and 204/207 (optimistic: same set). Eight-id module on the same gold: 4/43 and 156/207.
+- cases_aug gold diagnoses outside the ids: 59/267 (22.1%) → 38/267 (14.2%) (endo_metab 8, psych 11; derm 12, other 12,
+  msk_ortho 9, ent_eye 5 remain).
+- Trajectory replay (224): consult fires 80.4% → 88.4% (180 → 198); routed = gold specialty 87.8% (158/180, eight-id
+  module vs ten-id gold) → 89.4% (177/198). New fires: endo_metab 10, psych 6. The DKA case still routes to gi_liver:
+  its turn-3 DDx never contains DKA (routing cannot add a candidate; the gi_liver and endo_metab specs both name the
+  DKA-as-abdominal-pain pitfall).
+- Consult: `endo_metab` / `psych` specs appended in `consult.py` (render ≤ 643 chars; turn 0 930–1,057 tokens, worst
+  case ≤ 2,965 tokens, o200k_harmony). `bipolar_dsm5tr` moved from neuro to psych. 15 new citations (PubMed-checked).
+- Next: wire / measure on gpt-oss-20b with the endocrine and psychiatric gold cases (Accuracy) and check that the
+  psych consult asks organic-cause tests before settling on a psychiatric diagnosis (Safety).

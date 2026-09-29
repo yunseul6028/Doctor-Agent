@@ -572,6 +572,30 @@ in `SPECIALTY_IDS`; `knowledge/specialty.py` routing for them is added separatel
 - Sizes: specialty block 467–517 tokens (render ≤ 675 chars); full consult turn 0 950–1,104 tokens, worst case ≤ 2,929
   (same measurement for the six existing specialties now reads 2,769–2,915).
 
+**Added specialties (2026-09-29, knowledge-rag): `endo_metab` 내분비·대사, `psych` 정신** (appended after the existing
+dict entries with `SPECIALTIES.update(...)`, so `SPECIALTY_IDS` ends with them; existing entries unchanged except the
+one-line move below).
+- `endo_metab`: DKA/HHS (links `dka_hhs_2024`), hypoglycaemia, adrenal crisis, thyroid storm, myxoedema coma, severe
+  hypercalcaemia, severe hyponatraemia, pheochromocytoma crisis, pituitary apoplexy; tests glucose, ketones/blood gas/
+  anion gap, serum and urine osmolality + urine Na, corrected Ca/PTH, TSH/fT4, morning cortisol/ACTH, plasma free
+  metanephrines, pituitary MRI. Pitfalls name **DKA presenting as abdominal pain** (Umpierrez 2002: 46% of DKA, tied to
+  the acidosis; past trajectories routed DKA to gi_liver), SGLT2-inhibitor DKA without marked hyperglycaemia, steroid
+  not delayed for tests. Protocols `fatigue`, `palpitations`, `menstrual`, `chronic_weakness` (shared); rule-outs
+  저혈당, 당뇨병성 케톤산증. Overlap with renal_uro: hyponatraemia/hyperkalaemia names (E87) route to renal_uro; SIADH,
+  adrenal and thyroid causes are listed here.
+- `psych`: organic causes first (delirium, encephalitis incl. autoimmune, hypoglycaemia/thyrotoxicosis, substances and
+  alcohol withdrawal, Wernicke), suicide risk asked directly, NMS vs serotonin syndrome (rigidity/CK vs clonus/
+  hyperreflexia), catatonia, first-episode psychosis not diagnosed before the organic work-up (glucose, electrolytes/Ca,
+  TSH, CK, urine drug screen/alcohol, CBC/CRP, drug levels, MRI/EEG/LP when fever or neurological signs). Owns
+  `bipolar_dsm5tr` (**moved from neuro**, one-line change in the neuro entry; the neuro `note` sentence about parking
+  it there is now stale and is left for the content owner). Protocols `psychiatric`, `cognitive` (shared with neuro).
+- 15 new citations (`ENDO_PSYCH_CITATIONS`, appended to `NEW_CITATIONS`; PubMed esummary 2026-09-29; claims tagged
+  abstract vs reviewer knowledge in each `note`); rows in docs/licenses.md.
+- Sizes (o200k_harmony, messages only): specialty block endo_metab 472–508 tokens (594–643 chars), psych 442–471
+  (586–629 chars); system 380 / 388; full consult at turn 0 957–1,057 / 930–1,024 tokens; worst case (60 turns, 80
+  findings, 8 DDx, full resources) 2,965 / 2,932 tokens, user message ≤ 4,435 chars (heme_onc measured the same way:
+  3,012).
+
 ## Specialty routing (`knowledge/specialty.py`, 2026-09-28; not wired yet)
 
 Routing and evidence slicing for runtime specialist consults (code only, stdlib, CPU, no network; the consult prompt
@@ -671,3 +695,45 @@ symptom, other` (endocrine stays unmapped: DKA → None/endo_metab).
   resources mean 3–11 ms. Metrics: `data/labels/specialty_gold_v2_metrics.json`.
 - Consult content for the two new ids lives in `agent/subagents/consult.py` (agent-engineer/clinical-strategist); until
   it has them, `build_consult` raises KeyError for those ids and the orchestrator logs a consult error (no hint).
+
+### Ten ids: `endo_metab` and `psych` added (2026-09-29)
+
+`SPECIALTIES` is now `cardio, resp_id, gi_liver, neuro, rheum_immune, peds_obgyn, heme_onc, renal_uro, endo_metab,
+psych` (append-only: earlier tie-breaks unchanged; Korean labels 내분비·대사, 정신). `route()` reason texts use the id
+count ("10개 분과"). Buckets outside the ten: `derm, ent_eye, msk_ortho, tox_trauma, symptom, other`.
+- Mapping decisions (`KCD_TABLE`, most specific first):
+  - endo_metab: E00–E90 except E84 (resp_id), E86/E87 and E1x.2 (renal_uro), E83.0/E83.1 (gi_liver), E85 amyloidosis
+    and E88.3 (heme_onc; AL amyloid is a plasma-cell disorder), E28 (peds_obgyn). Endocrine-gland neoplasms move here
+    (site first): C73–C75 (thyroid, adrenal, other endocrine glands; thyroid cancer was heme_onc), D34–D35 and D44
+    (were unmapped). DO `endocrine system disease`, `disease of metabolism` → endo_metab.
+  - **Electrolyte overlap with renal_uro**: E87 (hypo/hypernatraemia, hypo/hyperkalaemia, acid-base) and E86 volume
+    depletion stay renal_uro (fluid/electrolyte work-up); SIADH E22.2, diabetes insipidus E23.2 (nephrogenic N25.1 stays
+    renal_uro) and calcium disorders E83.5 are endo_metab. Gold lists the other id in `also` for each of these.
+  - psych: F05–F99 (delirium F05, organic F06–F09, substance F10–F19 including names the KB normalises to F1x such as
+    "opioid overdose"; T-coded poisonings stay tox_trauma). **F00–F04 (dementia, organic amnesic syndrome) and F06.7
+    (mild cognitive impairment) → neuro** (the cognitive work-up is neurological). Delirium goes to psych because its
+    consult leads with the organic-cause search; neuro is its `also`. DO `disease of mental health` → psych.
+  - Overrides added: Wernicke → neuro (E51.2 would be endo_metab); NMS (G21.0), serotonin syndrome, catatonia, alcohol
+    withdrawal / delirium tremens → psych; pheochromocytoma / paraganglioma (C74.1) and insulinoma (C25.4 → gi_liver) →
+    endo_metab. Fallback keywords for psychiatric and endocrine words are checked before the organ words ("신경성
+    식욕부진증" is not neuro, "뇌하수체" is not brain); "갑상선" not "갑상" (갑상혀관낭 is Q89.2).
+- Evidence slices: `dka_hhs_2024` → endo_metab (was untagged), `bipolar_dsm5tr` → psych. Categories: fatigue,
+  palpitations, menstrual, chronic_weakness + endo_metab; psychiatric → psych, cognitive + psych. No rule targets the
+  two ids (none exists for them).
+- Gold `data/labels/specialty_gold_v3.jsonl` (v1/v2 files unchanged): 43 new names (20 endo_metab, 17 psych, 6 boundary
+  controls: Wernicke, Alzheimer, vascular dementia → neuro; hyperkalaemia, nephrogenic DI → renal_uro; lithium
+  toxicity → None) + 11 corrected copies (`source: v3_corrected`, `prev_file`, `prev_specialty`: DKA, Graves, adrenal
+  insufficiency, Cushing, major depression, panic disorder, hypothyroidism, primary aldosteronism, papillary thyroid
+  cancer relabelled; hyponatraemia and diabetic nephropathy keep renal_uro with endo_metab in `also`). The eval applies
+  v2 then v3 corrections. First pass (labels written before any ten-id output): new names strict 42/43 (97.7%), all
+  207 names 203/207 (98.1%); after the one fix read off the errors (점액수종 keyword): 43/43 and 204/207 (optimistic).
+  Eight-id module on the same gold: 4/43 and 156/207.
+- cases_aug (267): endo_metab 8, psych 11, heme_onc 26 (+2 AL amyloidosis); outside the ten 38 (14.2%, was 59 = 22.1%):
+  derm 12, other 12, msk_ortho 9, ent_eye 5.
+- Routing replay (same 224 trajectories, `--gold-from` for the like-for-like score): consult fires 198 (88.4%, was 180
+  = 80.4%); routed = gold specialty 177/198 (89.4%) vs the eight-id module against the ten-id gold 158/180 (87.8%).
+  New fires: endo_metab 10 (central DI 5, Graves 2, prolactinoma 2, B12 deficiency 1), psych 6 (bipolar II 5, B12
+  deficiency 1); one bipolar II fire still goes to neuro. The DKA trajectories still route to gi_liver: their turn-3 DDx
+  has no DKA candidate. B12 deficiency (E53.8 → endo_metab gold) routes to endo_metab in 1 of 5 fires, else neuro (3)
+  or psych (1) when the DDx names its neurological/cognitive form. Warm latency: route mean 0.22 ms, p95 0.45 ms;
+  resources mean 3.1 ms, p95 6.7 ms. Metrics: `data/labels/specialty_gold_v3_metrics.json`.

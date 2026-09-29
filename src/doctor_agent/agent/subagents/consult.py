@@ -35,7 +35,7 @@ from doctor_agent.knowledge.diagnostic_criteria import C_AKI, criteria_for
 from doctor_agent.llm.harmony import split_harmony
 from doctor_agent.nlp.findings import _PEDS_HR, _PEDS_RR, _peds_row
 from doctor_agent.safety import protocols as _protocols
-from doctor_agent.safety.danger_gate import C_SCROTAL
+from doctor_agent.safety.danger_gate import C_HYPERGLYCEMIC_CRISES, C_SCROTAL
 from doctor_agent.safety.preconditions import P_ACOG_723, P_RCOG_APH
 from doctor_agent.safety.protocols import (
     G_AMI,
@@ -246,7 +246,7 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         pitfalls=("어지럼을 말초성으로 단정(후순환 뇌졸중)", "초기 MRI DWI 음성으로 뇌졸중 배제 금지",
                   "저혈당이 뇌졸중을 흉내냄", "발병 6시간 후 CT 음성만으로 SAH 배제 금지"),
         rule_ids=("ottawa_sah", "cchr", "abcd2", "nexus", "ccsr", "pecarn_head_lt2", "pecarn_head_ge2"),
-        criteria_ids=("mcdonald_2017", "ichd3_migraine_tth", "gca_2022", "bipolar_dsm5tr"),
+        criteria_ids=("mcdonald_2017", "ichd3_migraine_tth", "gca_2022"),
         protocol_categories=("headache", "neuro", "cognitive", "psychiatric", "hearing_loss", "chronic_weakness",
                              "back_pain"),
         rule_out_names=("지주막하 출혈", "뇌출혈", "급성 허혈성 뇌졸중", "뇌수막염", "저혈당", "마미 증후군"),
@@ -397,6 +397,183 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
              "mimicking renal colic, pregnancy hydronephrosis and pediatric UTI notes: reviewer knowledge.",
     ),
 )}
+
+# --------------------------------------------------------------------------------------------
+# endo_metab / psych (2026-09-29, knowledge-rag). Appended, existing entries above unchanged.
+# Bibliographic data checked against PubMed E-utilities esummary on 2026-09-29; "abstract" = the claim is in the
+# PubMed abstract (efetch), otherwise bibliographic data only and the content is reviewer knowledge (see `note`).
+# --------------------------------------------------------------------------------------------
+
+C_DKA_ABDOMINAL_PAIN = Citation(
+    "Umpierrez G, Freire AX.",
+    "Abdominal pain in patients with hyperglycemic crises",
+    "J Crit Care", 2002, "17(1):63-67", doi="10.1053/jcrc.2002.33030", pmid="12040551", verified=True,
+)
+C_ATA_THYROTOXICOSIS = Citation(
+    "Ross DS, Burch HB, Cooper DS, et al.",
+    "2016 American Thyroid Association Guidelines for Diagnosis and Management of Hyperthyroidism and Other Causes "
+    "of Thyrotoxicosis",
+    "Thyroid", 2016, "26(10):1343-1421", doi="10.1089/thy.2016.0229", pmid="27521067", verified=True,
+    short_author="ATA 갑상선 중독증 지침",
+)
+C_ADRENAL_INSUFFICIENCY = Citation(
+    "Bornstein SR, Allolio B, Arlt W, et al.",
+    "Diagnosis and Treatment of Primary Adrenal Insufficiency: An Endocrine Society Clinical Practice Guideline",
+    "J Clin Endocrinol Metab", 2016, "101(2):364-389", doi="10.1210/jc.2015-1710", pmid="26760044", verified=True,
+    short_author="내분비학회 부신 기능 저하 지침",
+)
+C_HYPONATRAEMIA = Citation(
+    "Spasovski G, Vanholder R, Allolio B, et al.",
+    "Clinical practice guideline on diagnosis and treatment of hyponatraemia",
+    "Eur J Endocrinol", 2014, "170(3):G1-G47", doi="10.1530/EJE-13-1020", pmid="24569125", verified=True,
+    short_author="유럽 저나트륨혈증 지침",
+)
+C_PHEO = Citation(
+    "Lenders JW, Duh QY, Eisenhofer G, et al.",
+    "Pheochromocytoma and paraganglioma: an endocrine society clinical practice guideline",
+    "J Clin Endocrinol Metab", 2014, "99(6):1915-1942", doi="10.1210/jc.2014-1498", pmid="24893135", verified=True,
+)
+C_HYPOGLYCAEMIA = Citation(
+    "Cryer PE, Axelrod L, Grossman AB, et al.",
+    "Evaluation and management of adult hypoglycemic disorders: an Endocrine Society Clinical Practice Guideline",
+    "J Clin Endocrinol Metab", 2009, "94(3):709-728", doi="10.1210/jc.2008-1410", pmid="19088155", verified=True,
+)
+C_PITUITARY_APOPLEXY = Citation(
+    "Rajasekaran S, Vanderpump M, Baldeweg S, et al.",
+    "UK guidelines for the management of pituitary apoplexy",
+    "Clin Endocrinol (Oxf)", 2011, "74(1):9-20", doi="10.1111/j.1365-2265.2010.03913.x", pmid="21044119",
+    verified=True,
+)
+C_CAM = Citation(
+    "Inouye SK, van Dyck CH, Alessi CA, et al.",
+    "Clarifying confusion: the confusion assessment method. A new method for detection of delirium",
+    "Ann Intern Med", 1990, "113(12):941-948", doi="10.7326/0003-4819-113-12-941", pmid="2240918", verified=True,
+)
+C_DELIRIUM = Citation(
+    "Inouye SK, Westendorp RG, Saczynski JS.",
+    "Delirium in elderly people",
+    "Lancet", 2014, "383(9920):911-922", doi="10.1016/S0140-6736(13)60688-1", pmid="23992774", verified=True,
+)
+C_CSSRS = Citation(
+    "Posner K, Brown GK, Stanley B, et al.",
+    "The Columbia-Suicide Severity Rating Scale: initial validity and internal consistency findings from three "
+    "multisite studies with adolescents and adults",
+    "Am J Psychiatry", 2011, "168(12):1266-1277", doi="10.1176/appi.ajp.2011.10111704", pmid="22193671",
+    verified=True,
+)
+C_NMS_DELPHI = Citation(
+    "Gurrera RJ, Caroff SN, Cohen A, et al.",
+    "An international consensus study of neuroleptic malignant syndrome diagnostic criteria using the Delphi method",
+    "J Clin Psychiatry", 2011, "72(9):1222-1228", doi="10.4088/JCP.10m06438", pmid="21733489", verified=True,
+)
+C_HUNTER = Citation(
+    "Dunkley EJ, Isbister GK, Sibbritt D, et al.",
+    "The Hunter Serotonin Toxicity Criteria: simple and accurate diagnostic decision rules for serotonin toxicity",
+    "QJM", 2003, "96(9):635-642", doi="10.1093/qjmed/hcg109", pmid="12925718", verified=True,
+)
+C_BFCRS = Citation(
+    "Bush G, Fink M, Petrides G, et al.",
+    "Catatonia. I. Rating scale and standardized examination",
+    "Acta Psychiatr Scand", 1996, "93(2):129-136", doi="10.1111/j.1600-0447.1996.tb09814.x", pmid="8686483",
+    verified=True,
+)
+C_CIWA_AR = Citation(
+    "Sullivan JT, Sykora K, Schneiderman J, et al.",
+    "Assessment of alcohol withdrawal: the revised clinical institute withdrawal assessment for alcohol scale "
+    "(CIWA-Ar)",
+    "Br J Addict", 1989, "84(11):1353-1357", doi="10.1111/j.1360-0443.1989.tb00737.x", pmid="2597811", verified=True,
+)
+C_AUTOIMMUNE_ENCEPHALITIS = Citation(
+    "Graus F, Titulaer MJ, Balu R, et al.",
+    "A clinical approach to diagnosis of autoimmune encephalitis",
+    "Lancet Neurol", 2016, "15(4):391-404", doi="10.1016/S1474-4422(15)00401-9", pmid="26906964", verified=True,
+)
+ENDO_PSYCH_CITATIONS: tuple[Citation, ...] = (
+    C_DKA_ABDOMINAL_PAIN, C_ATA_THYROTOXICOSIS, C_ADRENAL_INSUFFICIENCY, C_HYPONATRAEMIA, C_PHEO, C_HYPOGLYCAEMIA,
+    C_PITUITARY_APOPLEXY, C_CAM, C_DELIRIUM, C_CSSRS, C_NMS_DELPHI, C_HUNTER, C_BFCRS, C_CIWA_AR,
+    C_AUTOIMMUNE_ENCEPHALITIS)
+NEW_CITATIONS = NEW_CITATIONS + ENDO_PSYCH_CITATIONS
+
+SPECIALTIES.update({s.id: s for s in (
+    SpecialtySpec(
+        id="endo_metab", name_ko="내분비·대사",
+        role_ko="혈당 이상, 칼슘·나트륨 이상, 설명 안 되는 피로·체중·체온·맥박 변화와 의식 변화를 호르몬과 대사 관점에서 봅니다. 혈당과 혈액가스부터 봅니다.",
+        must_not_miss=("당뇨병성 케톤산증", "고삼투성 고혈당 상태", "저혈당", "부신 위기", "갑상선 중독 위기",
+                       "점액수종 혼수", "중증 고칼슘혈증", "중증 저나트륨혈증", "갈색세포종 위기", "뇌하수체 졸중"),
+        key_asks=("갈증·다뇨·체중 감소, 인슐린 중단·SGLT2 억제제", "스테로이드 장기 복용·최근 중단",
+                  "더위/추위 못 견딤·두근거림·떨림", "발작성 두통·발한·두근거림", "갑작스러운 심한 두통+시야 이상",
+                  "이뇨제·리튬·칼슘/비타민 D 복용"),
+        key_exams=("의식·탈수·쿠스말 호흡·아세톤 냄새", "체온·맥박·기립성 혈압", "갑상선 종대·안구 돌출",
+                   "피부 색소 침착·자주색 선조", "시야(양측 이측 반맹)·안구 운동"),
+        key_tests=("혈당(즉시)", "케톤·동맥혈 가스·음이온 차", "혈장·소변 삼투압, 소변 Na", "전해질·보정 칼슘", "TSH·유리 T4",
+                   "아침 코르티솔·ACTH", "PTH", "혈장 유리 메타네프린", "뇌하수체 MRI"),
+        pitfalls=("DKA는 복통·구토로 와서 위장관 질환으로 오인: 복통+고혈당이면 케톤·혈액가스",
+                  "SGLT2 억제제 복용 중에는 혈당이 높지 않아도 DKA", "부신 위기 의심 시 검사 결과를 기다리며 스테로이드 지연 금지",
+                  "의식 저하·이상 행동은 혈당부터"),
+        rule_ids=(),
+        criteria_ids=("dka_hhs_2024",),
+        protocol_categories=("fatigue", "palpitations", "menstrual", "chronic_weakness"),
+        rule_out_names=("저혈당", "당뇨병성 케톤산증"),
+        branch_notes={
+            "peds": ("소아 첫 1형 당뇨는 DKA로 옴. 치료 중 두통·의식 저하는 뇌부종",),
+            "pregnant": ("임신 중 DKA는 혈당이 조금만 높아도 생김. 입덧(임신 오조)과 갑상선 중독 구별",),
+        },
+        citations=(C_HYPERGLYCEMIC_CRISES, C_DKA_ABDOMINAL_PAIN, C_ATA_THYROTOXICOSIS, C_ADRENAL_INSUFFICIENCY,
+                   C_HYPONATRAEMIA, C_PHEO, C_HYPOGLYCAEMIA, C_PITUITARY_APOPLEXY),
+        verification="unverified",
+        note="DKA/HHS definition (glucose >= 200 mg/dL or known diabetes, ketones, pH/bicarbonate, osmolality): "
+             "criteria dka_hhs_2024 / C_HYPERGLYCEMIC_CRISES (ADA/EASD 2024, as danger_gate); the SGLT2-inhibitor link "
+             "of DKA without marked hyperglycaemia: reviewer knowledge. Abdominal pain in 46% of "
+             "DKA, associated with the metabolic acidosis: C_DKA_ABDOMINAL_PAIN (abstract) - past trajectories routed "
+             "DKA to gi_liver, so the pitfall names it. Plasma free metanephrines first for pheochromocytoma: C_PHEO "
+             "(abstract). Whipple's triad / glucose first: C_HYPOGLYCAEMIA (abstract). Rapid hydrocortisone in "
+             "pituitary apoplexy: C_PITUITARY_APOPLEXY (abstract). Thyroid storm (TSH/fT4), adrenal crisis "
+             "(cortisol/ACTH, steroid not delayed for tests), hyponatraemia work-up by serum/urine osmolality and "
+             "urine sodium: C_ATA_THYROTOXICOSIS / C_ADRENAL_INSUFFICIENCY / C_HYPONATRAEMIA, bibliographic data "
+             "verified, content from reviewer knowledge (full text not read). Hypercalcaemia (Ca/PTH), myxoedema "
+             "coma, physical signs, pediatric cerebral oedema and pregnancy notes: reviewer knowledge. Overlap: "
+             "hyponatraemia/hyperkalaemia names (E87) route to renal_uro; SIADH, adrenal, thyroid causes are listed "
+             "here. Protocol 'abdominal_pain' is not owned here (its can't-miss list is surgical); the DKA pitfall "
+             "covers it.",
+    ),
+    SpecialtySpec(
+        id="psych", name_ko="정신",
+        role_ko="기분·행동·지각·사고 변화를 보되, 먼저 신체(기질적) 원인과 위험(자살, 약물 반응, 금단)을 가립니다. 새로 생긴 정신 증상은 기질적 원인이 배제될 때까지 정신과 질환으로 단정하지 않습니다.",
+        must_not_miss=("섬망(기저 신체 질환)", "자살 위험", "신경이완제 악성 증후군", "세로토닌 증후군", "알코올 금단·진전 섬망",
+                       "베르니케 뇌병증", "뇌염(자가면역·감염)", "저혈당·갑상선 중독", "물질 중독", "긴장증"),
+        key_asks=("시작 시점·경과(급성, 하루 중 기복)", "자살 생각·계획·수단·이전 시도", "새 약·증량·중단(항정신병제, 세로토닌 약)",
+                  "음주량·마지막 음주, 약물 사용", "발열·두통·경련", "과거 조증·우울 삽화, 가족력"),
+        key_exams=("주의력(숫자 거꾸로 말하기)·의식 수준", "체온·맥박·혈압", "근강직 vs 클로누스·반사 항진", "떨림·발한·동공",
+                   "안구 운동 이상·운동실조", "무언·경직·자세 유지(긴장증)"),
+        key_tests=("혈당(즉시)", "전해질·Ca·신기능·간기능", "TSH", "CK", "소변 약물 검사·알코올 농도", "CBC·CRP",
+                   "리튬 등 약물 농도", "뇌 MRI·뇌파·요추천자(발열·신경 징후 동반 시)"),
+        pitfalls=("고령·입원 환자의 새 정신 증상을 우울·치매로 단정(저활동성 섬망 놓침)",
+                  "첫 정신병 삽화는 기질적 원인 검사 전 확진 금지", "자살 생각은 직접 물음",
+                  "강직·고열·CK 상승 = NMS, 클로누스·반사 항진 = 세로토닌 증후군"),
+        rule_ids=(),
+        criteria_ids=("bipolar_dsm5tr",),
+        protocol_categories=("psychiatric", "cognitive"),
+        rule_out_names=("저혈당", "뇌수막염"),
+        branch_notes={
+            "peds": ("소아·청소년: 자해·학대·괴롭힘 확인, 보호자와 따로 면담",),
+            "pregnant": ("산후 급성 혼동·환각·기분 급변 = 산후 정신병(응급), 영아 안전 확인",),
+        },
+        citations=(_protocols.G_PSYCH_EVAL, C_CAM, C_DELIRIUM, C_CSSRS, C_NMS_DELPHI, C_HUNTER, C_BFCRS, C_CIWA_AR,
+                   C_AUTOIMMUNE_ENCEPHALITIS),
+        verification="unverified",
+        note="Organic causes and suicide risk in the psychiatric evaluation: G_PSYCH_EVAL (APA 2015, as protocols "
+             "'psychiatric'). Delirium = acute onset/fluctuation + inattention (CAM, C_CAM); under-recognised in "
+             "older people: C_DELIRIUM (abstract). Suicide ideation/behaviour asked directly with a structured scale: "
+             "C_CSSRS (instrument). NMS elements hyperthermia, rigidity, mental status change, CK elevation: "
+             "C_NMS_DELPHI (abstract). Serotonin toxicity by clonus/hyperreflexia (Hunter): C_HUNTER (abstract). "
+             "Catatonia signs: C_BFCRS (instrument). Alcohol withdrawal assessment: C_CIWA_AR (instrument). "
+             "Autoimmune encephalitis in the organic differential: C_AUTOIMMUNE_ENCEPHALITIS (bibliographic data "
+             "verified; psychiatric presentation from reviewer knowledge). First-episode psychosis work-up list, "
+             "hypoactive delirium in the elderly, Wernicke, pediatric and postpartum psychosis notes: reviewer "
+             "knowledge. bipolar_dsm5tr moved here from neuro (2026-09-29); protocol 'psychiatric' and 'cognitive' "
+             "stay shared with neuro (organic cause first).",
+    ),
+)})
 
 SPECIALTY_IDS: tuple[str, ...] = tuple(SPECIALTIES)
 
