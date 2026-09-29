@@ -43,7 +43,9 @@ _TRIGGER_KO = {"routed": "전문 분야 집중", "low_confidence": "확신도 �
 
 
 def _kind(name: str) -> str:
-    return name.split(":", 1)[0]
+    """"consult:cardio" -> "consult" (also tolerates the older "consult_cardio")."""
+    kind = name.split(":", 1)[0]
+    return kind.split("_", 1)[0] if kind.split("_", 1)[0] in PRIORITY else kind
 
 
 class SubagentManager:

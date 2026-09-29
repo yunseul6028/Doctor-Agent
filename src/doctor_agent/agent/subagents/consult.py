@@ -642,7 +642,7 @@ def build_consult(state, specialty: str, resources: dict | None = None) -> Subag
     blocks.append(case_context(state))
     blocks.append(f"위 환자에 대해 {spec.name_ko} 자문 JSON을 쓰세요.")
     user = "\n\n".join(blocks)
-    return SubagentCall(name=f"consult_{specialty}",
+    return SubagentCall(name=f"consult:{specialty}",
                         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
                         json_schema=CONSULT_SCHEMA, max_chars_out=HINT_MAX_CHARS)
 
@@ -805,7 +805,7 @@ def parse_consult(text: str | None, specialty: str = "", known_ddx: list[str] | 
     """Parse a consult answer. ok=False (empty hint) when no JSON object is found or it has no usable content.
     The hint only restates what the JSON said (no content is added here). `known_ddx` drops ddx_add entries that
     are already on the DDx. Never raises."""
-    name = f"consult_{specialty}" if specialty else "consult"
+    name = f"consult:{specialty}" if specialty else "consult"
     try:
         obj = extract_json(text, frozenset(CONSULT_SCHEMA["properties"]))
         if obj is None:

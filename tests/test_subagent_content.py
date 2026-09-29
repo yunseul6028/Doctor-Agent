@@ -105,7 +105,7 @@ def test_every_protocol_category_has_an_owner():
 def test_build_every_specialty_and_branch(sid, initial):
     call = build_consult(case(initial), sid)
     assert isinstance(call, SubagentCall)
-    assert call.name == f"consult_{sid}"
+    assert call.name == f"consult:{sid}"
     assert call.json_schema is CONSULT_SCHEMA
     assert [m["role"] for m in call.messages] == ["system", "user"]
     spec = SPECIALTIES[sid]
@@ -267,7 +267,7 @@ GOOD = {"assessment": "허혈성 흉통 가능성, 대동맥 박리 미배제",
 
 def test_parse_plain_json():
     r = parse_consult(json.dumps(GOOD, ensure_ascii=False), "cardio")
-    assert isinstance(r, SubagentResult) and r.ok and r.name == "consult_cardio"
+    assert isinstance(r, SubagentResult) and r.ok and r.name == "consult:cardio"
     assert r.hint_ko.startswith("[심장·혈관 자문]")
     assert r.ddx_add == [{"name": "대동맥 박리", "why": "양팔 혈압 차이"}]
     assert [a["type"] for a in r.suggested_actions] == ["TEST", "EXAM"]
