@@ -316,6 +316,133 @@ C_ACR_APPENDICITIS_CHILD = Citation(
     doi="10.1016/j.jacr.2019.02.022", pmid="31054752", verified=True,
 )
 
+# --- 2026-09-29 second pass: sources for the claims that were still reviewer knowledge in resp_id, endo_metab and psych
+# (bibliographic data generated from PubMed E-utilities esummary on 2026-09-29; what was read is in each spec note).
+
+C_TIBBALLS_EPIGLOTTITIS = Citation(
+    "Tibballs J, Watson T.",
+    "Symptoms and signs differentiating croup and epiglottitis",
+    "J Paediatr Child Health", 2011, "47(3):77-82",
+    doi="10.1111/j.1440-1754.2010.01892.x", pmid="21091577", verified=True,
+)
+
+C_EPIGLOTTITIS_STATPEARLS = Citation(
+    "Sutton AE, Waseem M.",
+    "Epiglottitis",
+    "StatPearls [Internet]", 2024, "Treasure Island (FL): StatPearls Publishing",
+    pmid="28613691", verified=True,
+)
+
+C_ACOG_IAI = Citation(
+    "American College of Obstetricians and Gynecologists' Committee on Obstetric Practice.",
+    "Committee Opinion No. 712: Intrapartum Management of Intraamniotic Infection",
+    "Obstet Gynecol", 2017, "130(2):e95-e101",
+    doi="10.1097/AOG.0000000000002236", pmid="28742677", verified=True,
+)
+
+C_GC_ADRENAL_INSUFFICIENCY = Citation(
+    "Beuschlein F, Else T, Bancos I, et al.",
+    "European Society of Endocrinology and Endocrine Society Joint Clinical Guideline: Diagnosis and therapy of "
+    "glucocorticoid-induced adrenal insufficiency",
+    "Eur J Endocrinol", 2024, "190(5):G25-G51",
+    doi="10.1093/ejendo/lvae029", pmid="38714321", verified=True,
+)
+
+C_AKAMIZU_STORM = Citation(
+    "Akamizu T.",
+    "Thyroid Storm: A Japanese Perspective",
+    "Thyroid", 2018, "28(1):32-40",
+    doi="10.1089/thy.2017.0243", pmid="28899229", verified=True,
+)
+
+C_ATA_HYPOTHYROIDISM = Citation(
+    "Jonklaas J, Bianco AC, Bauer AJ, et al.",
+    "Guidelines for the treatment of hypothyroidism: prepared by the american thyroid association task force on "
+    "thyroid hormone replacement",
+    "Thyroid", 2014, "24(12):1670-751",
+    doi="10.1089/thy.2014.0028", pmid="25266247", verified=True,
+)
+
+C_WALKER_HYPERCALCEMIA = Citation(
+    "Walker MD, Shane E.",
+    "Hypercalcemia: A Review",
+    "JAMA", 2022, "328(16):1624-1636",
+    doi="10.1001/jama.2022.18331", pmid="36282253", verified=True,
+)
+
+C_HOORN_HYPONATREMIA = Citation(
+    "Hoorn EJ, Zietse R.",
+    "Diagnosis and Treatment of Hyponatremia: Compilation of the Guidelines",
+    "J Am Soc Nephrol", 2017, "28(5):1340-1349",
+    doi="10.1681/ASN.2016101139", pmid="28174217", verified=True,
+)
+
+C_SEARCH_DKA_YOUTH = Citation(
+    "Jensen ET, Stafford JM, Saydah S, et al.",
+    "Increase in Prevalence of Diabetic Ketoacidosis at Diagnosis Among Youth With Type 1 Diabetes: The SEARCH "
+    "for Diabetes in Youth Study",
+    "Diabetes Care", 2021, "44(7):1573-1578",
+    doi="10.2337/dc20-0389", pmid="34099516", verified=True,
+)
+
+C_GLASER_CEREBRAL_EDEMA = Citation(
+    "Glaser N, Barnett P, McCaslin I, et al.",
+    "Risk factors for cerebral edema in children with diabetic ketoacidosis. The Pediatric Emergency Medicine "
+    "Collaborative Research Committee of the American Academy of Pediatrics",
+    "N Engl J Med", 2001, "344(4):264-9",
+    doi="10.1056/NEJM200101253440404", pmid="11172153", verified=True,
+)
+
+C_MUIR_CEREBRAL_EDEMA = Citation(
+    "Muir AB, Quisling RG, Yang MC, et al.",
+    "Cerebral edema in childhood diabetic ketoacidosis: natural history, radiographic findings, and early "
+    "identification",
+    "Diabetes Care", 2004, "27(7):1541-6",
+    doi="10.2337/diacare.27.7.1541", pmid="15220225", verified=True,
+)
+
+C_EFNS_WERNICKE = Citation(
+    "Galvin R, Bråthen G, Ivashynka A, et al.",
+    "EFNS guidelines for diagnosis, therapy and prevention of Wernicke encephalopathy",
+    "Eur J Neurol", 2010, "17(12):1408-18",
+    doi="10.1111/j.1468-1331.2010.03153.x", pmid="20642790", verified=True,
+)
+
+C_BERGINK_POSTPARTUM = Citation(
+    "Bergink V, Rasgon N, Wisner KL.",
+    "Postpartum Psychosis: Madness, Mania, and Melancholia in Motherhood",
+    "Am J Psychiatry", 2016, "173(12):1179-1188",
+    doi="10.1176/appi.ajp.2016.16040454", pmid="27609245", verified=True,
+)
+
+C_AAP_ADOLESCENT_SUICIDE = Citation(
+    "Shain B.",
+    "Suicide and Suicide Attempts in Adolescents",
+    "Pediatrics", 2016, "138(1):e20161420",
+    doi="10.1542/peds.2016-1420", pmid="27354459", verified=True,
+)
+
+C_PHEO_REVIEW = Citation(
+    "Aygun N, Uludag M.",
+    "Pheochromocytoma and Paraganglioma: From Clinical Findings to Diagnosis",
+    "Sisli Etfal Hastan Tip Bul", 2020, "54(3):271-280",
+    doi="10.14744/SEMB.2020.14826", pmid="33312023", verified=True,
+)
+
+C_DAVIES_GRAVES = Citation(
+    "Davies TF, Andersen S, Latif R, et al.",
+    "Graves' disease",
+    "Nat Rev Dis Primers", 2020, "6(1):52",
+    doi="10.1038/s41572-020-0184-y", pmid="32616746", verified=True,
+)
+
+C_BRIET_APOPLEXY = Citation(
+    "Briet C, Salenave S, Bonneville JF, et al.",
+    "Pituitary Apoplexy",
+    "Endocr Rev", 2015, "36(6):622-45",
+    doi="10.1210/er.2015-1042", pmid="26414232", verified=True,
+)
+
 CONSULT_SOURCES: tuple[Citation, ...] = (
     C_ACR_APPENDICITIS_CHILD, C_EGRIS, C_MG_CRISIS, C_CURTIS_MENINGITIS, C_ACOG_THROMBOCYTOPENIA, C_SIBAI_POSTPARTUM, C_KAMEL_POSTPARTUM, C_CANTO_NO_CHEST_PAIN, C_HANSEN_AAS_MISDX,
     C_IMAZIO_TAMPONADE, C_SLIWA_PPCM, C_FRIEDMAN_PEDS_CHEST_PAIN, C_NORMAN_FEVER_ELDERLY, C_THOMPSON_MENINGOCOCCAL,
@@ -324,4 +451,9 @@ CONSULT_SOURCES: tuple[Citation, ...] = (
     C_PULMONARY_RENAL, C_LN_PREGNANCY, C_TERATOGENS, C_ACOG_ADNEXAL_TORSION, C_ABUSE_REPORTING, C_LAWTON_MSCC,
     C_RICE_SVC, C_HCM_GUIDELINE, C_CLARKE_LEUKAEMIA, C_HUS_LANCET, C_FLC_SCREENING, C_NASON_TORSION,
     C_MONTAGUE_HYPERK_ECG, C_PEARLE_DRAINAGE, C_CHAVEZ_RHABDO, C_MARSTON_RAAA, C_FAUNDES_HYDRONEPHROSIS, C_AAP_UTI,
+    # 2026-09-29 second pass
+    C_TIBBALLS_EPIGLOTTITIS, C_EPIGLOTTITIS_STATPEARLS, C_ACOG_IAI, C_GC_ADRENAL_INSUFFICIENCY, C_AKAMIZU_STORM,
+    C_ATA_HYPOTHYROIDISM, C_WALKER_HYPERCALCEMIA, C_HOORN_HYPONATREMIA, C_SEARCH_DKA_YOUTH, C_GLASER_CEREBRAL_EDEMA,
+    C_MUIR_CEREBRAL_EDEMA, C_EFNS_WERNICKE, C_BERGINK_POSTPARTUM, C_AAP_ADOLESCENT_SUICIDE, C_PHEO_REVIEW,
+    C_DAVIES_GRAVES, C_BRIET_APOPLEXY,
 )

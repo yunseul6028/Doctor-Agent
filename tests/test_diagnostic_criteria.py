@@ -282,3 +282,32 @@ def test_ra_joint_count_phrases_do_not_crash():
     for text in ("손 관절 6개가 붓고 아파요. 8주째입니다.", "6개 관절이 부었어요", "관절 12곳 압통"):
         res = dc.evaluate("ra_2010", text)
         assert res is not None
+
+
+# --- 2026-09-29 second verification pass -------------------------------------------------------------------------
+
+
+def test_verification_levels_second_pass():
+    levels = {c.id: c.verification for c in dc.CRITERIA}
+    assert levels["dka_hhs_2024"] == "primary" and levels["ra_2010"] == "primary" and levels["jones_2015"] == "primary"
+    assert levels["kawasaki_aha2017"] == "secondary"
+    assert {k for k, v in levels.items() if v == "unverified"} == {"light_1972", "bipolar_dsm5tr"}
+
+
+def test_hhs_uses_ada_2024_figure_2b_cutoffs():
+    # bicarbonate 15-17 with pH >= 7.3 is "no acidosis" for HHS (Fig. 2B: HCO3 >= 15), not only >= 18
+    r = dc.evaluate("dka_hhs_2024", "혈당 720 mg/dL, 삼투압 335 mOsm/kg, pH 7.33, HCO3 16, 소변 케톤 음성.")
+    assert r.decision == "고혈당성 고삼투압 상태"
+    # effective osmolality > 300 counts even when the total is not stated
+    r = dc.evaluate("dka_hhs_2024", "혈당 720 mg/dL, 유효 삼투압 310 mOsm/kg, pH 7.35, HCO3 20, 소변 케톤 음성.")
+    assert r.decision == "고혈당성 고삼투압 상태"
+    # HCO3 < 15 is acidosis for HHS; ketones negative, so neither DKA nor HHS is decided
+    r = dc.evaluate("dka_hhs_2024", "혈당 720 mg/dL, 삼투압 335 mOsm/kg, pH 7.33, HCO3 13, 소변 케톤 음성.")
+    assert r.decision == ""
+    assert dc.evaluate("dka_hhs_2024", "유효 삼투압 290 mOsm/kg").states["osm"][0] == dc.NOT_MET
+
+
+def test_jones_pr_interval_not_minor_with_carditis():
+    # Table 7: prolonged PR is a minor criterion only when carditis is not counted as a major one
+    assert dc.evaluate("jones_2015", "ASO 상승. 새로 생긴 심잡음, 심장염. 발열 38.8도. PR 간격 연장.").decision == ""
+    assert dc.evaluate("jones_2015", "ASO 상승. 다발성 관절염. 발열 38.8도. PR 간격 연장.").decision == "급성 류마티스열"

@@ -482,3 +482,33 @@ No prompt change and no case run, so no Accuracy / Efficiency / Safety row. Expe
   the gold specialty (unchanged). cases_aug distribution: 3 cases moved (뼈거대세포종 rheum_immune (M31.5 giant cell
   arteritis) → heme_onc; 흉강 비장증 psych → resp_id by keyword; LED 광 황반병증 ent_eye → other).
 - Latency: normalize_diagnosis mean 0.96 → 0.99 ms (fuzzy on), specialty_of 0.087 → 0.101 ms; `data/kb` unchanged.
+
+### 2026-09-29 · second verification pass (protocols, consult, rules, criteria; no LLM run)
+No case run, so no Accuracy / Efficiency / Safety row; expected effect is on **Safety** (checks now match the source
+text; HHS / Jones decisions follow the published cut-offs) and marginally **Efficiency** (AAA imaging no longer asked
+of young flank pain without an aortopathy clue — unchanged from before, now justified).
+- Levels (primary / secondary / unverified), before -> after: `safety/protocols.py` 40/22/26 -> 61/19/8;
+  `agent/subagents/consult.py` specs 0/7/3 -> 0/10/0; `knowledge/clinical_rules.py` 15/8/1 -> 16/8/0;
+  `knowledge/diagnostic_criteria.py` 8/3/4 -> 11/2/2. What was read is in each note; new sources in docs/licenses.md.
+- Full texts read: ESC 2023 endocarditis (≥ 3 blood-culture sets at 30-min intervals before antibiotics), ESC 2019 PE
+  recommendation table 4.11, ESC 2018 syncope (supine + standing BP, ECG, cardiac-syncope features), ACEP 2019
+  headache (Level B answers), ACC/AHA 2022 aorta (AAA symptoms, CT in stable rupture), WAO 2020, SSC 2021, KDIGO 2021,
+  ACCP 2006 cough (TB-prevalence rule: 2-3 weeks, CXR + AFB), ACR AC tables (jaundice, hearing loss, infant vomiting,
+  acute pelvic pain), CSRS (CMAJ), RA 2010 (ARD), Jones 2015, ADA 2024 Fig. 2B.
+- Behaviour changes: `aaa_imaging` min_age=50 -> predicate "aaa" (age ≥ 50 or unstated, or any age with Marfan / EDS /
+  Loeys-Dietz / known or familial aneurysm). Decision on the ACC/AHA "24% of ruptured AAA < 65 y": keeps the floor at
+  50 because that figure concerns the 50-64 band, and in the population-based Oxford Vascular Study 0/103 acute AAA
+  were aged 45-54 (Howard 2015). HHS: HCO3 ≥ 15 (was ≥ 18) and effective osmolality > 300 accepted. Jones: PR
+  prolongation not counted as minor when carditis is a major criterion. Renamed checks: IE blood cultures "30분 간격
+  3세트 이상", jaundice imaging "복부 초음파(또는 조영증강 복부 CT·MRCP)", retrocochlear "머리·내이도 MRI" (contrast not
+  required), infant bilious vomiting "즉시 상부위장관 조영술(생후 2일 이내는 복부 X선 먼저)". Dyspnea CXR now cites
+  AHA/ACC/HFSA 2022; the "tension PTX is a clinical diagnosis" note was not in BTS 2023 and was removed.
+- Consult wording: epiglottitis signs "suggest" (not "="), no airway instrumentation / agitation; euglycaemic DKA in
+  pregnancy; thyroid-storm features instead of heat/cold intolerance; pheochromocytoma triad "only in some";
+  dropped lithium, purple striae, goitre, bitemporal hemianopia, bullying, separate interview (no accessible source).
+- Still below primary and why: stroke NIHSS / chest-pain CXR / three vitals checks / abdominal exam / chronic
+  weakness x2 (no readable recommendation), ADD-RS, Canadian CT Head, PECARN x2, GBS, sPESI, McIsaac (originals
+  paywalled), Light 1972 and DSM-5-TR (not accessible), McDonald 2017, Kawasaki 2017 CRP/ESR entry threshold.
+- Verify on gpt-oss-20b (eval-simulator): abdominal/flank-pain cases < 50 y with and without Marfan/EDS clues (AAA check
+  fires only with the clue), febrile murmur cases (IE blood cultures), infant bilious vomiting, HHS cases with HCO3
+  15-17; compare Safety (missed must-checks) and turns with the previous commit.

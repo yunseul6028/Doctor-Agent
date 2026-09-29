@@ -15,6 +15,11 @@ Verification fields
 - Criteria.verification: how the items/thresholds/logic were checked.
   "primary" = against the original (abstract or full text); "secondary" = core in the original, some detail from
   reviewer knowledge; "unverified" = original not accessible, from reviewer knowledge. Details in Criteria.note.
+- 2026-09-29 second pass: dka_hhs_2024 (Fig. 2B read: HHS HCO3 >= 15 and effective osmolality > 300 now used),
+  ra_2010 (Table 3 of the Ann Rheum Dis co-publication) and jones_2015 (Table 7 of the statement; PR interval no longer
+  counted as minor with carditis) -> primary; kawasaki_aha2017 -> secondary (supplemental criteria read in an
+  open-access paper citing the statement; "secondary" also covers that case). light_1972 and bipolar_dsm5tr stay
+  unverified (original / manual not accessible), mcdonald_2017 stays secondary.
 
 Extraction (evaluate) is deliberately conservative: an item is "met" only when a pattern for it appears in the case text
 and is not negated in its clause, or a number with the right label/unit passes the threshold. Doctor questions
@@ -617,10 +622,13 @@ RA = Criteria(
     logic=lambda s, d: _ra(s, d),
     rule="1개 이상 관절 활막염 + 더 나은 다른 진단 없음. 관절 분포 0–5, 혈청(RF/ACPA) 0–3, 급성기 반응 0–1, "
          "기간 ≥6주 0–1 합산 ≥6/10점이면 확정 RA.",
-    citation=C_RA, verification="secondary",
-    note="Entry condition, 4 domains with ranges (0-5, 0-3, 0-1, 0-1) and >=6/10 from the PubMed abstract. Per-level "
-         "joint points (1 large 0; 2-10 large 1; 1-3 small 2; 4-10 small 3; >10 incl. >=1 small 5), low vs high "
-         "positive serology (>3x ULN) and 6-week cut from reviewer knowledge (full text not open access).",
+    citation=C_RA, verification="primary",
+    note="Entry condition, 4 domains with ranges (0-5, 0-3, 0-1, 0-1) and >=6/10 from the PubMed abstract. 2026-09-29: "
+         "Table 3 read in the simultaneous Ann Rheum Dis publication of the same criteria (Aletaha 2010, "
+         "ard.bmj.com, PMID 20699241): 1 large joint 0; 2-10 large 1; 1-3 small 2; 4-10 small 3; >10 joints incl. >=1 "
+         "small 5; low-positive RF/ACPA (> ULN, <= 3x ULN) 2, high-positive (> 3x ULN) 3, qualitative positive RF "
+         "scored as low-positive; abnormal CRP or ESR 1; symptoms >= 6 weeks 1. Our joint count uses the stated total "
+         "with 'small joints involved' as a proxy for the small-joint categories.",
 )
 
 
@@ -897,10 +905,14 @@ KD = Criteria(
     rule="전형: 발열 ≥5일 + 주요 증상 5개 중 ≥4개(4개 이상이면 4일째도 가능). 불완전: 발열 ≥5일 + 2–3개 → "
          "CRP ≥3.0 mg/dL 또는 ESR ≥40이면 보조 검사 ≥3개 또는 심초음파 이상 시 치료 대상.",
     subtype_rule="주요 증상 ≥4개면 가와사키병(전형), 2–3개 + 보조 기준 충족이면 불완전 가와사키병.",
-    citation=C_KD, verification="unverified",
-    note="Bibliographic data verified; the abstract only says an updated algorithm exists. Principal features, 5-day "
-         "fever, CRP 3.0 mg/dL / ESR 40 and the supplemental labs (albumin <=3.0, WBC >=15k, platelets >=450k after "
-         "day 7, ALT, urine WBC >=10/hpf, anemia) are from reviewer knowledge; the full text (ahajournals) returned 403.",
+    citation=C_KD, verification="secondary",
+    note="Bibliographic data verified; the abstract only says an updated algorithm exists; the full text "
+         "(ahajournals) returned 403. 2026-09-29: an open-access paper citing the 2017 statement (Agha 2017, "
+         "PMC5856965, Table 1 and text) gives fever >= 5 days with principal features (rash, bilateral conjunctival "
+         "injection, extremity changes, lymphadenopathy, oropharyngeal changes), incomplete KD with 2-3 features, and "
+         "the supplemental labs (albumin <= 3.0 g/dL, anemia for age, ALT elevation, platelets >= 450,000 after day 7, "
+         "WBC >= 15,000, urine WBC >= 10/hpf). The CRP >= 3.0 mg/dL / ESR >= 40 entry threshold and the '>= 3 labs' "
+         "count are still reviewer knowledge. Note: AHA published a 2024 update (not consulted).",
 )
 
 
@@ -1089,6 +1101,9 @@ _GLU = Num((r"혈당", r"포도당", r"glucose", A("bst"), r"blood sugar", r"당
 _PH = Num((A("ph"), r"산도"), lo=6.5, hi=7.8, window=8)
 _HCO3 = Num((r"중탄산", r"hco3-?", r"bicarbonate", r"(?<![a-z])t?co2(?![a-z])", r"총\s?이산화탄소"), lo=1, hi=45, window=8)
 _OSM = Num((r"(유효\s?)?(혈청\s?)?삼투압", r"osmolality", r"osmolarity", A("osm")), lo=240, hi=480)
+# effective osmolality (2Na + glucose) for HHS, ADA 2024 Fig. 2B: > 300 mOsm/kg (total osmolality > 320)
+_OSM_EFF = Num((r"유효\s?(혈청\s?)?삼투압", r"effective\s?(serum\s?)?osmolality", r"effective\s?osmolarity"), ">", 300,
+               lo=240, hi=480)
 _BOHB = Num((r"(베타|β|b)\s?-?(히드록시|하이드록시|hydroxy)\s?부티르", r"β-?ohb", A("bhb"), A("bohb"), r"혈중\s?케톤"),
             ">=", 3.0, units=(("mmol/l", 1.0), ("mm", 1.0)), lo=0, hi=20)
 
@@ -1112,10 +1127,23 @@ def _ketones(doc: Doc) -> tuple[str, str]:
     return UNKNOWN, ""
 
 
+def _osm_state(doc: Doc) -> tuple[str, str]:
+    """HHS hyperosmolality (ADA 2024 Fig. 2B): effective osmolality > 300 or total serum osmolality > 320 mOsm/kg."""
+    eff = doc.values(_OSM_EFF)
+    tot = doc.values(_with(_OSM, ">", 320))
+    if (eff and eff[-1] > 300) or (tot and tot[-1] > 320):
+        return MET, (f"유효 {eff[-1]:g}" if eff and eff[-1] > 300 else f"{tot[-1]:g}")
+    if eff or tot:
+        return NOT_MET, f"{(eff or tot)[-1]:g}"
+    return UNKNOWN, ""
+
+
 def _dka_hhs(s: dict, doc: Doc) -> Outcome:
     hyper = _m(s, "glu200") or _m(s, "diabetes")
     acid = _m(s, "ph") or _m(s, "hco3")
-    no_acid = _n(s, "ph") and _n(s, "hco3")
+    # HHS "absence of acidosis" (ADA 2024 Fig. 2B): pH >= 7.3 and bicarbonate >= 15 mmol/L
+    hco3 = doc.values(_HCO3)
+    no_acid = _n(s, "ph") and bool(hco3) and hco3[-1] >= 15
     dka = hyper and _m(s, "ketones") and acid
     hhs = _m(s, "glu600") and _m(s, "osm") and no_acid and _n(s, "ketones")
     if dka and _m(s, "glu600") and _m(s, "osm"):
@@ -1124,7 +1152,8 @@ def _dka_hhs(s: dict, doc: Doc) -> Outcome:
         return Outcome("DKA 기준 충족 (고혈당/당뇨 + 케톤 ≥3.0 mmol/L 또는 요케톤 ≥2+ + pH <7.3 또는 HCO3 <18)",
                        "당뇨병성 케톤산증")
     if hhs:
-        return Outcome("HHS 기준 충족 (혈당 ≥600, 삼투압 >320, 산증·유의한 케톤 없음)", "고혈당성 고삼투압 상태")
+        return Outcome("HHS 기준 충족 (혈당 ≥600, 유효 삼투압 >300 또는 총 삼투압 >320, pH ≥7.3·HCO3 ≥15, 유의한 케톤 없음)",
+                       "고혈당성 고삼투압 상태")
     miss = [CRITERIA_BY_ID["dka_hhs_2024"].items[i].text.split(":")[0]
             for i, k in enumerate(("glu200", "glu600", "diabetes", "ketones", "ph", "hco3", "osm")) if _u(s, k)]
     return Outcome("DKA/HHS 판정 불가 (미확인: " + ", ".join(miss[:4]) + ")" if miss else "DKA/HHS 기준 미충족", "")
@@ -1145,17 +1174,18 @@ DKA = Criteria(
         CItem("ketones", "케톤: β-OHB ≥3.0 mmol/L 또는 요케톤 ≥2+", derive=_ketones),
         CItem("ph", "pH <7.30", num=_with(_PH, "<", 7.30)),
         CItem("hco3", "HCO3 <18 mmol/L", num=_with(_HCO3, "<", 18)),
-        CItem("osm", "혈청 삼투압 >320 mOsm/kg (HHS)", num=_with(_OSM, ">", 320)),
+        CItem("osm", "유효 삼투압 >300 또는 총 삼투압 >320 mOsm/kg (HHS)", derive=_osm_state),
     ),
     logic=lambda s, d: _dka_hhs(s, d),
     rule="DKA: 혈당 ≥200 mg/dL(또는 당뇨병 병력) + 케톤(β-OHB ≥3.0 mmol/L 또는 요케톤 ≥2+) + pH <7.3 또는 HCO3 <18. "
-         "HHS: 혈당 ≥600, 삼투압 >320, 유의한 케톤·산증 없음.",
-    subtype_rule="산증+케톤이면 당뇨병성 케톤산증, 산증·케톤 없이 혈당 ≥600·삼투압 >320이면 고혈당성 고삼투압 상태; 둘 다면 혼합.",
-    citation=C_DKA, verification="secondary",
+         "HHS: 혈당 ≥600, 유효 삼투압 >300 또는 총 삼투압 >320, 유의한 케톤 없음(β-OHB <3.0), pH ≥7.3·HCO3 ≥15.",
+    subtype_rule="산증+케톤이면 당뇨병성 케톤산증, 산증·케톤 없이 혈당 ≥600·고삼투압이면 고혈당성 고삼투압 상태; 둘 다면 혼합.",
+    citation=C_DKA, verification="primary",
     note="DKA components (glucose >=200 mg/dL or known diabetes; beta-OHB >=3.0 mmol/L or urine ketones >=2+; pH <7.30 "
-         "or HCO3 <18) checked in the full text (PMC11272983). HHS: glucose >=600 and osmolality >320 seen in the text, "
-         "but the exact effective-osmolality (>300) wording and the HCO3 cut for HHS (>=15 vs >=18) were not confirmed; "
-         "we use the stricter 'pH >=7.30 and HCO3 >=18' for 'no acidosis'.",
+         "or HCO3 <18) checked in the full text (PMC11272983). 2026-09-29: HHS criteria read in Fig. 2B (figure image): "
+         "glucose >= 600 mg/dL; calculated effective osmolality > 300 mOsm/kg (2Na + glucose) or total > 320; beta-OHB "
+         "< 3.0 mmol/L or urine ketones < 2+; pH >= 7.3 and bicarbonate >= 15 mmol/L. The former stricter 'HCO3 >= 18' "
+         "for HHS was relaxed to the source value.",
 )
 
 
@@ -1294,7 +1324,9 @@ SEPSIS = Criteria(
 
 def _jones(s: dict, doc: Doc) -> Outcome:
     major = sum(_m(s, k) for k in ("carditis", "polyarthritis", "chorea", "marginatum", "nodules"))
-    minor = sum(_m(s, k) for k in ("fever", "inflam", "pr")) + (1 if _m(s, "arthralgia") and not _m(s, "polyarthritis") else 0)
+    # Table 7: PR prolongation counts only when carditis is not a major criterion; polyarthralgia only without arthritis
+    minor = (sum(_m(s, k) for k in ("fever", "inflam")) + (1 if _m(s, "pr") and not _m(s, "carditis") else 0)
+             + (1 if _m(s, "arthralgia") and not _m(s, "polyarthritis") else 0))
     tag = f"주 {major}, 부 {minor}"
     recurrent = _m(s, "prior_arf")
     ok = major >= 2 or (major >= 1 and minor >= 2) or (recurrent and minor >= 3)
@@ -1335,10 +1367,13 @@ JONES = Criteria(
     logic=lambda s, d: _jones(s, d),
     rule="저위험 인구 기준. 선행 A군 연쇄상구균 감염 증거 + (주 2개 또는 주 1 + 부 2). 재발은 부 3개로도 가능. "
          "중·고위험 인구는 단관절염·다발성 관절통도 주 기준, 발열 ≥38.0, ESR ≥30.",
-    citation=C_JONES, verification="unverified",
-    note="Bibliographic data verified; abstract gives no thresholds and the full text (ahajournals) returned 403. "
-         "Low-risk major/minor items, fever 38.5 C, ESR 60 / CRP 3.0 mg/dL and the diagnostic logic are from reviewer "
-         "knowledge. Only the low-risk rule is implemented (Korea is low incidence).",
+    citation=C_JONES, verification="primary",
+    note="2026-09-29: full text read (Circulation statement PDF hosted by heartuniversity.org), Table 7: evidence of "
+         "preceding GAS infection; initial ARF = 2 major or 1 major + 2 minor, recurrent = 2 major, 1 major + 2 minor "
+         "or 3 minor; low-risk major = carditis (clinical and/or subclinical), polyarthritis only, chorea, erythema "
+         "marginatum, subcutaneous nodules; low-risk minor = polyarthralgia, fever >= 38.5 C, ESR >= 60 mm in the "
+         "first hour and/or CRP >= 3.0 mg/dL, prolonged PR interval (unless carditis is a major criterion). Only the "
+         "low-risk rule is implemented (Korea is low incidence).",
 )
 
 

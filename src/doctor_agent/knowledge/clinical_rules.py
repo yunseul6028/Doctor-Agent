@@ -33,6 +33,11 @@ Not encoded: Ranson / Glasgow-Imrie (48-h scores; BISAP covers early severity), 
 too long for the prompt), CHA2DS2-VASc (not diagnostic), Rochester / Step-by-Step (criteria not verifiable
 in accessible abstracts; PECARN febrile infant rule used instead).
 
+2026-09-29 (verification pass): csrs -> primary (original CMAJ full text read, points derived by the paper's own
+method); alvarado unverified -> secondary (points, cut-offs and bands cross-checked in three open-access papers citing
+the original). The other secondary rules (add_rs, cchr, pecarn_head x2, gbs, spesi, mcisaac) were re-tried: originals
+paywalled or scanned PDF behind a download check, so they stay secondary.
+
 2026-09-27 (later): negated() / contains_affirmed() read each keyword occurrence through the clinical-finding
 normalisation layer (doctor_agent.nlp; keyword_statuses(), ReadText); detect_categories() drops a category whose
 keywords are all denied by the layer and adds categories from curated layer concepts. See docs/nlp.md (migration).
@@ -1358,7 +1363,7 @@ RULES: tuple[Rule, ...] = (
             Item("nausea_vomiting", "오심·구토"),
             Item("rlq_tenderness", "우하복부 압통", 2.0),
             Item("rebound", "반발 압통"),
-            Item("fever", "체온 상승(37.3°C 이상)"),
+            Item("fever", "체온 상승(37.3°C 초과)"),
             Item("leukocytosis", "백혈구 증가(10,000/µL 초과)", 2.0),
             Item("left_shift", "호중구 좌방이동"),
         ),
@@ -1368,14 +1373,18 @@ RULES: tuple[Rule, ...] = (
             Threshold(7, 8, "7–8", "가능성 높음", "충수염 가능성 높음 → 외과 협진"),
             Threshold(9, 10, "9–10", "가능성 매우 높음", "충수염 가능성 매우 높음 → 외과 협진"),
         ),
-        citation=C_ALVARADO, verification="unverified",
+        citation=C_ALVARADO, verification="secondary",
         excludes_any=_NON_RLQ, chronic_cutoff=1,
         applicability="Alvarado 1986 abstract: abdominal pain suggestive of acute appendicitis. Generic or "
         "right-lower-quadrant pain only: upper/left/flank locations are excluded unless RLQ/appendix words are "
         "also present; >=2-week pain excluded (not acute).",
         note="The abstract confirms the 8 factors and their weight order (RLQ tenderness and leukocytosis "
-        "highest) but not the points, the temperature/WBC cut-offs, or the 5-6 / 7-8 / 9-10 bands. Full text "
-        "is paywalled; these come from reviewer knowledge. Re-check before relying on the bands.",
+        "highest). Original full text paywalled. 2026-09-29, open-access full texts citing the original: items "
+        "with anorexia or urine ketones and temperature > 37.3 C, and 4-6 / 7-8 / 9-10 = compatible / probable / "
+        "very probable (Favara 2022, PMC9524677); 2 points for RLQ tenderness and for leukocytosis > 10,000, 1 for "
+        "the others (Nasiri 2012 Table 1, PMC3410771, modified score without left shift); risk strata 1-4 / 5-6 / "
+        "7-10 and cut-points 5 (rule out) and 7 (rule in, poor specificity) (Ohle 2011 systematic review, "
+        "PMC3299622). Our bands (0-4 low, 5-6, 7-8, 9-10) follow these; secondary.",
     ),
     Rule(
         id="bisap", short="BISAP", name_ko="BISAP 급성 췌장염 중증도 점수",
@@ -1572,15 +1581,17 @@ RULES: tuple[Rule, ...] = (
             Threshold(4, 5, "4–5", "고위험", "입원 관찰 고려"),
             Threshold(6, 11, "6–11", "매우 고위험", "입원·심장 감시"),
         ),
-        citation=C_CSRS, verification="secondary",
+        citation=C_CSRS, verification="primary",
         excludes_any=_SEIZURE_INTOX, chronic_cutoff=1, min_age=16,
         applicability="Thiruganasambandamoorthy 2016 abstract: adults (>=16 y) with syncope presenting within "
         "24 h. Seizure/intoxication and >=2-week courses excluded (our proxy for 'within 24 h').",
-        note="9 predictors and the -3..11 range (0.4% to 83.6% 30-day risk) from the PubMed abstract. Points "
-        "and the 5 risk bands from an open-access secondary source (West J Emerg Med 2025, PMC12591636, Table 1 "
-        "citing the original); that table prints QTc >480 ms as +1, but only +2 reproduces the published "
-        "-3..11 range (a web summary of the 2020 validation page, PMC7091474, also gave +2), so +2 is used. "
-        "Original full text not accessible.",
+        note="9 predictors and the -3..11 range (0.4% to 83.6% 30-day risk) from the PubMed abstract. "
+        "2026-09-29: original full text read (CMAJ, PMC5008955): points = shrinkage-corrected coefficients (Table 4) "
+        "divided by the smallest and rounded, which gives vasovagal predisposition -1, heart disease +1, SBP <90 or "
+        ">180 +2, troponin +2, abnormal QRS axis +1, QRS >130 ms +1, QTc >480 ms +2 (0.90/0.48 = 1.9), ED "
+        "vasovagal -2, ED cardiac +2 and the published -3..11 range; the paper groups <= -2 very low (<1%), -1..3 "
+        "low-medium (1-8%), >= 4 high/very high (>12%). The 5-band split used here is from the 2020 validation "
+        "(via PMC12591636 Table 1). QRS axis: abstract '> 100°', Table 4 '> 110°'; the abstract value is kept.",
     ),
     Rule(
         id="gbs", short="Glasgow-Blatchford", name_ko="Glasgow-Blatchford 상부위장관 출혈 점수",

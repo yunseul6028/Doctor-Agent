@@ -70,12 +70,28 @@ def test_endo_metab_and_psych_content():
     endo = user_msg(build_consult(s, "endo_metab"))
     assert "위장관 질환으로 오인" in endo and "케톤" in endo and "TSH" in endo and "코르티솔" in endo and "PTH" in endo
     assert "ADA 2024 DKA/HHS" in endo  # criteria linked for the DKA candidate
-    assert "혈당이 조금만 높아도" in user_msg(build_consult(case(PREGNANT), "endo_metab"))
+    assert "정상혈당 DKA" in user_msg(build_consult(case(PREGNANT), "endo_metab"))  # ADA 2024 (2026-09-29)
     psych = user_msg(build_consult(case("35세 남성. 주호소: 최근 우울하고 이상한 행동을 해요"), "psych"))
     assert "자살" in psych and "섬망" in psych and "클로누스" in psych
     assert "기질적 원인" in sys_msg(build_consult(case(ADULT_M), "psych"))
     assert "산후 정신병" in user_msg(build_consult(case(POSTPARTUM), "psych"))
     assert "산후 정신병" not in user_msg(build_consult(case(ADULT_M), "psych"))
+
+
+def test_second_pass_wording_2026_09_29():
+    """Claims that were reviewer knowledge now say what the source supports (resp_id, endo_metab, psych)."""
+    for sid in ("resp_id", "endo_metab", "psych"):
+        assert SPECIALTIES[sid].verification == "secondary" and "Reviewer knowledge:" not in SPECIALTIES[sid].note
+    peds_resp = user_msg(build_consult(case(CHILD), "resp_id"))
+    assert "후두개염 시사" in peds_resp and "기구 진찰" in peds_resp and "= 후두개염" not in peds_resp  # Tibballs 2011
+    assert "융모양막염" in user_msg(build_consult(case(PREGNANT), "resp_id"))  # ACOG CO 712
+    endo = user_msg(build_consult(case(ADULT_M), "endo_metab"))
+    assert "리튬" not in endo and "자주색 선조" not in endo and "이측 반맹" not in endo  # not in the sources read
+    assert "갑상선 중독 위기 소견" in endo and "일부뿐" in endo and "유리 T4/T3" in endo
+    assert "뇌부종" in user_msg(build_consult(case(CHILD), "endo_metab"))
+    psych_child = user_msg(build_consult(case(CHILD), "psych"))
+    assert "자살·자해 생각을 직접 물음" in psych_child and "따로 면담" not in psych_child and "괴롭힘" not in psych_child
+    assert "영아 살해" in user_msg(build_consult(case(POSTPARTUM), "psych"))
 
 
 def test_kdigo_aki_owned_by_renal_uro_only():

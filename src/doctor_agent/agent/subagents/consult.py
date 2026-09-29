@@ -21,6 +21,10 @@ Content rules
   dropped. `SpecialtySpec.verification` is the weakest level among the spec's own claims (protocols.py scale:
   "primary" = read in the source text, "secondary" = abstract / summary only, "unverified" = reviewer knowledge left).
   Claims still from reviewer knowledge are listed after "Reviewer knowledge:" in the note.
+- 2026-09-29 second pass: the reviewer-knowledge items of resp_id, endo_metab and psych were checked against 17 more
+  sources (consult_sources.py, second block); claims the sources do not support were reworded or dropped (e.g.
+  epiglottitis '= diagnosis' -> 'suggests', lithium, purple striae, goitre, bitemporal hemianopia, bullying / separate
+  interview). All specialties are now "secondary".
 - The pediatric / pregnancy branch (`patient_profile`) reuses the existing readers: age (`safety/triage._age`),
   pediatric vital-sign bands (`nlp/findings` Fleming 2011 centiles, `safety/triage` PALS hypotension floor) and
   current pregnancy (`safety/protocols` predicate "current_pregnancy" / "pregnancy_test_abdominal").
@@ -77,6 +81,23 @@ from doctor_agent.agent.subagents.consult_sources import (
     C_TERATOGENS,
     C_THOMPSON_MENINGOCOCCAL,
     C_WEINER_STEROID_PERFORATION,
+    C_AAP_ADOLESCENT_SUICIDE,
+    C_ACOG_IAI,
+    C_AKAMIZU_STORM,
+    C_ATA_HYPOTHYROIDISM,
+    C_BERGINK_POSTPARTUM,
+    C_BRIET_APOPLEXY,
+    C_DAVIES_GRAVES,
+    C_EFNS_WERNICKE,
+    C_EPIGLOTTITIS_STATPEARLS,
+    C_GC_ADRENAL_INSUFFICIENCY,
+    C_GLASER_CEREBRAL_EDEMA,
+    C_HOORN_HYPONATREMIA,
+    C_MUIR_CEREBRAL_EDEMA,
+    C_PHEO_REVIEW,
+    C_SEARCH_DKA_YOUTH,
+    C_TIBBALLS_EPIGLOTTITIS,
+    C_WALKER_HYPERCALCEMIA,
 )
 from doctor_agent.agent.text import same_dx, similarity
 from doctor_agent.knowledge.clinical_rules import Citation, contains_affirmed, rules_for
@@ -248,12 +269,12 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         rule_out_names=("패혈증", "뇌수막염", "호중구감소성 발열", "폐색전증", "긴장성 기흉", "아나필락시스"),
         branch_notes={
             "peds": ("생후 60일 이하 발열은 겉보기와 무관하게 중증 세균 감염 평가(소변·혈액, 필요 시 뇌척수액)",
-                     "침 흘림·삼킴 곤란·앉아서 숨쉬기 = 후두개염: 목 안 억지 진찰 금지"),
+                     "침 흘림·삼킴 곤란·앉은 자세 고집은 후두개염 시사(기침은 크룹 쪽): 목 안 기구 진찰·자극 금지, 기도 확보 준비"),
             "pregnant": ("임신 중 발열: 신우신염·리스테리아(임신 중 흔함)·융모양막염 고려, 필요한 흉부 X선은 미루지 않음",),
         },
         citations=(G_SEPSIS, C_FEBRILE_INFANT_AAP, C_NORMAN_FEVER_ELDERLY, C_THOMPSON_MENINGOCOCCAL, C_HILL_PYELONEPHRITIS,
-                   C_ACOG_LISTERIA, P_ACOG_723),
-        verification="unverified",
+                   C_ACOG_LISTERIA, P_ACOG_723, C_TIBBALLS_EPIGLOTTITIS, C_EPIGLOTTITIS_STATPEARLS, C_ACOG_IAI),
+        verification="secondary",
         note="Blood cultures before antibiotics and lactate: G_SEPSIS (protocols.py, primary). Febrile infant "
              "<= 60 days: AAP 2021 (population 8-60 days, well-appearing; our summary) + PECARN febrile infant rule. "
              "2026-09-29: fever absent or blunted in 20-30% of infections in the elderly (Norman 2000 abstract; "
@@ -262,8 +283,12 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
              "2005 abstract); listeriosis 13x more common in pregnancy, flu-like fever (ACOG CO 614 abstract). "
              "Needed radiography is not withheld in pregnancy (ACOG CO 723 abstract; '(차폐)' shielding removed, "
              "not in the source). Premature closure on a viral diagnosis: cognitive-error literature (advocate.py). "
-             "Reviewer knowledge: epiglottitis triad and 'no forced throat exam' (no guideline abstract found), "
-             "chorioamnionitis in the pregnancy fever list.",
+             "2026-09-29 second pass: in children with stridor, drooling (sens 0.79, spec 0.94), preference to sit, "
+             "refusal to swallow and dysphagia point to epiglottitis, cough to croup (Tibballs 2011 abstract; the "
+             "'= epiglottitis' equation and 'triad' wording were softened to 'suggests'); in children the airway is "
+             "not instrumented during oral exam, agitation may worsen obstruction, securing the airway is crucial "
+             "(StatPearls Epiglottitis abstract). Intraamniotic infection (chorioamnionitis) is common in preterm and "
+             "term parturients, with maternal sepsis and neonatal sepsis/death (ACOG CO 712 abstract).",
     ),
     SpecialtySpec(
         id="gi_liver", name_ko="소화기·간",
@@ -612,12 +637,12 @@ SPECIALTIES.update({s.id: s for s in (
         must_not_miss=("당뇨병성 케톤산증", "고삼투성 고혈당 상태", "저혈당", "부신 위기", "갑상선 중독 위기",
                        "점액수종 혼수", "중증 고칼슘혈증", "중증 저나트륨혈증", "갈색세포종 위기", "뇌하수체 졸중"),
         key_asks=("갈증·다뇨·체중 감소, 인슐린 중단·SGLT2 억제제", "스테로이드 장기 복용·최근 중단",
-                  "더위/추위 못 견딤·두근거림·떨림", "발작성 두통·발한·두근거림", "갑작스러운 심한 두통+시야 이상",
-                  "이뇨제·리튬·칼슘/비타민 D 복용"),
-        key_exams=("의식·탈수·쿠스말 호흡·아세톤 냄새", "체온·맥박·기립성 혈압", "갑상선 종대·안구 돌출",
-                   "피부 색소 침착·자주색 선조", "시야(양측 이측 반맹)·안구 운동"),
-        key_tests=("혈당(즉시)", "케톤·동맥혈 가스·음이온 차", "혈장·소변 삼투압, 소변 Na", "전해질·보정 칼슘", "TSH·유리 T4",
-                   "아침 코르티솔·ACTH", "PTH", "혈장 유리 메타네프린", "뇌하수체 MRI"),
+                  "갑상선 중독 위기 소견(발열·빠른 맥·의식 변화·구역/설사)", "발작성 두통·발한·두근거림(3가지 모두는 일부뿐)",
+                  "갑작스러운 심한 두통+시야 이상", "이뇨제(티아지드)·칼슘/비타민 D 보충제 복용"),
+        key_exams=("의식·탈수·쿠스말 호흡·아세톤 냄새", "체온·맥박·기립성 혈압", "안구 돌출(그레이브스 안병증)",
+                   "피부·점막 색소 침착", "시야 결손·안구 운동 마비"),
+        key_tests=("혈당(즉시)", "케톤·동맥혈 가스·음이온 차", "혈장·소변 삼투압, 소변 Na", "전해질·칼슘", "TSH·유리 T4/T3",
+                   "아침 코르티솔·ACTH", "PTH", "혈장 유리 또는 소변 분획 메타네프린", "뇌하수체 MRI(또는 CT)"),
         pitfalls=("DKA는 복통·구토로 와서 위장관 질환으로 오인: 복통+고혈당이면 케톤·혈액가스",
                   "SGLT2 억제제 복용 중에는 혈당이 높지 않아도 DKA", "부신 위기 의심 시 검사 결과를 기다리며 스테로이드 지연 금지",
                   "의식 저하·이상 행동은 혈당부터"),
@@ -626,12 +651,16 @@ SPECIALTIES.update({s.id: s for s in (
         protocol_categories=("fatigue", "palpitations", "menstrual", "chronic_weakness"),
         rule_out_names=("저혈당", "당뇨병성 케톤산증"),
         branch_notes={
-            "peds": ("소아 첫 1형 당뇨는 DKA로 옴. 치료 중 두통·의식 저하는 뇌부종",),
-            "pregnant": ("임신 중 DKA는 혈당이 조금만 높아도 생김. 입덧(임신 오조)과 갑상선 중독 구별",),
+            "peds": ("소아 1형 당뇨는 진단 시 약 35–40%가 DKA로 옴. DKA 치료 중 신경학적 악화(의식 저하 등)는 뇌부종: "
+                     "침상 신경 평가 반복, 두부 CT가 정상이어도 배제 못 함",),
+            "pregnant": ("임신 중 DKA는 혈당 200 미만에서도 생김(정상혈당 DKA). 임신 오조의 케톤과 DKA 구별",),
         },
         citations=(C_HYPERGLYCEMIC_CRISES, C_DKA_ABDOMINAL_PAIN, C_ATA_THYROTOXICOSIS, C_ADRENAL_INSUFFICIENCY,
-                   C_HYPONATRAEMIA, C_PHEO, C_HYPOGLYCAEMIA, C_PITUITARY_APOPLEXY),
-        verification="unverified",
+                   C_HYPONATRAEMIA, C_PHEO, C_HYPOGLYCAEMIA, C_PITUITARY_APOPLEXY, C_GC_ADRENAL_INSUFFICIENCY,
+                   C_AKAMIZU_STORM, C_ATA_HYPOTHYROIDISM, C_WALKER_HYPERCALCEMIA, C_HOORN_HYPONATREMIA,
+                   C_SEARCH_DKA_YOUTH, C_GLASER_CEREBRAL_EDEMA, C_MUIR_CEREBRAL_EDEMA, C_PHEO_REVIEW, C_DAVIES_GRAVES,
+                   C_BRIET_APOPLEXY),
+        verification="secondary",
         note="DKA/HHS definition (glucose >= 200 mg/dL or known diabetes, ketones, pH/bicarbonate, osmolality): "
              "criteria dka_hhs_2024 / C_HYPERGLYCEMIC_CRISES (ADA/EASD 2024, as danger_gate). Abdominal pain in 46% of "
              "DKA, associated with the metabolic acidosis: C_DKA_ABDOMINAL_PAIN (abstract) - past trajectories routed "
@@ -642,10 +671,26 @@ SPECIALTIES.update({s.id: s for s in (
              "urine sodium: C_ATA_THYROTOXICOSIS / C_ADRENAL_INSUFFICIENCY / C_HYPONATRAEMIA (bibliographic data "
              "verified, full text not read). Overlap: hyponatraemia/hyperkalaemia names (E87) route to renal_uro; "
              "SIADH, adrenal, thyroid causes are listed here. Protocol 'abdominal_pain' is not owned here (its "
-             "can't-miss list is surgical); the DKA pitfall covers it. Reviewer knowledge: SGLT2-inhibitor link of "
-             "DKA without marked hyperglycaemia; content of the thyroid storm / adrenal crisis / hyponatraemia "
-             "work-up items; hypercalcaemia (Ca/PTH), myxoedema coma, physical signs, pediatric cerebral oedema and "
-             "pregnancy notes.",
+             "can't-miss list is surgical); the DKA pitfall covers it. 2026-09-29 second pass (the former reviewer-"
+             "knowledge items): ADA 2024 full text (PMC11272983) - euglycaemic DKA (glucose < 200 mg/dL) with SGLT2 "
+             "inhibitors (the majority of cases) and in pregnancy; Kussmaul breathing with acetone odour; ketosis of "
+             "pregnancy/hyperemesis in the ketone differential; HHS criteria (Fig. 2B). Adrenal crisis: iv "
+             "hydrocortisone before test results (rec. 1.3), morning cortisol + ACTH (2.3/2.4), hyperpigmentation "
+             "(Bornstein 2016 full text PMC4880116); glucocorticoid-induced adrenal insufficiency and withdrawal "
+             "(Beuschlein 2024 abstract). Thyroid storm: prerequisite thyrotoxicosis with elevated fT3/fT4; CNS "
+             "manifestations, fever >= 38, HR >= 130, heart failure, GI/hepatic signs (Akamizu 2018 full text "
+             "PMC5770119; the former 'heat/cold intolerance, tremor' asks were replaced). Myxoedema coma high "
+             "mortality; TSH as the marker of thyroid status (ATA 2014 full text PMC4267409). Hypercalcaemia: PTH the "
+             "most important initial test, severe -> confusion/coma, thiazides and calcium/vitamin D supplements "
+             "(Walker 2022 abstract; 'lithium' and 'corrected calcium' dropped). Hyponatraemia work-up by urine "
+             "osmolality and urine sodium over volume status (Hoorn 2017 compilation of the European guideline, "
+             "via fetch). Pheochromocytoma triad in only ~25%, hypertension 80-90% (Aygun 2020 abstract); plasma "
+             "free or urinary fractionated metanephrines (Lenders 2014 abstract). Graves orbitopathy (Davies 2020 "
+             "abstract; 'goitre' and 'purple striae' dropped). Pituitary apoplexy: visual impairment, cranial nerves "
+             "III/IV/VI (Rajasekaran 2011 abstract); CT or MRI confirms (Briet 2015 abstract; 'bitemporal "
+             "hemianopia' wording dropped). Pediatric DKA at diagnosis 35-41% (SEARCH, Jensen 2021 abstract); "
+             "cerebral oedema uncommon but devastating (Glaser 2001 abstract), detected early by bedside neurological "
+             "evaluation, CT may be normal (Muir 2004 abstract).",
     ),
     SpecialtySpec(
         id="psych", name_ko="정신",
@@ -657,7 +702,7 @@ SPECIALTIES.update({s.id: s for s in (
         key_exams=("주의력(숫자 거꾸로 말하기)·의식 수준", "체온·맥박·혈압", "근강직 vs 클로누스·반사 항진", "떨림·발한·동공",
                    "안구 운동 이상·운동실조", "무언·경직·자세 유지(긴장증)"),
         key_tests=("혈당(즉시)", "전해질·Ca·신기능·간기능", "TSH", "CK", "소변 약물 검사·알코올 농도", "CBC·CRP",
-                   "리튬 등 약물 농도", "뇌 MRI·뇌파·요추천자(발열·신경 징후 동반 시)"),
+                   "복용 약물의 혈중 농도(해당 시)", "뇌 MRI·뇌파·요추천자(발열·신경 징후·급성 경과 시)"),
         pitfalls=("고령·입원 환자의 새 정신 증상을 우울·치매로 단정(저활동성 섬망 놓침)",
                   "첫 정신병 삽화는 기질적 원인 검사 전 확진 금지", "자살 생각은 직접 물음",
                   "강직·고열·CK 상승 = NMS, 클로누스·반사 항진 = 세로토닌 증후군"),
@@ -666,12 +711,13 @@ SPECIALTIES.update({s.id: s for s in (
         protocol_categories=("psychiatric", "cognitive"),
         rule_out_names=("저혈당", "뇌수막염"),
         branch_notes={
-            "peds": ("소아·청소년: 자해·학대·괴롭힘 확인, 보호자와 따로 면담",),
-            "pregnant": ("산후 급성 혼동·환각·기분 급변 = 산후 정신병(응급), 영아 안전 확인",),
+            "peds": ("청소년: 자살·자해 생각을 직접 물음(15–19세 사망 원인 2위), 학대 의심 소견 확인",),
+            "pregnant": ("산후 급성 혼동·환각·기분 급변 = 산후 정신병(응급: 자살·영아 살해 위험), 영아 안전 확인",),
         },
         citations=(_protocols.G_PSYCH_EVAL, C_CAM, C_DELIRIUM, C_CSSRS, C_NMS_DELPHI, C_HUNTER, C_BFCRS, C_CIWA_AR,
-                   C_AUTOIMMUNE_ENCEPHALITIS),
-        verification="unverified",
+                   C_AUTOIMMUNE_ENCEPHALITIS, C_EFNS_WERNICKE, C_BERGINK_POSTPARTUM, C_AAP_ADOLESCENT_SUICIDE,
+                   C_ABUSE_REPORTING, C_AKAMIZU_STORM, C_HYPOGLYCAEMIA),
+        verification="secondary",
         note="Organic causes and suicide risk in the psychiatric evaluation: G_PSYCH_EVAL (APA 2015, as protocols "
              "'psychiatric'). Delirium = acute onset/fluctuation + inattention (CAM, C_CAM); under-recognised in "
              "older people: C_DELIRIUM (abstract). Suicide ideation/behaviour asked directly with a structured scale: "
@@ -680,9 +726,18 @@ SPECIALTIES.update({s.id: s for s in (
              "Catatonia signs: C_BFCRS (instrument). Alcohol withdrawal assessment: C_CIWA_AR (instrument). "
              "Autoimmune encephalitis in the organic differential: C_AUTOIMMUNE_ENCEPHALITIS (bibliographic data "
              "verified). bipolar_dsm5tr moved here from neuro (2026-09-29); protocol 'psychiatric' and 'cognitive' "
-             "stay shared with neuro (organic cause first). Reviewer knowledge: psychiatric presentation of "
-             "autoimmune encephalitis; first-episode psychosis work-up list, hypoactive delirium in the elderly, "
-             "Wernicke, pediatric and postpartum psychosis notes.",
+             "stay shared with neuro (organic cause first). 2026-09-29 second pass (the former reviewer-knowledge "
+             "items): autoimmune encephalitis presents with subacute psychiatric symptoms, working-memory deficits or "
+             "altered mental status, supported by CSF pleocytosis, MRI or EEG, often without fever (Graus 2016 full "
+             "text PMC5066574). Hypoactive delirium is more common in older patients, worse prognosis (Inouye 2014 "
+             "full text PMC4120864). Wernicke: clinical diagnosis in alcoholics by 2 of dietary deficiency, eye "
+             "signs, cerebellar dysfunction, altered mental state/memory (EFNS 2010 abstract). The organic work-up "
+             "list maps to its sources: glucose (Cryer 2009), thyroid storm with delirium/psychosis (Akamizu 2018 "
+             "full text), CK in NMS (Delphi 2011), CSF/MRI/EEG (Graus 2016); 'lithium level' generalised to drug "
+             "levels. Postpartum psychosis is a psychiatric emergency with risk of suicide and infanticide (Bergink "
+             "2016 abstract). Adolescents: suicide is the second leading cause of death at 15-19 (AAP 2016 abstract), "
+             "abuse recognition (Flaherty 2008 abstract); 'bullying' and 'interview apart from caregivers' dropped "
+             "(no accessible source).",
     ),
 )})
 
