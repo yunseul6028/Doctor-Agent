@@ -36,7 +36,7 @@ RADIOLOGY_SCHEMA: dict = {
 }
 _RAD_STATUS = {"있음": "양성", "관찰됨": "양성", "present": "양성", "의심": "양성", "uncertain": "양성", "possible": "양성",
                "없음": "음성", "absent": "음성", "정상": "음성", "negative": "음성"}
-_SKIP_KO = {"low_time": "시간 부족", "few_turns": "남은 턴 부족", "call_cap": "호출 한도 도달", "no_specialty": "전문 분야 없음",
+_SKIP_KO = {"low_time": "시간 부족", "low_time_est": "남은 시간이 예상 호출 시간보다 짧음", "few_turns": "남은 턴 부족", "call_cap": "호출 한도 도달", "no_specialty": "전문 분야 없음",
             "radiology_cap": "판독 호출 한도 도달", "module_missing": "모듈 없음", "disabled": "끔"}
 _TRIGGER_KO = {"routed": "전문 분야 집중", "low_confidence": "확신도 정체", "anchoring": "조기 고정 의심",
                "pre_review": "낮은 확신도 진단 직전", "needs_llm": "복잡한 결과"}
@@ -64,6 +64,7 @@ class SubagentManager:
         self._pending: list[tuple[int, str]] = []  # (priority, hint) for the next main prompt
         self._conf_trace: list[float] = []  # model confidence after each turn (index = turn - 1)
         self._mods: dict[str, object] = {}
+        self.last_time_check: dict = {}  # numbers of the last pre-call time check (for the skip log)
 
     # ------------------------------------------------------------------------------------------ guards / logging
     def enabled(self, kind: str) -> bool:
@@ -74,14 +75,30 @@ class SubagentManager:
                 "radiology": getattr(c, "use_llm_radiology", False)}.get(kind, False)
 
     def blocked(self, state) -> str:
-        """Global skip reason ("" = a call may be made)."""
+        """Global skip reason ("" = a call may be made). Checked right before every sub-agent call, so the time check
+        uses the live budget (see _time_block)."""
         if self.degraded:
             return "low_time"
         if self.cfg.max_turns - state.turn_count < self.cfg.subagent_min_remaining_turns:
             return "few_turns"
         if self.attempted >= self.cfg.max_subagent_calls:
             return "call_cap"
-        return ""
+        return self._time_block()
+
+    def _time_block(self) -> str:
+        """Live time check from the case's GuardedLLM (runtime.subagent_time_block): "low_time" when the budget is in
+        degraded mode now, "low_time_est" when the time left before the final reserve is < subagent_time_factor x the
+        recent main-call latency. "" without a budget or with a client that has no such check (tests, scripts)."""
+        check = getattr(self.llm, "subagent_time_block", None)
+        if not callable(check):
+            return ""
+        try:
+            why, info = check()
+        except Exception as e:  # noqa: BLE001 — a bookkeeping bug must not block the case; allow the call
+            log.warning("sub-agent time check failed: %s", e)
+            return ""
+        self.last_time_check = info
+        return why
 
     def _skip(self, state, name: str, reason: str, turn: int | None = None) -> None:
         key = f"{name}:{reason}"
@@ -89,8 +106,10 @@ class SubagentManager:
         if (name, reason) in self._skip_logged:
             return
         self._skip_logged.add((name, reason))
+        extra = {"time": dict(self.last_time_check)} if reason in ("low_time", "low_time_est") and self.last_time_check \
+            else {}
         state.safety_log.append({"turn": turn or state.turn_count + 1, "layer": LAYER, "kind": "skip", "name": name,
-                                 "reason": reason,
+                                 "reason": reason, **extra,
                                  "msg": f"{self._label(name)} 건너뜀: {_SKIP_KO.get(reason, reason)}"})
 
     def _error(self, state, kind: str, where: str, e: BaseException) -> None:

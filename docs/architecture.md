@@ -220,7 +220,10 @@ Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-tu
   `AGENT_DEGRADE_AT_FRAC` (0.6): no review / safety pushback, first 2 hints + `LOW_TIME_HINT`, reasoning effort "low".
   When `AGENT_FINAL_RESERVE_S` (45 s, at most half the budget) is left: forced final diagnosis (skipped below
   `min_call_s` = 5 s → top DDx). Exploratory calls get a deadline that leaves the reserve untouched; every call also has
-  a watchdog thread; the OpenAI SDK's own retries are off (ours are deadline-aware).
+  a watchdog thread; the OpenAI SDK's own retries are off (ours are deadline-aware). `GuardedLLM` records every call's
+  latency on the budget clock (main vs sub-agent); sub-agent calls get a pre-call time check (see "Time budget for
+  sub-agent calls"). `runtime.estimate_call_s(prompt, output, Throughput)` predicts a call's wall time from token counts
+  under stated (unmeasured) throughput assumptions.
 - **gpt-oss responses** (`llm/client.py`, `llm/harmony.py`): content preferred; harmony markers
   (`<|channel|>analysis/final<|message|>…`, `analysis…assistantfinal…`) stripped; reasoning read from
   `reasoning_content`/`reasoning`; if an action prompt's content has no JSON the reasoning is appended as
@@ -505,8 +508,9 @@ to 10× between dev models).
 
 ### Global guards and budget
 - Master switch `AGENT_USE_SUBAGENTS` (default on; ablation condition `v6-no-subagents`, **not** in `dev`).
-- Skip all sub-agents when: low-time mode (`policy.degraded`), remaining turns ≤ 3, or the per-case cap
-  `AGENT_MAX_SUBAGENT_CALLS` (3) of attempted calls is reached. A trigger that fires but is skipped is logged once per
+- Skip all sub-agents when: low-time mode (`policy.degraded`, or the live budget at call time), remaining turns ≤ 3,
+  the per-case cap `AGENT_MAX_SUBAGENT_CALLS` (3) of attempted calls is reached, or too little time is left for the
+  call (`low_time_est`, see "Time budget for sub-agent calls"). A trigger that fires but is skipped is logged once per
   (sub-agent, reason).
 - Hints: **separate budget** `AGENT_MAX_SUBAGENT_CHARS` (600) per step prompt, after the advisor hints (the triage /
   critical-result alert stays on top; the advisor budget of 900 is untouched, so no safety hint is ever displaced by a
@@ -516,6 +520,27 @@ to 10× between dev models).
 - Reasoning effort `AGENT_SUBAGENT_REASONING_EFFORT` (default `low`; `none` keeps the parameter unsent).
 - Expected extra calls: 0 in most cases; ≤ 3 per case (consult 1 + advocate 1 + radiology 1).
 
+### Time budget for sub-agent calls (2026-09-29)
+Only matters with `AGENT_CASE_TIME_BUDGET_S` > 0 (unlimited otherwise). A sub-agent call goes through the same
+`GuardedLLM` as the main calls, so it already gets the **exploratory deadline** (budget − final reserve) and the
+watchdog: it can never eat the final reserve, and the case cannot overrun because of it. What it could still do is
+start too late, get cut at the deadline and take the turn's main step with it (the step then hits `BudgetExceeded`
+and the case goes to the forced final diagnosis). Two checks prevent that, both in `SubagentManager.blocked()`, which
+runs right before every sub-agent call (consult, advocate, radiology):
+1. **Live degraded mode**: `GuardedLLM.subagent_time_block()` re-reads `CaseBudget.degraded()` at call time. The
+   Policy's `degraded` flag is set once per turn, so the pre-review advocate (called after the turn's main call) used
+   to see a stale value.
+2. **Latency check** (`low_time_est`): skip when the exploratory time left < `AGENT_SUBAGENT_TIME_FACTOR` (3) × the
+   estimated call time. The estimate is the slowest of the last `latency_window` (3) main-call latencies (step,
+   review, final) that `GuardedLLM` measures on the budget clock (`min_call_s` before the first one). Factor 3 = the
+   sub-agent call + the main call it precedes (step, or the review for the pre-review advocate) + one call of margin.
+   Sub-agent latencies are recorded (`runtime.latency_sub_s`) but not used for the estimate.
+With the defaults (degrade at 0.6, reserve 45 s) the latency check only binds before degraded mode when a main call
+takes longer than (0.4 × budget − 45) / 3, e.g. > 25 s at a 300 s budget, > 65 s at 600 s. Skips are logged once per
+(sub-agent, reason) with the numbers (`"time": {"left_s", "est_call_s", "factor"}`); `result["runtime"]` carries
+`latency_main_s` / `latency_sub_s`. Time model and per-case totals: `docs/experiments.md` "Sub-agent token and time
+budget"; the estimator is `runtime.estimate_call_s` / `estimate_case_s` with `runtime.Throughput` assumptions.
+
 ### Logs and result
 - `safety_log` entries with `layer="subagent"`: `kind="call"` (`name`, `trigger`, `ok`, `elapsed_s`, `hint`, `ddx_add`,
   `red_flags`, `suggested_actions`, `error`, `msg`), `kind="skip"` (`name`, `reason`, `msg`), `kind="error"` (content
@@ -524,7 +549,8 @@ to 10× between dev models).
   "refs": [...], "llm_radiology_findings": n}`.
 - Tests: `tests/conftest.py` sets `AGENT_USE_SUBAGENTS=0` (older tests pin the scripted LLM call sequence);
   `tests/test_subagents.py` switches them on per test and installs fake content modules via `sys.modules`.
-  `scripts/token_budget.py`'s scripted doctor answers sub-agent prompts with `{}` (not counted as steps).
+  `scripts/token_budget.py`'s scripted doctor answers sub-agent prompts with `{}` (not counted as steps); with
+  `--subagents` it answers them with plausible JSON and measures their prompts and the per-case totals.
 
 ## Specialist sub-agent content (`agent/subagents/consult.py`, `advocate.py`, 2026-09-28; content only, not wired)
 

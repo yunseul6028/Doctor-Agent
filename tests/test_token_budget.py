@@ -205,6 +205,97 @@ def test_cli_writes_json(tmp_path, capsys):
     assert "gpt-oss prompt tokens" in capsys.readouterr().out
 
 
+# ---------------------------------------------------------------- sub-agents
+
+def test_specialty_pool_maps_to_its_specialty():
+    from doctor_agent.knowledge.specialty import SPECIALTIES, specialty_of
+
+    assert set(tb.SPECIALTY_POOL) == set(SPECIALTIES)
+    for sid, names in tb.SPECIALTY_POOL.items():
+        assert len(names) == 5 and all(specialty_of(n) == sid for n in names), sid
+    assert tb.focus_specialty(CASE) == "resp_id"  # 지역사회획득 폐렴
+
+
+def test_subagent_name_and_scripted_answers_parse():
+    from doctor_agent.agent.subagents import advocate, consult
+    from doctor_agent.agent.subagents.orchestrator import parse_radiology
+
+    st = _state()
+    c = consult.build_consult(st, "cardio")
+    a = advocate.build_advocate(st, "폐렴", "수포음")
+    r = prompts.build_result_interpreter_messages("흉부 X선", "우하엽 경화 소견, 흉수 없음. 심비대 없음.", "(없음)")
+    assert [tb.subagent_name(m) for m in (c.messages, a.messages, r)] == ["consult:cardio", "advocate", "radiology"]
+    dx = ["폐렴", "결핵", "천식", "폐색전증", "기관지염"]
+    assert consult.parse_consult(json.dumps(tb.scripted_subagent_answer("consult:cardio", dx, c.messages),
+                                            ensure_ascii=False)).ok
+    assert advocate.parse_advocate(json.dumps(tb.scripted_subagent_answer("advocate", dx, a.messages),
+                                              ensure_ascii=False)).ok
+    assert parse_radiology(json.dumps(tb.scripted_subagent_answer("radiology", dx, r), ensure_ascii=False)).ok
+
+
+def test_focused_doctor_fires_consult_and_diagnose_at_ends_the_case():
+    cfg = AgentConfig(max_turns=30)
+    cfg.use_subagents = True
+    calls = tb.replay_case(dict(CASE), cfg, (), doctor_opts=dict(tb.SUB_DOCTOR, diagnose_at=12),
+                           sub_checkpoints=(6, 10))
+    real_sub = [c for c in calls if c["kind"] == "subagent" and not c["probe"]]
+    assert "consult:resp_id" in {c["name"] for c in real_sub}  # the focused DDx routes to one specialty after turn 5
+    assert all(c["turn"] >= 6 for c in real_sub if c["name"].startswith("consult"))
+    assert max(c["turn"] for c in calls) < 30  # proposing DIAGNOSE from turn 12 ends the case early
+    assert any(c["kind"] == "review" and not c["probe"] for c in calls)
+    probes = [c for c in calls if c["kind"] == "subagent" and c["probe"]]
+    from doctor_agent.agent.subagents.consult import SPECIALTIES
+
+    names = {c["name"] for c in probes}
+    assert {f"consult:{s}" for s in SPECIALTIES} | {"advocate", "radiology", "radiology@cap"} == names
+    assert {c["turn"] for c in probes} == {6, 10}
+    # probes do not change the replay
+    again = tb.replay_case(dict(CASE), cfg, (), doctor_opts=dict(tb.SUB_DOCTOR, diagnose_at=12))
+    strip = lambda cs: [c["messages"] for c in cs if not c["probe"]]  # noqa: E731
+    assert strip(calls) == strip(again)
+
+
+def test_case_totals_and_subagent_summary():
+    from doctor_agent.agent.runtime import Throughput, estimate_call_s
+
+    cfg = AgentConfig(max_turns=20)
+    tp = Throughput(prefill_tps=1000, decode_tps=10, overhead_s=1, reasoning_tokens=0)
+    res = tb.measure_subagents([dict(CASE, _id="c1")], chars, cfg=cfg, diagnose_at=(None, 10), tps={"t": tp})
+    sc = res["scenarios"]
+    assert list(sc) == ["60 turns, sub-agents off", "60 turns, sub-agents on", "DIAGNOSE from turn 10, sub-agents off",
+                        "DIAGNOSE from turn 10, sub-agents on", "DIAGNOSE from turn 10, on + advocate forced"]
+    off, on = sc["60 turns, sub-agents off"]["t"], sc["60 turns, sub-agents on"]["t"]
+    assert off["n_sub"]["max"] == 0 and off["sub_share"] == 0
+    assert on["calls"]["consult"]["max"] == 1 and on["n_sub"]["max"] <= cfg.max_subagent_calls
+    assert on["n_total"]["max"] == on["n_main"]["max"] + on["n_sub"]["max"]
+    assert on["prompt_total"]["max"] > off["prompt_total"]["max"] and on["est_s"]["max"] > off["est_s"]["max"]
+    forced = sc["DIAGNOSE from turn 10, on + advocate forced"]["t"]
+    assert forced["fired"]["advocate"] == 1.0 and forced["calls"]["review"]["max"] >= 1
+    p = res["prompts"]
+    assert p["probes"]["consult:cardio"]["tokens"]["n"] == len([t for t in tb.SUB_CHECKPOINTS if t < 20])
+    assert p["consult_any"]["max"] >= p["probes"]["consult:cardio"]["tokens"]["max"]
+    assert "system_prompt" in p["consult_parts"] and p["probes"]["radiology@cap"]["tokens"]["max"] >= \
+        p["probes"]["radiology"]["tokens"]["max"]
+    # the time estimate is the sum of estimate_call_s over the real calls
+    rows = tb.measure([dict(CASE, _id="c1")], chars, cfg=cfg, checkpoints=(), doctor_opts=dict(tb.SUB_DOCTOR))
+    t = tb.case_totals(rows, tp)[0]
+    assert t["est_s"] == pytest.approx(round(sum(estimate_call_s(r["tokens"], r["output_tokens"], tp)
+                                                 for r in rows if not r["probe"]), 1))
+    assert "sub-agents on" in tb.format_subagent_report(res)
+
+
+def test_cli_subagent_mode(tmp_path, capsys):
+    case_file = tmp_path / "case.json"
+    case_file.write_text(json.dumps(CASE, ensure_ascii=False), encoding="utf-8")
+    out = tmp_path / "tbs.json"
+    assert tb.main(["--cases", str(case_file), "--tokenizer", "chars", "--subagents", "--diagnose-at", "8",
+                    "--decode-tps", "50", "--json-out", str(out)]) == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert list(data["throughput"]) == ["custom"] and data["throughput"]["custom"]["decode_tps"] == 50
+    assert "DIAGNOSE from turn 8, sub-agents on" in data["scenarios"] and data["meta"]["cases"] == 1
+    assert "Sub-agent prompts" in capsys.readouterr().out
+
+
 # ---------------------------------------------------------------- experiment.py cost estimate
 
 def test_measured_prompt_tokens_per_call():

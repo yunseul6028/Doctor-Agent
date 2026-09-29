@@ -264,6 +264,40 @@ def test_degraded_policy_skips_review():
     assert action.type == ActionType.DIAGNOSE and llm.call_count == 1 and not state.reviews
 
 
+def test_time_model_estimates():
+    from doctor_agent.agent.runtime import CONSERVATIVE, MODERATE, Throughput, estimate_call_s, estimate_case_s
+
+    tp = Throughput(prefill_tps=1000, decode_tps=20, overhead_s=1.0, reasoning_tokens=300)
+    assert estimate_call_s(2000, 100, tp) == pytest.approx(1 + 2 + 400 / 20)
+    assert estimate_call_s(2000, 100, tp, reasoning_tokens=0) == pytest.approx(1 + 2 + 5)
+    assert estimate_case_s([(2000, 100), (1000, 0)], tp) == pytest.approx(23 + (1 + 1 + 15))
+    assert estimate_case_s([], tp) == 0
+    # the default is the slow assumption
+    assert estimate_call_s(3000, 300, CONSERVATIVE) > estimate_call_s(3000, 300, MODERATE)
+
+
+def test_guarded_llm_records_latency_on_the_budget_clock():
+    from doctor_agent.agent.runtime import CaseBudget, GuardedLLM
+
+    now = [0.0]
+
+    class Slow:
+        call_count = 0
+
+        def chat(self, messages):
+            now[0] += 7.0 if messages[0]["content"] == prompts.SYSTEM else 3.0
+            self.call_count += 1
+            return ACT
+
+    guard = GuardedLLM(Slow(), _cfg(), CaseBudget(0, 0.6, 45, clock=lambda: now[0]))
+    guard.chat(prompts.build_step_messages("[처음 정보] x", 0, 60, []))
+    guard.chat([{"role": "system", "content": "sub-agent"}, {"role": "user", "content": "x"}])
+    guard.chat(prompts.build_review_messages("[처음 정보] x", "폐렴", "r", 1, 60))
+    assert guard.latencies == [(True, 7.0), (False, 3.0), (True, 3.0)]  # the review counts as a main call
+    assert guard.recent_main_call_s() == 7.0  # slowest of the last 3 main calls
+    assert guard.stats()["latency_main_s"] == [7.0, 3.0] and guard.stats()["latency_sub_s"] == [3.0]
+
+
 def test_watchdog_abandons_hung_call():
     from doctor_agent.agent.runtime import CaseBudget, GuardedLLM
 

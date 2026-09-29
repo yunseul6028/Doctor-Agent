@@ -218,6 +218,96 @@ Recommendations (not applied here):
 4. The system prompt (643 tokens, 19%) is identical on every call: prefix caching on the server makes it cheap in
    latency, but it is billed per call.
 
+## Sub-agent token and time budget (gpt-oss tokenizer, 2026-09-29, no LLM calls)
+
+`python scripts/token_budget.py --subagents --jobs 9` (all 267 `data/cases_aug` cases, prompt `v9-subagents`,
+`AGENT_MAX_VIEW_CHARS=12000`, main and sub-agent effort `low`, 1,223 s on 9 processes). Same harmony rendering and
+`o200k_harmony` counting as the table above. No prompt or policy change, so no Accuracy / Efficiency / Safety row.
+
+**Scripted doctor (how representative it is).** To make the triggers fire, the scripted doctor (a) narrows its DDx to
+five diagnoses of one specialty once 5 turns are done (the gold diagnosis's specialty, `knowledge/specialty.py`; earlier
+candidates marked 배제), so the routed consult fires in **100%** of cases, (b) keeps its confidence at 0.3 (< 0.5, the
+stuck-consult trigger is armed too), and (c) proposes DIAGNOSE from turn 10 or 20 (or never: 60 turns). From that turn
+the real pushback → gate → confidence pushback → pre-review advocate → review path runs; the scripted review always
+names an unresolved danger, so both reviews (MAX_REVIEWS = 2) happen and hold → the cases end at turn 11 / 21. Sub-agents
+get short, schema-complete JSON answers (consult 243, advocate 183, radiology ≤ 194 visible tokens) so their hints reach
+later prompts. This is a **worst-case-leaning** load, not a forecast: real consult rates were 36% at turn ≥ 5 in the
+dev-model replays, the advocate fires only at code confidence < 0.4 (46% / 79% here, 33% in the replays), and radiology
+fires only where the result interpreter asks for an LLM reading (61% of 60-turn cases, 23% when diagnosing from turn
+10). Dev-model runs averaged 4.7–10.7 turns, so "DIAGNOSE from turn 10" is the closest to what was seen; 60 turns is the
+cap. Reasoning tokens are not in these counts (see the time model).
+
+Sub-agent prompts, probed on a copy of the state at turns 6 / 10 / 20 / 40 / 57 (57 = last turn a sub-agent may run),
+tokens of the full harmony prompt p50 / p95 / max:
+
+| Prompt | p50 | p95 | max | max at turn 6 → 57 |
+|---|---|---|---|---|
+| consult, all 10 specialties pooled (n = 13,350) | 2,445 | 2,991 | 3,324 | — |
+| consult worst specialty (peds_obgyn / heme_onc) | 2,479 / 2,515 | 3,007 / 3,077 | **3,324** / 3,316 | 2,055 → 3,324 |
+| consult lightest (gi_liver) | 2,358 | 2,898 | 3,078 | 1,965 → 3,078 |
+| advocate | 1,768 | 2,297 | 2,402 | 1,259 → 2,402 |
+| radiology, longest single result of the case | 646 | 682 | 765 | (turn-independent) |
+| radiology, all result texts up to the 3,000-char cap | 1,543 | 1,798 | 2,174 | (turn-independent) |
+
+Consult prompt blocks (mean / max tokens / share): findings ledger 511 / 973 / 22%; specialty card 436 / 647 / 18%;
+system prompt 375 / 397 / 16%; resources 336 / 487 / 14%; current DDx 292 / 476 / 12%; actions done 171 / 270 / 7%;
+recent exchanges 76 / 188; harmony 74. Every block is capped in `consult.py` (findings 1,400 chars, DDx 700, done 450,
+resources 900, initial 600), so the consult prompt is bounded (≈ 3.3k tokens) however long the case runs; it is always
+smaller than the late main step prompts (6,312 max).
+
+Per case (real calls only; step includes retries; tokens are prompt tokens summed over all calls of the case;
+time = time model below):
+
+| Case length | Sub-agents | Calls/case p50 / max (main + sub) | Sub calls/case mean (consult / advocate / radiology) | Prompt tokens/case p50 / p95 / max | Sub-agent share | Predicted s/case p50 / p95 / max, conservative | same, moderate |
+|---|---|---|---|---|---|---|---|
+| 60 turns | off | 61 / 67 | 0 | 249k / 294k / 342k | 0% | 2,550 / 2,670 / 2,817 | 839 / 877 / 925 |
+| 60 turns | on | 62 / 69 | 1.0 / 0 / 0.6 | 255k / 298k / 349k | 0.9% | 2,597 / 2,723 / 2,876 | 854 / 892 / 944 |
+| DIAGNOSE from 20 | off | 25 / 29 | 0 | 63k / 84k / 110k | 0% | 953 / 1,064 / 1,180 | 317 / 353 / 390 |
+| DIAGNOSE from 20 | on | 27 / 30 | 1.0 / 0.5 / 0.4 | 67k / 88k / 114k | 4.2% | 1,004 / 1,120 / 1,209 | 333 / 371 / 400 |
+| DIAGNOSE from 20 | on, advocate forced | 27 / 31 | 1.0 / 1.0 / 0.4 | 68k / 90k / 116k | 5.6% | 1,016 / 1,142 / 1,236 | 338 / 378 / 409 |
+| DIAGNOSE from 10 | off | 15 / 19 | 0 | 30k / 45k / 58k | 0% | 557 / 678 / 731 | 186 / 226 / 243 |
+| DIAGNOSE from 10 | on | 18 / 21 | 1.0 / 0.8 / 0.2 | 33k / 49k / 63k | 8.8% | 619 / 741 / 788 | 207 / 246 / 262 |
+| DIAGNOSE from 10 | on, advocate forced | 18 / 21 | 1.0 / 1.0 / 0.2 | 34k / 49k / 63k | 9.5% | 620 / 745 / 788 | 207 / 248 / 262 |
+
+Reading: sub-agents add at most 3 calls per case (the cap), +2–3 calls in the typical-length case, +4–10% prompt tokens
+(the sub-agent prompts are shorter than the main prompts they sit between) and at most 80–82 s (conservative) /
+27–28 s (moderate) per case. The main loop is ≥ 90% of the predicted time in every scenario. Main-prompt
+growth from the injected hints (≤ 600 chars per step, one step each) is included in the "on" rows.
+
+**Time model** (`agent/runtime.py`: `Throughput`, `estimate_call_s`, `estimate_case_s`):
+`t_call = overhead_s + prompt_tokens / prefill_tps + (visible_output_tokens + reasoning_tokens) / decode_tps`, and a
+case is the sum over its calls (the agent calls sequentially; CPU time between calls is not included — ~0.1 s per
+step with KB on in a cProfile of this replay). **All parameters are assumptions**, not measurements or published numbers: the
+server, GPU, batching, prefix caching and gpt-oss's reasoning length at effort `low` on our prompts are unknown.
+
+| Assumption | prefill tok/s | decode tok/s | overhead s | reasoning tok/call | e.g. 3k-token prompt, 300-token answer |
+|---|---|---|---|---|---|
+| `CONSERVATIVE` (default) | 1,000 | 20 | 1.0 | 300 | 34 s |
+| `MODERATE` | 4,000 | 60 | 0.5 | 300 | 11 s |
+
+Decode dominates (≥ 85% of each estimate): the number that matters is decode tok/s × (answer + reasoning) length.
+On API day: run a few cases, read `result["runtime"]["latency_main_s"]` (now recorded per call) and fit the four
+parameters with the prompt token counts above, then `--prefill-tps / --decode-tps / --overhead-s / --reasoning-tokens`
+re-predicts the table.
+
+**Degraded mode vs sub-agents** (checked; code in `GuardedLLM.subagent_time_block`, `SubagentManager.blocked`, tests
+in `tests/test_subagents.py` "time budget"). Sub-agent calls already went through `GuardedLLM`, so they got the
+exploratory deadline (budget − final reserve) and the watchdog: a sub-agent call could never overrun the case or eat
+the final reserve. Two gaps were found and fixed: (1) a sub-agent that starts close to the exploratory deadline was cut
+there, and the same turn's main step then hit `BudgetExceeded` → one turn lost and the case forced to its final answer
+(reproduced on a fake clock: 8 → 7 completed steps); (2) the pre-review advocate runs after the turn's main call but
+read the Policy's once-per-turn `degraded` flag, so it could still run after that call crossed the degrade threshold.
+Now every sub-agent call is preceded by a live check: skip if the budget is degraded now, or if the exploratory time
+left < `AGENT_SUBAGENT_TIME_FACTOR` (3) × the slowest of the last 3 main-call latencies. With the default degrade point
+(0.6) and reserve (45 s) that check binds before degraded mode only when main calls take > (0.4 × budget − 45) / 3:
+25 s at a 300 s budget, 65 s at 600 s. Under the conservative model a late main call is ~35–41 s, so at budgets
+≤ 400 s the latency check (not the degrade fraction) is what stops sub-agents. The final reserve (45 s) covers one
+conservative final call (≤ ~40 s for a 6k-token prompt), but not a length retry at 20 tok/s.
+
+Budget implications (under the assumptions, not a recommendation until measured): at conservative speed even the
+typical case (~15–18 calls) needs 10–12 min, so a per-case limit below that would push most cases into degraded mode
+and turn sub-agents off by themselves; at moderate speed a typical case takes 3–4 min and sub-agents cost ≤ 30 s.
+
 ## Open issues (refreshed 2026-09-27)
 - **Nothing since v5 is measured with an LLM.** v6 (KB hints, code-decided review), the 26-category protocols and
   `data/cases_aug` need a first run; prompts were written against Gemini and must be re-validated on gpt-oss-20b.

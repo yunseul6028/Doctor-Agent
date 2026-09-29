@@ -115,6 +115,10 @@ class AgentConfig:
     # not pick out wrong cases in the replay, the pre-review confidence did
     advocate_on_anchoring: bool = field(default_factory=lambda: _flag("AGENT_ADVOCATE_ON_ANCHORING", "0"))
     subagent_min_remaining_turns: int = 4  # skip all sub-agents when fewer turns than this remain (i.e. <= 3)
+    # pre-call time check (runtime.GuardedLLM.subagent_time_block, only with a case time budget): skip a sub-agent
+    # call when the exploratory time left < subagent_time_factor x the slowest of the last latency_window main calls
+    subagent_time_factor: float = field(default_factory=lambda: _num("AGENT_SUBAGENT_TIME_FACTOR", 3.0))
+    latency_window: int = 3
 
     # --- runtime robustness (see docs/architecture.md "Runtime") ---
     # submission mode: never raise out of run_case (log instead); dev mode: fail loudly (≥1 LLM call rule, billing)
