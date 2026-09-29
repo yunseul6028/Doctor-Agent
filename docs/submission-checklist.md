@@ -56,23 +56,25 @@ Reviewed cross-case allowlist (`CROSS_CASE_ALLOWLIST` in `package.py`; anything 
 - [ ] New dependencies / data / citations have rows in `docs/licenses.md` (the automated check enforces shipped ones)
 - [ ] Row added to the submission history below (ZIP name, sha256 from the report, commit)
 
-## Current audit (2026-09-27, commit `ca5e704` + this change)
+## Current audit (2026-09-29, commit `f2099cd`, clean tree)
 
 **Dev build: GO. Real submission: NO-GO** (4 blockers, all waiting on the participant guide).
 
-- ERROR: none. ZIP 2,247 KB (37 files: `run.py`, `requirements.txt`, `src/`, `eval/{__init__,simulator}.py`, `data/kb/`).
-- Smoke run from the extracted ZIP: 16/16 sample cases, `llm_calls = 6` each (dummy LLM), no errors, ~1 s.
-- Ledger: 150 citation lines in shipped code, all 7 KB sources, the 95 KB test references with a PMID (of 96; one is 'textbook') and `openai==1.109.1` are all
-  in `docs/licenses.md`; no NC/ND/unclear license among shipped rows. Added dev-only rows for pytest, Ollama and
-  Claude Code (used to write code, curated tables and sample cases).
+- ERROR: none. ZIP 4,066 KB (60 files: `run.py`, `requirements.txt`, `src/` (49), `eval/{__init__,simulator}.py`,
+  `data/kb/` (5), `data/lexicon/` (3)), sha256 `66a0f42c…61ed4`. (09-27: 2,247 KB, 37 files; growth is the lexicon
+  and the safety/knowledge modules.)
+- Smoke run from the extracted ZIP: 16/16 sample cases, `llm_calls` 8–12 per case (dummy LLM), no errors, 3.9 s.
+- Ledger check (`6-ledger`): no findings — every shipped citation, KB source, KB test reference and `openai==1.109.1`
+  is in `docs/licenses.md`; no NC/ND/unclear license among shipped rows.
 - BLOCKER: `env/official.py` stub; default env is `local`; per-case time budget is 0 (unlimited); output format
   unconfirmed (TODO in `run.py`).
-- WARN (reproducibility, not shipped): the shipped KB (built 2026-09-27) has no matching run in `kb_build_meta.json`
-  because it was a cache-only rebuild (LLM outputs are all in `kb_llm_cache.json`; `build_kb.py` only logs runs that
-  call the LLM); `data/sample_cases` has no generation prompt/model record (written by Claude, documented in the ledger).
+- WARN (reproducibility, not shipped): `data/sample_cases` has no generation prompt/model record (written by Claude,
+  documented in the ledger). The 09-27 KB cache-only-rebuild warning is gone. New `offline` check: no findings.
 - Non-blocking hygiene: `KnowledgeBase.tpost` is a `defaultdict` read with `self.tpost[tid]`, so a lookup of a missing
   (curated, static) finding id inserts an empty list into the singleton. Keys come from the fixed `kb_tests` table, not
   from case text, so nothing case-specific leaks; switching to `.get(tid, ())` would make it strictly read-only.
+  `data/lexicon/seed.tsv` (177 KB, build input for `scripts/build_lexicon.py`) ships but is not read at runtime;
+  dropping it from `INCLUDE` would trim the ZIP (size is far under the limit, so no action needed).
 
 ## Submission history
 | Date | ZIP | Commit | Local score | Official score |
