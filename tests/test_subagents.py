@@ -536,3 +536,121 @@ def test_subagent_result_contract_fields():
     r = SubagentResult("x", True)
     assert (r.hint_ko, r.ddx_add, r.suggested_actions, r.red_flags, r.raw) == ("", [], [], [], {})
     assert SubagentCall("x", [], None).max_chars_out == 600
+
+
+# ---------------------------------------------------------------- time budget (fake clock)
+
+class ClockRouter(OptRouter):
+    """Router on a fake clock: a main call (step / review / final) takes main_s, a sub-agent call sub_s. A call that
+    would end after its deadline is cut there and raises LLMTimeout, which is what the real watchdog does."""
+
+    def __init__(self, now, main_s, sub_s, **kw):
+        super().__init__(**kw)
+        self.now, self.main_s, self.sub_s, self.timeouts = now, main_s, sub_s, []
+
+    def chat(self, messages, **opts):
+        from doctor_agent.llm.client import LLMTimeout
+
+        main = messages[0]["content"] in (prompts.SYSTEM, prompts.REVIEW_SYSTEM)
+        dur, dl = (self.main_s if main else self.sub_s), opts.get("deadline")
+        if dl is not None and self.now[0] + dur > dl + 1e-9:
+            self.now[0] = max(self.now[0], dl)
+            self.timeouts.append("main" if main else "sub")
+            raise LLMTimeout("cut at the deadline")
+        self.now[0] += dur
+        return super().chat(messages, **opts)
+
+
+def _asks(n=70):
+    return [_step("ASK", f"질문 {i}번 증상이 있나요?") for i in range(n)]
+
+
+def test_subagent_time_block_uses_live_budget_and_main_latency():
+    now = [0.0]
+    cfg = Config()
+    cfg.agent = _cfg(subagent_time_factor=3.0)
+    budget = CaseBudget(200.0, 0.9, 40.0, clock=lambda: now[0])
+    guard = GuardedLLM(ClockRouter(now, main_s=20.0, sub_s=50.0, step=_asks()), cfg, budget)
+    why, info = guard.subagent_time_block()  # nothing measured yet: min_call_s (5 s) is the estimate
+    assert why == "" and info == {"left_s": 160.0, "est_call_s": cfg.agent.min_call_s, "factor": 3.0}
+    guard.chat(prompts.build_step_messages("[처음 정보] x", 0, 60, []))
+    guard.chat([{"role": "system", "content": CONSULT_SYS}, {"role": "user", "content": "x"}])  # sub-agent: 50 s
+    why, info = guard.subagent_time_block()
+    assert why == "" and info["est_call_s"] == 20.0 and info["left_s"] == 90.0  # sub-agent latency is not the estimate
+    assert guard.stats()["latency_main_s"] == [20.0] and guard.stats()["latency_sub_s"] == [50.0]
+    now[0] = 101.0  # 59 s left before the reserve < 3 x 20 s
+    assert guard.subagent_time_block()[0] == "low_time_est"
+    now[0] = 180.0  # degraded now (0.9 x 200), even if the policy's flag was set earlier in the turn
+    assert guard.subagent_time_block()[0] == "low_time"
+    assert GuardedLLM(Router(), cfg, CaseBudget(0, 0.6, 45)).subagent_time_block() == ("", {})
+
+
+def test_orchestrator_skips_when_time_left_is_short(mods):
+    mods()
+    now = [0.0]
+    cfg = Config()
+    cfg.agent = _cfg(degrade_at_frac=0.99)
+    budget = CaseBudget(200.0, 0.99, 40.0, clock=lambda: now[0])
+    inner = ClockRouter(now, main_s=20.0, sub_s=20.0, step=_asks())
+    guard = GuardedLLM(inner, cfg, budget)
+    guard.latencies.append((True, 20.0))
+    now[0] = 101.0  # 59 s before the reserve: < 3 x 20 → skipped, the step still runs
+    st = _state(n_turns=5)
+    Policy(guard, cfg.agent).next_action(st)
+    assert inner.kinds() == ["step"] and not inner.timeouts
+    skip = _sub(st, "skip")[0]
+    assert skip["reason"] == "low_time_est" and skip["time"] == {"left_s": 59.0, "est_call_s": 20.0, "factor": 3.0}
+    assert "예상 호출 시간" in skip["msg"]
+    now[0] = 100.0  # 60 s >= 3 x 20 → the consult runs, then the step
+    Policy(guard, cfg.agent).next_action(_state(n_turns=5))
+    assert inner.kinds()[-2:] == ["consult", "step"] and not inner.timeouts
+
+
+@pytest.mark.parametrize("factor", [3.0, 0.0])
+def test_subagent_call_never_costs_the_step_or_overruns(mods, factor):
+    """Whole case on a fake clock (budget 200 s, reserve 40 s → exploratory deadline 160 s, main calls 20 s, the consult
+    25 s). The routed consult becomes due at turn 8 (t = 140 s, 20 s before the deadline). With the pre-call check
+    (factor 3) it is skipped and the step still runs; without it (factor 0) the consult is cut at the deadline and the
+    step of that turn is lost. The case ends inside the budget either way (the final reserve is never touched)."""
+    from pathlib import Path
+
+    from doctor_agent.agent.loop import run_case
+    from eval.simulator import CaseFileEnvironment
+
+    mods()
+    now = [0.0]
+    cfg = Config()
+    cfg.agent = _cfg(case_time_budget_s=200.0, final_reserve_s=40.0, degrade_at_frac=0.99, consult_min_turns=7,
+                     subagent_time_factor=factor)
+    llm = ClockRouter(now, main_s=20.0, sub_s=25.0, step=_asks())
+    case = Path(__file__).resolve().parents[1] / "data/sample_cases/synthetic_001.json"
+    res = run_case(CaseFileEnvironment.from_file(case), llm, cfg, clock=lambda: now[0])
+    assert now[0] <= 200.0 and res["runtime"]["forced"] == "time_budget" and res["diagnosis"]
+    s = res["subagents"]
+    if factor:
+        assert s["calls"] == {} and s["skipped"] == {"consult:low_time_est": 1}
+        assert llm.timeouts == [] and res["n_turns"] == 9  # 8 steps + the final diagnosis
+    else:
+        assert s["calls"] == {"consult:cardio": 1} and s["fail"] == 1
+        assert llm.timeouts == ["sub"] and res["n_turns"] == 8  # the step of turn 8 was lost
+
+
+def test_pre_review_advocate_sees_live_degraded_mode(mods, monkeypatch):
+    """The Policy's degraded flag is set once per turn; the main call of this turn crosses the threshold, so the
+    pre-review advocate (called after it) must skip on the live budget."""
+    mods(route=(None, 0.0, []))
+    monkeypatch.setattr(confidence, "assess", _assess(0.1))
+    now = [0.0]
+    cfg = Config()
+    cfg.agent = _cfg()
+    budget = CaseBudget(300.0, 0.6, 45.0, clock=lambda: now[0])
+    inner = ClockRouter(now, main_s=30.0, sub_s=30.0, step=DX)
+    guard = GuardedLLM(inner, cfg, budget)
+    now[0] = 170.0  # not degraded at the start of the turn (< 180 s) ...
+    pol = Policy(guard, cfg.agent)
+    pol.degraded = budget.degraded()
+    st = _state(n_turns=4)
+    st.safety_pushback = True
+    pol.next_action(st)  # ... but the step call ends at 200 s
+    assert "advocate" not in inner.kinds()
+    assert [(e["name"], e["reason"]) for e in _sub(st, "skip")] == [("advocate", "low_time")]

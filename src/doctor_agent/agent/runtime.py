@@ -4,7 +4,8 @@ import logging
 import math
 import threading
 import time
-from typing import Callable
+from dataclasses import dataclass
+from typing import Callable, Iterable
 
 from doctor_agent.agent import prompts
 from doctor_agent.agent.parser import ACTION_SCHEMA
@@ -61,6 +62,49 @@ def _is_action_prompt(messages: list[dict]) -> bool:
     return bool(messages) and messages[0].get("content") == prompts.SYSTEM
 
 
+def _is_main_prompt(messages: list[dict]) -> bool:
+    """Step / final (SYSTEM) or review (REVIEW_SYSTEM) prompt; anything else is a sub-agent call."""
+    return bool(messages) and messages[0].get("content") in (prompts.SYSTEM, prompts.REVIEW_SYSTEM)
+
+
+# ---------------------------------------------------------------------------------------------- time model
+@dataclass(frozen=True)
+class Throughput:
+    """Serving-speed ASSUMPTIONS for gpt-oss-20b on the evaluation server (nothing here is measured or sourced: the
+    server, GPU, batching and prefix caching are unknown until the participant guide). The defaults are deliberately
+    slow so that a budget planned with them has headroom; replace them with numbers measured on API day
+    (GuardedLLM.stats()["latency_main_s"] + the prompt token counts of scripts/token_budget.py).
+
+    prefill_tps: prompt tokens processed per second (no prefix-cache credit: the system prompt is re-counted per call)
+    decode_tps: generated tokens per second for one request
+    overhead_s: fixed cost per call (HTTP, queueing, scheduling)
+    reasoning_tokens: hidden analysis-channel tokens per call at reasoning effort "low", on top of the visible JSON"""
+    prefill_tps: float = 1000.0
+    decode_tps: float = 20.0
+    overhead_s: float = 1.0
+    reasoning_tokens: int = 300
+
+
+CONSERVATIVE = Throughput()
+# a second, faster ASSUMPTION for the what-if tables (also unmeasured)
+MODERATE = Throughput(prefill_tps=4000.0, decode_tps=60.0, overhead_s=0.5, reasoning_tokens=300)
+
+
+def estimate_call_s(prompt_tokens: float, output_tokens: float, tp: Throughput = CONSERVATIVE,
+                    reasoning_tokens: float | None = None) -> float:
+    """Predicted wall time of one call: overhead + prompt / prefill_tps + (output + reasoning) / decode_tps."""
+    reasoning = tp.reasoning_tokens if reasoning_tokens is None else reasoning_tokens
+    return (tp.overhead_s + max(0.0, prompt_tokens) / max(1e-9, tp.prefill_tps)
+            + (max(0.0, output_tokens) + max(0.0, reasoning)) / max(1e-9, tp.decode_tps))
+
+
+def estimate_case_s(calls: Iterable[tuple[float, float]], tp: Throughput = CONSERVATIVE) -> float:
+    """Predicted wall time of one case = sum over its sequential calls of estimate_call_s(prompt, output). The agent
+    makes its calls one after another (sub-agents included), so the times add up; CPU work between calls is ignored
+    (measured separately by tests/perf.py)."""
+    return sum(estimate_call_s(p, o, tp) for p, o in calls)
+
+
 def _call_with_watchdog(fn: Callable[[], str], timeout: float) -> str:
     """Hard wall-clock guard around one LLM call (the HTTP timeout alone does not bound retries or a stuck socket).
     On timeout the call is abandoned in a daemon thread and its result discarded."""
@@ -105,6 +149,8 @@ class GuardedLLM:
         self.errors: list[str] = []
         self.prompt_chars: list[int] = []
         self.subagent_calls = 0  # attempted sub-agent calls (agent/subagents/runner.py increments it)
+        # measured wall time of each finished or failed call on the budget clock: (main?, seconds)
+        self.latencies: list[tuple[bool, float]] = []
         llm = cfg.llm
         self.call_timeout_s = llm.timeout_s * (llm.max_retries + 1) + 30.0
 
@@ -152,6 +198,7 @@ class GuardedLLM:
         if self.budget.enabled:
             # the watchdog runs on real time; the budget clock may be injected, so only use its *duration*
             timeout = max(1.0, min(timeout, (self.budget.deadline(self.final_mode) or 0) - self.budget.clock()))
+        t0 = self.budget.clock()
         try:
             out = _call_with_watchdog(lambda: self.inner.chat(messages, **opts), timeout)
         except BillingError:
@@ -161,18 +208,53 @@ class GuardedLLM:
             self.errors.append("billing error")
             raise LLMUnavailable("billing error")
         except LLMTimeout as e:
+            self._record_latency(messages, t0)
             self.errors.append(f"timeout: {e}")
             self.failures += 1
             if self.budget.enabled:
                 raise BudgetExceeded(str(e)) from e
             return self._failed()
         except Exception as e:  # noqa: BLE001 — an LLM error must never end the case without a diagnosis
+            self._record_latency(messages, t0)
             self.errors.append(f"{type(e).__name__}: {e}"[:300])
             log.warning("LLM call failed (%d in a row): %s", self.failures + 1, e)
             self.failures += 1
             return self._failed()
+        self._record_latency(messages, t0)
         self.failures = 0
         return out if isinstance(out, str) else str(out or "")
+
+    def _record_latency(self, messages: list[dict], t0: float) -> None:
+        self.latencies.append((_is_main_prompt(messages), max(0.0, self.budget.clock() - t0)))
+
+    def recent_main_call_s(self) -> float | None:
+        """Slowest of the last `latency_window` main-call latencies (step / review / final), None before the first."""
+        n = max(1, int(getattr(self.cfg.agent, "latency_window", 3)))
+        xs = [s for main, s in self.latencies if main][-n:]
+        return max(xs) if xs else None
+
+    def subagent_time_block(self) -> tuple[str, dict]:
+        """Pre-call time check for one sub-agent call (the orchestrator asks right before building / sending it).
+        Returns ("", info) when the call may go, else ("low_time" | "low_time_est", info).
+
+        - "low_time": the budget is in degraded mode *now* (the Policy's flag is set once per turn, so a sub-agent
+          called after this turn's main call, e.g. the pre-review advocate, would otherwise see a stale value)
+        - "low_time_est": the exploratory time left (remaining - final reserve) is below subagent_time_factor x the
+          estimated duration of one call. The estimate is the slowest recent main-call latency (or min_call_s before
+          any call was measured). factor 3 = the sub-agent call itself + the main call it precedes (step or review)
+          + one call of margin, so neither the sub-agent call nor the step after it is cut by the exploratory deadline.
+        Unlimited budget: always ("", {})."""
+        if not self.budget.enabled:
+            return "", {}
+        if self.budget.degraded():
+            return "low_time", {"elapsed_s": round(self.budget.elapsed(), 1)}
+        a = self.cfg.agent
+        est = self.recent_main_call_s()
+        est = est if est is not None else float(getattr(a, "min_call_s", 5.0))
+        factor = float(getattr(a, "subagent_time_factor", 3.0))
+        left = self.budget.remaining() - self.budget.final_reserve_s
+        info = {"left_s": round(left, 1), "est_call_s": round(est, 1), "factor": factor}
+        return ("low_time_est", info) if left < factor * est else ("", info)
 
     def _failed(self) -> str:
         if self.failures >= self.cfg.agent.max_llm_failures:
@@ -183,4 +265,6 @@ class GuardedLLM:
     def stats(self) -> dict:
         return {"llm_attempts": self.attempts, "llm_errors": self.errors[-5:], "llm_disabled": self.dead,
                 "prompt_chars_max": max(self.prompt_chars, default=0),
-                "prompt_chars_total": sum(self.prompt_chars), "subagent_calls": self.subagent_calls}
+                "prompt_chars_total": sum(self.prompt_chars), "subagent_calls": self.subagent_calls,
+                "latency_main_s": [round(s, 2) for main, s in self.latencies if main][-60:],
+                "latency_sub_s": [round(s, 2) for main, s in self.latencies if not main]}
