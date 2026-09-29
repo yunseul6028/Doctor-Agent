@@ -346,3 +346,21 @@ Reading:
 - Expected sub-agent calls per case on trajectories like these: consult ≈ 0.36 (+ stuck branch), advocate ≈ 0.33 (was
   ≈ 0.75 + 0.75). What a trigger *does* once fired (does the hint fix wrong cases, does it break right ones) is not
   measurable offline: run the `v6-no-subagents` ablation on gpt-oss-20b.
+
+### 2026-09-29 · clinical claim verification pass + pneumothorax gate fix (content/safety code, no LLM run)
+No prompt-loop change is wired yet for the consult content, and no case run was made, so no Accuracy / Efficiency /
+Safety row; expected effect is on **Safety** (fewer false "confirmed" dangers, corrected obstetric thresholds).
+- `agent/subagents/consult.py`: every reviewer-knowledge claim checked against PubMed-verified sources (42 new, in
+  `consult_sources.py`; abstract unless the note says full text). Reworded where the source says less or differently:
+  preeclampsia now "BP ≥ 140/90 twice ≥ 4 h apart + proteinuria or a severe feature" (ACOG PB 222 full text; the old
+  line read BP alone as preeclampsia) and the "postpartum 6 weeks" limit dropped (not in PB 222; thrombosis risk to
+  12 weeks, Kamel 2014); fetal shielding, "inferior MI", intussusception "leg drawing" triad, SVC "orthopnoea",
+  ultrasound-first for pediatric appendicitis removed or reworded; added "normal Doppler flow does not exclude ovarian
+  torsion" (ACOG CO 783). 7 of 8 specs now "secondary"; `resp_id` stays "unverified" (epiglottitis exam caution,
+  chorioamnionitis: no citable abstract found).
+- `safety/protocols.py`: 11 unverified checks re-read → 6 primary, 5 secondary (unverified 37 → 26).
+- `safety/danger_gate.py`: a pneumothorax on imaging (`IMG:cxr_ptx`) no longer confirms 긴장성 기흉 unless the reading /
+  report affirms tension (mediastinal or tracheal shift, 긴장성, tension; negation-aware incl. English) or SBP < 90;
+  otherwise the danger is raised (unresolved, breath-sound check) and the finding is still shown by the critical alert.
+- Verify on gpt-oss-20b (eval-simulator): cases with pneumothorax, pregnancy-related hypertension/postpartum headache,
+  and the consult on/off comparison once wired; watch Safety (missed can't-miss) and whether the gate adds turns.

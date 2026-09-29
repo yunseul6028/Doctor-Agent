@@ -119,7 +119,7 @@ learned later (triggers, predicates).
 
 - `safety/protocols.py`: **26 categories**, 88 checks (59 test, 18 exam, 9 ask, 2 treatment), 112 can't-miss
   diagnoses, 43 guideline citations (bibliographic data checked against PubMed). Each check records
-  `verification` = primary (34) / secondary (17) / unverified (37). Categories: chest pain, dyspnea, headache, acute
+  `verification` = primary (40) / secondary (22) / unverified (26) (2026-09-29). Categories: chest pain, dyspnea, headache, acute
   neuro (stroke), fever, abdominal pain, allergy, syncope, palpitations, hemoptysis/chronic cough, jaundice (adult vs
   newborn), acute hot joint, low back pain, acute rash, chronic generalized pruritus, edema/foamy urine,
   amenorrhea/abnormal vaginal bleeding, fatigue ≥ 2 weeks, cognitive decline, psychiatric symptoms, chronic urticaria
@@ -416,6 +416,11 @@ Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_inter
    `confirmed` with the reading as evidence, and `_dangers` adds such a danger to the checked list even when neither
    the chief complaint nor the DDx ledger raised it (source `critical_result`) → a different proposed diagnosis gets
    the one-time `confirmed_other` hint; a proposed diagnosis that matches is allowed as a confirmed danger.
+   Precursor findings (`CRITICAL_RESULT_REQUIRES`, 2026-09-29: `IMG:cxr_ptx`) confirm only when the reading or that
+   turn's report affirms the listed words (tension: mediastinal/tracheal shift, 긴장성, tension; Korean and English
+   negation-aware) — otherwise `_Ctx.critical_raised` only puts 긴장성 기흉 on the checked list (unresolved; only normal
+   breath sounds rule it out, or SBP < 90 confirms it). API: `critical_result_dangers(state)` (confirming),
+   `critical_result_raised(state)` (raised only).
    `confidence.assess` sees it through `danger_gate`. Labs (K, glucose, ...) are alerted but not mapped to the gate.
 5. **LLM reading** (plan item 6): since `v9-subagents` the "radiology" sub-agent (see "Specialist sub-agents") reads
    a `needs_llm` result with `RESULT_INTERPRETER_PROMPT`, at most `max_llm_radiology` (1) per case. `needs_llm`
@@ -534,7 +539,10 @@ known_ddx=None, max_chars=600) -> SubagentResult`.
   questions / exams / tests, pitfalls, per-branch notes, and references by id into existing modules (not copied):
   `rule_ids` (clinical_rules RULES), `criteria_ids` (diagnostic_criteria), `protocol_categories` (safety/protocols),
   `rule_out_names` (danger_gate RULE_OUT_TABLE). Tests check every id exists. New claims cite `SpecialtySpec.citations`
-  or are marked reviewer knowledge in `note`.
+  or are marked reviewer knowledge in `note`. 2026-09-29: sources for the former reviewer-knowledge claims live in
+  `agent/subagents/consult_sources.py` (`CONSULT_SOURCES`); `verification` = weakest level of the spec's claims,
+  "unverified" only while the note still has a "Reviewer knowledge:" list (now only `resp_id`: epiglottitis exam
+  caution, chorioamnionitis).
 - Patient branch (`patient_profile`): `peds` (triage age reader; renders the age's Fleming 2011 1st–99th centile HR/RR
   and the PALS hypotension floor), `pregnant` (protocols predicate `current_pregnancy`, or postpartum words;
   gestational weeks → before/after 20 weeks), `female_repro` (predicate `pregnancy_test_abdominal`: pregnancy test before

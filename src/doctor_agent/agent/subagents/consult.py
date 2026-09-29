@@ -16,6 +16,11 @@ Content rules
 - Claims not already backed by a cited module are either cited below (`SpecialtySpec.citations`, bibliographic data
   checked against PubMed E-utilities esummary on 2026-09-28; ledger rows in docs/licenses.md) or marked as reviewer
   knowledge in `SpecialtySpec.note` (verification "unverified"), as in the other clinical modules.
+- 2026-09-29 verification pass: every claim previously marked reviewer knowledge was checked against a source
+  (`consult_sources.py`; abstract, or full text where the note says so), reworded to what the source supports, or
+  dropped. `SpecialtySpec.verification` is the weakest level among the spec's own claims (protocols.py scale:
+  "primary" = read in the source text, "secondary" = abstract / summary only, "unverified" = reviewer knowledge left).
+  Claims still from reviewer knowledge are listed after "Reviewer knowledge:" in the note.
 - The pediatric / pregnancy branch (`patient_profile`) reuses the existing readers: age (`safety/triage._age`),
   pediatric vital-sign bands (`nlp/findings` Fleming 2011 centiles, `safety/triage` PALS hypotension floor) and
   current pregnancy (`safety/protocols` predicate "current_pregnancy" / "pregnancy_test_abdominal").
@@ -29,6 +34,50 @@ from dataclasses import dataclass, field
 
 from doctor_agent.agent.parser import _THOUGHT_RE, _json_objects
 from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult
+from doctor_agent.agent.subagents.consult_sources import (
+    C_ACR_APPENDICITIS_CHILD,
+    C_AAP_UTI,
+    C_ABUSE_REPORTING,
+    C_ACOG_ADNEXAL_TORSION,
+    C_ACOG_LISTERIA,
+    C_ACOG_THROMBOCYTOPENIA,
+    C_AHA_CVT,
+    C_ANA_HEALTHY,
+    C_CANTO_NO_CHEST_PAIN,
+    C_CHAVEZ_RHABDO,
+    C_CLARKE_LEUKAEMIA,
+    C_CURTIS_MENINGITIS,
+    C_EGRIS,
+    C_FAUNDES_HYDRONEPHROSIS,
+    C_FLC_SCREENING,
+    C_FRIEDMAN_PEDS_CHEST_PAIN,
+    C_GCA_FAST_TRACK,
+    C_HANSEN_AAS_MISDX,
+    C_HCM_GUIDELINE,
+    C_HILL_PYELONEPHRITIS,
+    C_HOM_INTUSSUSCEPTION,
+    C_HUS_LANCET,
+    C_IMAZIO_TAMPONADE,
+    C_KAMEL_POSTPARTUM,
+    C_LAWTON_MSCC,
+    C_LN_PREGNANCY,
+    C_LYON_ELDERLY_ABDOMEN,
+    C_MARSTON_RAAA,
+    C_MG_CRISIS,
+    C_MONTAGUE_HYPERK_ECG,
+    C_NASON_TORSION,
+    C_NORMAN_FEVER_ELDERLY,
+    C_OKANO_STROKE_MIMICS,
+    C_PEARLE_DRAINAGE,
+    C_PULMONARY_RENAL,
+    C_RICE_SVC,
+    C_SEPTIC_CRYSTAL,
+    C_SIBAI_POSTPARTUM,
+    C_SLIWA_PPCM,
+    C_TERATOGENS,
+    C_THOMPSON_MENINGOCOCCAL,
+    C_WEINER_STEROID_PERFORATION,
+)
 from doctor_agent.agent.text import same_dx, similarity
 from doctor_agent.knowledge.clinical_rules import Citation, contains_affirmed, rules_for
 from doctor_agent.knowledge.diagnostic_criteria import C_AKI, criteria_for
@@ -143,7 +192,7 @@ class SpecialtySpec:
 
 
 _PREG_IMAGING = "영상: 초음파·MRI(비조영) 우선. 꼭 필요한 CT·X선은 미루지 않음. 가돌리늄 조영제는 피함"
-_PREG_DRUGS = "처방 전 임신 금기 약(ACE 억제제·ARB, 와파린, 이소트레티노인, 테트라사이클린 등) 확인"
+_PREG_DRUGS = "처방 전 임신 금기 약(이소트레티노인·와파린, 1분기 후 ACE 억제제·ARB, 16주부터 테트라사이클린 등) 확인"
 
 SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
     SpecialtySpec(
@@ -157,22 +206,28 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
                    "양측 호흡음 대칭"),
         key_tests=("12유도 심전도(가장 먼저)", "고감도 트로포닌(반복 측정)", "D-dimer(사전확률 낮을 때만)",
                    "CT 폐동맥·대동맥 혈관조영", "심장 초음파", "BNP"),
-        pitfalls=("정상 심전도·트로포닌 1회로 ACS 배제 금지", "여성·당뇨·고령은 비전형 증상",
-                  "폐색전 사전확률이 높으면 D-dimer 없이 바로 영상", "대동맥 박리를 ACS로 오인"),
+        pitfalls=("정상 심전도·트로포닌 1회로 ACS 배제 금지", "여성·당뇨·고령은 흉통 없는 심근경색이 많음",
+                  "폐색전 사전확률이 높으면 D-dimer 없이 바로 영상", "대동맥 박리를 ACS로 오인해 항혈전제 투여"),
         rule_ids=("heart", "add_rs", "wells_pe", "perc", "spesi", "sfsr", "csrs"),
         criteria_ids=("duke_iscvid_2023", "jones_2015", "takayasu_2022"),
         protocol_categories=("chest_pain", "dyspnea", "syncope", "palpitations", "edema"),
         rule_out_names=("급성 관상동맥 증후군", "대동맥 박리", "폐색전증", "긴장성 기흉", "급성 심부전", "복부 대동맥류 파열"),
         branch_notes={
-            "pregnant": ("임신·산후 흉통/호흡곤란: 폐색전증, 주산기 심근병증, 전자간증 동반 폐부종 고려",),
-            "peds": ("소아 흉통은 대개 비심장성. 운동 중 실신·흉통, 돌연사 가족력이 있으면 심전도·심장 초음파",),
+            "pregnant": ("임신·산후 흉통/호흡곤란: 폐색전증, 주산기 심근병증(임신 마지막 달~산후 6개월), 전자간증(폐부종) 고려",),
+            "peds": ("소아 흉통은 심장 원인이 드묾(약 1%). 병력·가족력·심장 진찰·심전도에 이상이 있을 때 추가 심장 검사",),
         },
-        citations=(G_CHEST_PAIN, G_PE, C_PREECLAMPSIA),
-        verification="unverified",
+        citations=(G_CHEST_PAIN, G_PE, C_PREECLAMPSIA, C_IMAZIO_TAMPONADE, C_CANTO_NO_CHEST_PAIN, C_HANSEN_AAS_MISDX,
+                   C_SLIWA_PPCM, C_FRIEDMAN_PEDS_CHEST_PAIN),
+        verification="secondary",
         note="Serial troponin / ECG within 10 min: G_CHEST_PAIN (as in protocols.py). D-dimer only at non-high "
-             "pre-test probability: G_PE. Tamponade, atypical presentation in women/diabetes/elderly, dissection "
-             "mistaken for ACS, pregnancy-related peripartum cardiomyopathy and pediatric chest pain notes: reviewer "
-             "knowledge.",
+             "pre-test probability: G_PE (as protocols.py). 2026-09-29: tamponade is life-threatening, a clinical "
+             "diagnosis confirmed by echo (Imazio 2018 abstract). MI without chest pain in 33%, more often older, "
+             "women, diabetes (Canto 2000 abstract; was 'atypical symptoms'). Acute aortic syndrome misdiagnosed in "
+             "39%, ACS the commonest, antithrombotics -> bleeding (Hansen 2007 abstract). PPCM last month of "
+             "pregnancy to 6 months postpartum (Sliwa 2010 abstract); pulmonary oedema is a preeclampsia severe "
+             "feature (ACOG PB 222 full text, Box 3). Pediatric chest pain cardiac in 1.2%; testing guided by "
+             "history, family history, exam and ECG (Friedman 2011 abstract; the former 'exertional syncope' "
+             "trigger list was dropped as not in the abstract).",
     ),
     SpecialtySpec(
         id="resp_id", name_ko="호흡기·감염",
@@ -185,8 +240,8 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
                    "심잡음"),
         key_tests=("혈액배양 2세트(항생제 전)", "젖산", "CBC(호중구 수)", "CRP·프로칼시토닌", "흉부 X선", "소변검사·배양",
                    "객담 항산균 검사(결핵 의심 시)"),
-        pitfalls=("고령·면역저하자는 발열 없이도 패혈증", "바이러스 감염으로 조기 종결", "항생제 전 배양 누락",
-                  "발열+점상출혈은 수막구균혈증부터"),
+        pitfalls=("고령자는 감염이 있어도 발열이 없거나 약할 수 있음", "바이러스 감염으로 조기 종결", "항생제 전 배양 누락",
+                  "발열+점상출혈·자반은 수막구균 감염 의심(전형 소견은 늦게 나타남)"),
         rule_ids=("qsofa", "curb65", "centor", "mcisaac", "wells_pe", "perc", "spesi"),
         criteria_ids=("sepsis3_2016", "light_1972", "duke_iscvid_2023"),
         protocol_categories=("fever", "dyspnea", "hemoptysis_cough"),
@@ -194,43 +249,56 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         branch_notes={
             "peds": ("생후 60일 이하 발열은 겉보기와 무관하게 중증 세균 감염 평가(소변·혈액, 필요 시 뇌척수액)",
                      "침 흘림·삼킴 곤란·앉아서 숨쉬기 = 후두개염: 목 안 억지 진찰 금지"),
-            "pregnant": ("임신 중 발열: 신우신염·융모양막염·리스테리아 고려, 흉부 X선은 필요하면 시행(차폐)",),
+            "pregnant": ("임신 중 발열: 신우신염·리스테리아(임신 중 흔함)·융모양막염 고려, 필요한 흉부 X선은 미루지 않음",),
         },
-        citations=(G_SEPSIS, C_FEBRILE_INFANT_AAP),
+        citations=(G_SEPSIS, C_FEBRILE_INFANT_AAP, C_NORMAN_FEVER_ELDERLY, C_THOMPSON_MENINGOCOCCAL, C_HILL_PYELONEPHRITIS,
+                   C_ACOG_LISTERIA, P_ACOG_723),
         verification="unverified",
         note="Blood cultures before antibiotics and lactate: G_SEPSIS (protocols.py, primary). Febrile infant "
              "<= 60 days: AAP 2021 (population 8-60 days, well-appearing; our summary) + PECARN febrile infant rule. "
-             "Afebrile sepsis in the elderly, epiglottitis exam caution, meningococcaemia, pregnancy fever notes: "
-             "reviewer knowledge.",
+             "2026-09-29: fever absent or blunted in 20-30% of infections in the elderly (Norman 2000 abstract; "
+             "'immunocompromised' dropped, not in the source). Haemorrhagic rash is a classic but late feature of "
+             "meningococcal disease (Thompson 2006 abstract). Antepartum pyelonephritis 1.4%, septicaemia 17% (Hill "
+             "2005 abstract); listeriosis 13x more common in pregnancy, flu-like fever (ACOG CO 614 abstract). "
+             "Needed radiography is not withheld in pregnancy (ACOG CO 723 abstract; '(차폐)' shielding removed, "
+             "not in the source). Premature closure on a viral diagnosis: cognitive-error literature (advocate.py). "
+             "Reviewer knowledge: epiglottitis triad and 'no forced throat exam' (no guideline abstract found), "
+             "chorioamnionitis in the pregnancy fever list.",
     ),
     SpecialtySpec(
         id="gi_liver", name_ko="소화기·간",
         role_ko="복통·구토·설사·위장관 출혈·황달을 소화기와 간·담도·췌장 관점에서 봅니다.",
         must_not_miss=("장 천공", "장간막 허혈", "장폐색·교액", "충수염", "급성 담관염", "중증 급성 췌장염",
                        "위장관 출혈", "급성 간부전", "복부 대동맥류 파열", "자궁외 임신", "당뇨병성 케톤산증",
-                       "하벽 심근경색(명치 통증)"),
+                       "심근경색(흉통 없이 명치 통증)"),
         key_asks=("통증 위치 이동(명치→우하복부)", "시작 속도", "구토 내용(담즙·혈액)", "배변·방귀 중단", "흑색변·혈변",
                   "음주·NSAID·아세트아미노펜·한약", "마지막 월경", "복부 수술력"),
         key_exams=("압통 위치·반발 압통·근성 방어", "장음", "머피 징후", "직장 수지 검사(출혈 시)", "황달·복수·자세고정 떨림"),
         key_tests=("CBC", "간기능·빌리루빈 분획", "리파아제", "젖산", "β-hCG(가임기 여성)", "소변검사", "복부 초음파(담도)",
                    "복부 CT(조영)", "내시경(출혈)"),
-        pitfalls=("진찰 소견보다 심한 통증은 장간막 허혈 의심", "고령·스테로이드 복용자는 복막 자극 징후가 약함",
-                  "가임기 여성 임신 검사 누락", "위염으로 결론 전 심전도(하벽 심근경색)"),
+        pitfalls=("진찰 소견보다 심한 통증은 장간막 허혈 의심", "고령·스테로이드 복용자는 진찰 소견이 가볍게 보일 수 있음",
+                  "가임기 여성 임신 검사 누락", "명치 통증을 위염으로 결론 전 심전도(흉통 없는 심근경색)"),
         rule_ids=("alvarado", "bisap", "gbs", "pas"),
         criteria_ids=("dka_hhs_2024",),
         protocol_categories=("abdominal_pain", "jaundice", "bilious_vomiting"),
         rule_out_names=("장 천공", "장간막 허혈", "복부 대동맥류 파열", "자궁외 임신", "당뇨병성 케톤산증"),
         branch_notes={
-            "peds": ("영아 담즙성 구토 = 장회전 이상·중장 염전 즉시 배제", "간헐적 보챔+다리 당김+혈변 = 장중첩증(초음파)"),
+            "peds": ("영아 담즙성 구토 = 장회전 이상·중장 염전 즉시 배제",
+                     "간헐적 보챔·구토·혈변은 장중첩증 의심: 증상만으로 배제 불가, 초음파"),
             "pregnant": ("임신 중 우상복부·명치 통증은 HELLP·전자간증부터(혈압·혈소판·간효소)",),
             "female_repro": ("가임기 여성 하복부 통증: 영상·약 전에 임신 검사",),
         },
-        citations=(G_AMI, G_ECTOPIC, C_PREECLAMPSIA),
-        verification="unverified",
+        citations=(G_AMI, G_ECTOPIC, C_PREECLAMPSIA, C_LYON_ELDERLY_ABDOMEN, C_WEINER_STEROID_PERFORATION,
+                   C_CANTO_NO_CHEST_PAIN, C_HOM_INTUSSUSCEPTION),
+        verification="secondary",
         note="Pain out of proportion in mesenteric ischaemia: G_AMI (WSES 2022). Pregnancy test in abdominal pain: "
-             "G_ECTOPIC (as protocols.py). HELLP/preeclampsia epigastric/RUQ pain: C_PREECLAMPSIA (bibliographic data "
-             "verified; content from reviewer knowledge, full text not read). Blunted peritonism in the elderly / on "
-             "steroids, inferior MI presenting as epigastric pain, intussusception triad: reviewer knowledge.",
+             "G_ECTOPIC (as protocols.py). Bilious vomiting: protocols 'bilious_vomiting'. 2026-09-29: severe "
+             "persistent RUQ/epigastric pain is a preeclampsia severe feature; HELLP = LDH, AST/ALT > 2x, platelets "
+             "< 100,000 (ACOG PB 222 full text read, Boxes 2-3 and HELLP section). Exam misleadingly benign in older "
+             "patients (Lyon 2006 abstract); corticosteroids mask inflammatory signs of perforation (Weiner 1993 "
+             "abstract). MI without chest pain (Canto 2000 abstract; 'inferior MI' dropped, not in the source). "
+             "Intussusception: history/exam and the classic symptoms have low accuracy, point-of-care US the best "
+             "(Hom 2022 meta-analysis abstract; the 'triad' wording was replaced).",
     ),
     SpecialtySpec(
         id="neuro", name_ko="신경",
@@ -251,15 +319,22 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
                              "back_pain"),
         rule_out_names=("지주막하 출혈", "뇌출혈", "급성 허혈성 뇌졸중", "뇌수막염", "저혈당", "마미 증후군"),
         branch_notes={
-            "pregnant": ("임신 20주 이후~산후 두통·시야 이상·경련 = 전자간증·자간증(혈압), 산후 뇌정맥동 혈전증",),
-            "peds": ("소아 두부 외상은 PECARN(나이별), 영아 대천문 팽륭·처짐 확인",),
+            "pregnant": ("임신 20주 이후·산후 새 두통·시야 이상·경련 = 전자간증·자간증(혈압), 임신·산후는 뇌정맥동 혈전증 위험",),
+            "peds": ("소아 두부 외상은 PECARN(나이별), 영아 대천문 팽륭은 수막염 가능성을 높임",),
         },
-        citations=(C_HINTS, C_PREECLAMPSIA),
+        citations=(C_HINTS, C_PREECLAMPSIA, C_OKANO_STROKE_MIMICS, C_EGRIS, C_MG_CRISIS, C_AHA_CVT, C_KAMEL_POSTPARTUM,
+                   C_GCA_FAST_TRACK, C_CURTIS_MENINGITIS),
         verification="secondary",
         note="HINTS more sensitive than early DWI MRI in acute vestibular syndrome: Kattah 2009 (title/abstract). SAH "
-             "CT timing: danger_gate C_CT_6H_SAH. Hypoglycaemia mimic, GBS/myasthenic crisis, CVST, GCA vision loss and "
-             "pediatric fontanelle note: reviewer knowledge. bipolar_dsm5tr is routed here because psychiatric "
-             "presentations need an organic (neurological/medical) cause excluded first (protocols 'psychiatric').",
+             "CT timing: danger_gate C_CT_6H_SAH. Protocol 'psychiatric' is shared with psych (organic cause first); "
+             "bipolar_dsm5tr moved to psych on 2026-09-29. 2026-09-29: "
+             "hypoglycaemia is among the commonest stroke mimics (Okano 2018 abstract; glucose before alteplase: "
+             "protocols 'neuro'). GBS respiratory insufficiency, 22% ventilated in week 1 (Walgaard 2010 abstract). "
+             "Myasthenic crisis = respiratory failure, life-threatening (Takahashi 2025 abstract). Postpartum "
+             "eclampsia/new headache and visual disturbance as severe features (ACOG PB 222 full text). CVT: women of "
+             "reproductive age and prothrombotic states vulnerable (AHA 2024 abstract) + postpartum thrombosis/stroke "
+             "risk (Kamel 2014 abstract). GCA permanent visual loss, fast-track lowers it (Monti 2019 abstract). "
+             "Bulging fontanel LR 3.5-8 for meningitis (Curtis 2010 abstract; 'sunken' dropped, not in the source).",
     ),
     SpecialtySpec(
         id="rheum_immune", name_ko="류마티스·면역",
@@ -285,12 +360,17 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
                      "소아 고관절 통증+발열 = 화농성 고관절염(Kocher 기준)"),
             "pregnant": ("임신 중 루푸스·항인지질 증후군 악화와 전자간증 감별(혈압·단백뇨·보체)",),
         },
-        citations=(G_HOT_JOINT, G_GOUT_DX),
-        verification="unverified",
+        citations=(G_HOT_JOINT, G_GOUT_DX, C_SEPTIC_CRYSTAL, C_ANA_HEALTHY, C_PULMONARY_RENAL, C_GCA_FAST_TRACK,
+                   C_LN_PREGNANCY, C_PREECLAMPSIA),
+        verification="secondary",
         note="Aspirate the hot joint before antibiotics: G_HOT_JOINT (protocols.py). Serum urate may be normal during a "
-             "flare: G_GOUT_DX (EULAR 2018 diagnosis recommendations). Septic arthritis coexisting with crystals, ANA "
-             "non-specificity, pulmonary-renal syndrome, lupus vs preeclampsia: reviewer knowledge. Kawasaki and Kocher "
-             "notes point to criteria kawasaki_aha2017 / rule kocher (owned by peds_obgyn).",
+             "flare: G_GOUT_DX (EULAR 2018 diagnosis recommendations). Kawasaki and Kocher notes point to criteria "
+             "kawasaki_aha2017 / rule kocher (owned by peds_obgyn). 2026-09-29: concomitant septic and crystal "
+             "arthritis in 4% of crystal arthritis, mortality 15.6% (Duangkum 2025 abstract). ANA positive in 13.3% "
+             "of healthy people at 1:80 (Tan 1997 abstract). Pulmonary-renal syndrome = alveolar haemorrhage + GN, "
+             "mostly ANCA vasculitis / anti-GBM, rapid respiratory and renal failure (Boyle 2022 abstract). GCA "
+             "visual loss (Monti 2019 abstract). Lupus nephritis flare vs pregnancy conditions incl. preeclampsia "
+             "(Gholizadeh 2024 abstract); SLE and APS are preeclampsia risk factors (ACOG PB 222 full text, Box 1).",
     ),
     SpecialtySpec(
         id="peds_obgyn", name_ko="소아·산부인과",
@@ -303,32 +383,44 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         key_exams=("나이별 기준의 활력징후", "혈압(임신 20주 이후)", "탈수 징후(모세혈관 재충전)", "복부·고환 진찰",
                    "골반 내진(출혈 원인 확인 전 전치태반 의심 시 금지)"),
         key_tests=("β-hCG", "질식·골반 초음파", "소변 단백·혈소판·간효소(전자간증)", "소변검사·배양(영아 발열)",
-                   "혈당·케톤", "복부 초음파(장중첩증·충수염 먼저)"),
+                   "혈당·케톤", "복부 초음파(장중첩증)"),
         pitfalls=("소아에 성인 활력징후 기준 적용", "가임기 여성 임신 검사 없이 CT·약 처방",
-                  "임신 20주 이후 두통·복통을 혈압 확인 없이 넘김", "설명과 맞지 않는 손상을 사고로 기록"),
+                  "임신 20주 이후 두통·복통을 혈압 확인 없이 넘김", "설명과 맞지 않는 손상을 사고로 기록",
+                  "도플러 혈류 정상으로 난소 염전 배제 금지"),
         rule_ids=("pecarn_febrile_infant", "pecarn_head_lt2", "pecarn_head_ge2", "pas", "kocher", "mcisaac"),
         criteria_ids=("kawasaki_aha2017", "jones_2015"),
         protocol_categories=("menstrual", "abdominal_pain", "bilious_vomiting", "jaundice"),
         rule_out_names=("자궁외 임신", "고환 염전", "패혈증", "당뇨병성 케톤산증"),
         branch_notes={
-            "peds": ("영아 발열·처짐은 겉보기가 괜찮아도 중증 감염 평가", "영상은 초음파 우선(장중첩증·충수염), 방사선 최소화"),
+            "peds": ("영아 발열·처짐은 겉보기가 괜찮아도 중증 감염 평가",
+                     "영상: 장중첩증은 초음파, 충수염은 임상 위험도로 영상 여부 결정"),
             "pregnant": ("20주 전: 자궁외 임신·유산(β-hCG + 질식 초음파)",
-                         "20주 이후~산후 6주: 혈압 ≥140/90이면 전자간증, 두통·시야 이상·우상복부 통증·혈소판 저하는 중증",
+                         "20주 이후·산후: 혈압 ≥140/90(4시간 간격 2회)+단백뇨 또는 중증 소견이면 전자간증. 중증: ≥160/110, "
+                         "혈소판 <10만, 간효소 2배, 우상복부·명치 통증, 새 두통·시야 이상, 폐부종, 크레아티닌 >1.1",
                          "후기 질출혈: 초음파로 전치태반 배제 전 내진 금지, 통증+출혈은 태반 조기 박리",
                          _PREG_IMAGING, _PREG_DRUGS),
             "female_repro": ("임신 여부 미확인: 영상·약 전에 β-hCG, 양성이면 질식 초음파", _PREG_IMAGING),
             "adult": ("성인·비임신 환자: 이 분과의 특이 위험 없음. 일반 원칙만 적용",),
         },
         citations=(G_ECTOPIC, G_EARLY_PREGNANCY, C_PREECLAMPSIA, P_RCOG_APH, P_ACOG_723, C_FEBRILE_INFANT_AAP,
-                   C_FLEMING, C_PEDS_HYPOTENSION),
-        verification="unverified",
-        note="Ectopic work-up: G_ECTOPIC / G_EARLY_PREGNANCY (protocols.py, danger_gate). Preeclampsia thresholds "
-             "(>= 140/90 after 20 weeks, severe features, postpartum): C_PREECLAMPSIA, bibliographic data verified, "
-             "content from reviewer knowledge (full text not read). Placenta praevia before digital exam: P_RCOG_APH "
-             "(preconditions.py). Imaging in pregnancy (ultrasound/MRI first, do not withhold needed CT, avoid "
-             "gadolinium): P_ACOG_723. Pediatric vitals: Fleming 2011 centiles + PALS hypotension (triage.py). "
-             "Teratogenic drug examples, intussusception, ovarian torsion, abuse, ultrasound-first in children: "
-             "reviewer knowledge.",
+                   C_FLEMING, C_PEDS_HYPOTENSION, C_SIBAI_POSTPARTUM, C_TERATOGENS, C_ACOG_ADNEXAL_TORSION,
+                   C_ABUSE_REPORTING, C_HOM_INTUSSUSCEPTION, C_ACR_APPENDICITIS_CHILD),
+        verification="secondary",
+        note="Ectopic work-up: G_ECTOPIC / G_EARLY_PREGNANCY (protocols.py, danger_gate). Placenta praevia before "
+             "digital exam: P_RCOG_APH (preconditions.py). Imaging in pregnancy (ultrasound/MRI first, do not "
+             "withhold needed CT, avoid gadolinium): P_ACOG_723. Pediatric vitals: Fleming 2011 centiles + PALS "
+             "hypotension (triage.py). 2026-09-29: preeclampsia = BP >= 140/90 twice >= 4 h apart after 20 weeks + "
+             "proteinuria or a new severe feature; severe = >= 160/110, platelets < 100,000, transaminases 2x, "
+             "persistent RUQ/epigastric pain, new headache, visual disturbance, pulmonary oedema, creatinine > 1.1 "
+             "(ACOG PB 222 full text read, Boxes 2-3; the old '>= 140/90 alone = preeclampsia' was corrected). "
+             "Postpartum onset: ACOG PB 222 (HELLP first expressed postpartum in 30%) + Sibai 2012 abstract; the "
+             "'6 weeks' limit is not in PB 222 and was dropped. Teratogens: retinoids and coumarins teratogenic, "
+             "ACE-I/ARB contraindicated after the first trimester, tetracyclines from week 16 (Dathe & Schaefer 2019, "
+             "full text PMC6935972, Tables 1-3). Adnexal torsion: timely laparoscopy, no imaging criterion is "
+             "sufficient and Doppler flow alone must not guide (ACOG CO 783 abstract). Injury inconsistent with the "
+             "history as an abuse indicator; suspected abuse under-reported (Flaherty 2008 abstract). Intussusception "
+             "US (Hom 2022 abstract); 'ultrasound first for appendicitis / minimise radiation' reworded to risk-based "
+             "imaging (ACR AC Suspected Appendicitis-Child 2019 abstract, PMID 31054752; variant tables not read).",
     ),
     SpecialtySpec(
         id="heme_onc", name_ko="혈액·종양",
@@ -336,7 +428,7 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
         must_not_miss=("호중구감소성 발열", "급성 백혈병", "TTP/HUS", "DIC", "헤파린 유발 혈소판 감소증", "종양 용해 증후군",
                        "악성 척수 압박", "상대정맥 증후군", "악성 고칼슘혈증", "급성 용혈", "재생불량성 빈혈"),
         key_asks=("체중 감소·야간 발한·발열", "잇몸·코 출혈, 멍", "항암 치료와 마지막 날짜", "헤파린 5~10일 뒤 혈소판 감소",
-                  "요통·뼈 통증+다리 힘 빠짐", "새 약·감염 후 진한 소변", "얼굴·팔 부기, 누우면 숨참"),
+                  "요통·뼈 통증+다리 힘 빠짐", "새 약·감염 후 진한 소변", "얼굴·목·팔 부기, 숨참"),
         key_exams=("림프절 위치·크기·단단함·고정", "간비종대", "점상출혈·자반", "창백·황달", "척추 압통·하지 근력·감각",
                    "목·가슴 정맥 확장"),
         key_tests=("CBC+백혈구 감별", "말초혈액 도말(모세포·분열적혈구)", "망상적혈구", "LDH·간접 빌리루빈·합토글로빈·직접 Coombs",
@@ -344,25 +436,35 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
                    "유세포 분석·골수/림프절 생검"),
         pitfalls=("항암 후 발열은 호중구 수 확인 전 안심 금지", "혈소판 감소+용혈은 도말로 TTP부터",
                   "단단하고 고정된 림프절·B 증상은 경과 관찰 말고 생검", "빈혈+신기능 저하+고칼슘+뼈 통증 = 골수종",
-                  "암 환자 요통을 근골격계로 단정"),
+                  "암 환자의 새 요통은 신경 결손 전에 척수 압박 의심(전척추 MRI)"),
         rule_ids=(),
         criteria_ids=(),
         protocol_categories=("fatigue", "neck_mass", "bleeding", "jaundice", "pruritus", "fever", "back_pain"),
         rule_out_names=("호중구감소성 발열", "마미 증후군"),
         branch_notes={
-            "peds": ("소아 창백·멍·뼈 통증·간비종대 = 급성 백혈병(CBC·도말)", "설사 후 혈소판 감소+용혈+신손상 = HUS"),
-            "pregnant": ("임신 중 혈소판 감소: 임신성 vs HELLP·전자간증·TTP(혈압·간효소·도말)",),
+            "peds": ("소아 창백·멍·발열·팔다리 통증·간비종대 = 급성 백혈병 의심(CBC·도말)",
+                     "설사(장출혈성 대장균) 후 혈소판 감소+용혈+급성 신손상 = HUS"),
+            "pregnant": ("임신 중 혈소판 감소: 양성 임신성 vs HELLP·전자간증, 20주 전이면 TTP·HUS(혈압·간효소·도말)",),
         },
-        citations=(G_NEUTROPENIA, G_NECK_MASS, G_MECFS, C_TLS, C_MYELOMA_IMWG, C_HIT_ASH, C_TTP_ISTH),
-        verification="unverified",
+        citations=(G_NEUTROPENIA, G_NECK_MASS, G_MECFS, C_TLS, C_MYELOMA_IMWG, C_HIT_ASH, C_TTP_ISTH, C_FLC_SCREENING,
+                   C_LAWTON_MSCC, C_RICE_SVC, C_HCM_GUIDELINE, C_CLARKE_LEUKAEMIA, C_HUS_LANCET,
+                   C_ACOG_THROMBOCYTOPENIA, C_PREECLAMPSIA),
+        verification="secondary",
         note="Neutropenic fever: G_NEUTROPENIA (protocols.py, danger_gate). Neck mass work-up / biopsy of a suspicious "
              "persistent node: G_NECK_MASS (AAO-HNS 2017). Fatigue CBC/TSH: G_MECFS (as protocols.py 'fatigue'). TLS "
-             "electrolytes (urate, K, phosphate, Ca, creatinine): C_TLS (abstract). Myeloma CRAB features + SPEP/FLC: "
-             "C_MYELOMA_IMWG (abstract names CRAB; FLC from reviewer knowledge). HIT timing and 4Ts pretest probability: "
-             "C_HIT_ASH (abstract). ADAMTS13 testing for TTP: C_TTP_ISTH (abstract). Malignant cord compression, SVC "
-             "syndrome, hypercalcaemia of malignancy, pediatric leukaemia/HUS and pregnancy thrombocytopenia notes: "
-             "reviewer knowledge. Owns protocol categories 'fatigue' (can't-miss led by haematological malignancy and "
-             "anaemia, CBC first) and 'neck_mass' (lymphoma / metastatic node).",
+             "electrolytes (urate, K, phosphate, Ca, creatinine): C_TLS (abstract). Myeloma CRAB features + SPEP: "
+             "C_MYELOMA_IMWG (abstract). HIT timing and 4Ts pretest probability: C_HIT_ASH (abstract). ADAMTS13 "
+             "testing for TTP: C_TTP_ISTH (abstract). Owns protocol categories 'fatigue' (can't-miss led by "
+             "haematological malignancy and anaemia, CBC first) and 'neck_mass' (lymphoma / metastatic node). "
+             "2026-09-29: serum PEL + FLC screening panel; omitting FLC missed myeloma cases (Katzmann 2009 "
+             "abstract). MSCC: suspect on new/worse back pain before deficits, whole-spine MRI (Lawton 2019 "
+             "abstract). SVC syndrome: face/neck swelling 82%, arm 68%, dyspnoea 66%, chest veins 38%, malignancy 60% "
+             "(Rice 2006 abstract; 'orthopnoea' dropped, not in the abstract). Hypercalcaemia of malignancy is the "
+             "most common metabolic complication of cancer (Endocrine Society 2023 abstract). Childhood leukaemia: "
+             "hepatosplenomegaly, pallor, fever, bruising > 50%, limb pain 43% (Clarke 2016 abstract). HUS triad, "
+             "shiga toxin form (Fakhouri 2017 abstract). Pregnancy thrombocytopenia: gestational benign vs serious "
+             "causes (ACOG PB 207 abstract); HELLP platelets < 100,000 and TTP/HUS before 20 weeks (ACOG PB 222 full "
+             "text).",
     ),
     SpecialtySpec(
         id="renal_uro", name_ko="신장·비뇨",
@@ -375,26 +477,35 @@ SPECIALTIES: dict[str, SpecialtySpec] = {s.id: s for s in (
                    "부종·자반"),
         key_tests=("크레아티닌(기저치 비교)·BUN", "칼륨·심전도", "소변 현미경(적혈구 원주·백혈구)", "소변 단백/크레아티닌 비",
                    "CK", "신장·방광 초음파(수신증)·잔뇨량", "소변·혈액 배양", "ANCA·항GBM·보체", "음낭 도플러"),
-        pitfalls=("크레아티닌은 늦게 오르니 소변량도 봄", "심전도 정상으로 고칼륨 위험 배제 금지",
-                  "발열+폐쇄 결석은 응급 배액", "소변 잠혈 양성인데 적혈구 없음 = 근색소뇨",
-                  "고환 염전 의심 시 영상으로 수술 지연 금지", "고령 첫 신산통은 대동맥류 배제"),
+        pitfalls=("급성 신손상은 크레아티닌과 소변량 둘 다로 판단", "심전도는 고칼륨에 둔감: 정상이어도 칼륨 수치로 판단",
+                  "발열+폐쇄 결석은 응급 배액", "소변 잠혈 양성인데 적혈구 거의 없음 = 근색소뇨(또는 혈색소뇨): CK",
+                  "고환 염전 임상 의심이 크면 영상 기다리지 말고 수술 탐색", "고령 복통·요통을 신산통으로 단정 전 대동맥류 배제"),
         rule_ids=("qsofa",),
         criteria_ids=("kdigo_aki_2012", "sepsis3_2016"),
         protocol_categories=("edema", "abdominal_pain", "back_pain"),
         rule_out_names=("패혈증", "고환 염전", "복부 대동맥류 파열"),
         branch_notes={
-            "peds": ("영아·소아 요로 감염은 발열만 보일 수 있음: 소변검사·배양", "청소년 급성 음낭 통증은 고환 염전부터"),
-            "pregnant": ("임신 중 신우신염 흔함. 우측 생리적 수신증을 폐쇄로 오인 주의",),
+            "peds": ("원인 모를 발열 영아(2~24개월)는 요로 감염 평가: 소변검사+배양", "청소년 급성 음낭 통증은 고환 염전부터"),
+            "pregnant": ("임신 중 신우신염은 패혈증 동반이 흔함. 생리적 수신증(우측에 많음)을 폐쇄로 오인 주의",),
         },
-        citations=(C_AKI, G_GLOMERULAR, C_SCROTAL, G_SEPSIS),
-        verification="unverified",
+        citations=(C_AKI, G_GLOMERULAR, C_SCROTAL, G_SEPSIS, C_PULMONARY_RENAL, C_MONTAGUE_HYPERK_ECG, C_PEARLE_DRAINAGE,
+                   C_CHAVEZ_RHABDO, C_NASON_TORSION, C_MARSTON_RAAA, C_AAP_UTI, C_HILL_PYELONEPHRITIS,
+                   C_FAUNDES_HYDRONEPHROSIS),
+        verification="secondary",
         note="AKI definition/staging by creatinine rise and urine output: C_AKI (criteria kdigo_aki_2012, owned here "
              "since 2026-09-28; moved from gi_liver / rheum_immune). Glomerular disease work-up (urine sediment, "
              "protein/creatinine ratio, ANCA/anti-GBM/complement): G_GLOMERULAR. Scrotal Doppler US as initial "
              "imaging for acute scrotal pain: C_SCROTAL (danger_gate); torsion is shared with peds_obgyn (peak in "
-             "adolescents; peds_obgyn keeps it). Urosepsis: G_SEPSIS. Imaging must not delay exploration, "
-             "hyperkalaemia with a normal ECG, obstructed infected kidney, myoglobinuria dipstick pattern, AAA "
-             "mimicking renal colic, pregnancy hydronephrosis and pediatric UTI notes: reviewer knowledge.",
+             "adolescents; peds_obgyn keeps it). Urosepsis: G_SEPSIS. 2026-09-29: 'creatinine rises late' reworded "
+             "to the KDIGO definition (C_AKI). ECG insensitive for hyperkalaemia, manage by serial K (Montague 2008 "
+             "abstract). Obstructing stone + infection: urgent decompression, nephrostomy or stent equally effective "
+             "(Pearle 1998 RCT abstract). Heme-positive dipstick with few RBCs = myoglobinuria; dipstick cannot "
+             "tell Hb from Mb (Chavez 2016, full text PMC4908773). Immediate exploration on clinical suspicion of "
+             "torsion (Nason 2013 abstract) + damage after 6 h delay (C_SCROTAL abstract). Ruptured AAA misdiagnosed "
+             "in 30%, renal colic the commonest (Marston 1992 abstract; 'first renal colic' reworded to abdominal / "
+             "back pain in the elderly). Febrile infants 2-24 months: UA + culture (AAP 2011 abstract). Pregnancy "
+             "pyelonephritis septicaemia 17% (Hill 2005 abstract; 'common' reworded); physiologic dilatation more "
+             "often right (Faundes 1998 abstract). Pulmonary-renal syndrome (Boyle 2022 abstract).",
     ),
 )}
 
@@ -522,19 +633,19 @@ SPECIALTIES.update({s.id: s for s in (
                    C_HYPONATRAEMIA, C_PHEO, C_HYPOGLYCAEMIA, C_PITUITARY_APOPLEXY),
         verification="unverified",
         note="DKA/HHS definition (glucose >= 200 mg/dL or known diabetes, ketones, pH/bicarbonate, osmolality): "
-             "criteria dka_hhs_2024 / C_HYPERGLYCEMIC_CRISES (ADA/EASD 2024, as danger_gate); the SGLT2-inhibitor link "
-             "of DKA without marked hyperglycaemia: reviewer knowledge. Abdominal pain in 46% of "
+             "criteria dka_hhs_2024 / C_HYPERGLYCEMIC_CRISES (ADA/EASD 2024, as danger_gate). Abdominal pain in 46% of "
              "DKA, associated with the metabolic acidosis: C_DKA_ABDOMINAL_PAIN (abstract) - past trajectories routed "
              "DKA to gi_liver, so the pitfall names it. Plasma free metanephrines first for pheochromocytoma: C_PHEO "
              "(abstract). Whipple's triad / glucose first: C_HYPOGLYCAEMIA (abstract). Rapid hydrocortisone in "
              "pituitary apoplexy: C_PITUITARY_APOPLEXY (abstract). Thyroid storm (TSH/fT4), adrenal crisis "
              "(cortisol/ACTH, steroid not delayed for tests), hyponatraemia work-up by serum/urine osmolality and "
-             "urine sodium: C_ATA_THYROTOXICOSIS / C_ADRENAL_INSUFFICIENCY / C_HYPONATRAEMIA, bibliographic data "
-             "verified, content from reviewer knowledge (full text not read). Hypercalcaemia (Ca/PTH), myxoedema "
-             "coma, physical signs, pediatric cerebral oedema and pregnancy notes: reviewer knowledge. Overlap: "
-             "hyponatraemia/hyperkalaemia names (E87) route to renal_uro; SIADH, adrenal, thyroid causes are listed "
-             "here. Protocol 'abdominal_pain' is not owned here (its can't-miss list is surgical); the DKA pitfall "
-             "covers it.",
+             "urine sodium: C_ATA_THYROTOXICOSIS / C_ADRENAL_INSUFFICIENCY / C_HYPONATRAEMIA (bibliographic data "
+             "verified, full text not read). Overlap: hyponatraemia/hyperkalaemia names (E87) route to renal_uro; "
+             "SIADH, adrenal, thyroid causes are listed here. Protocol 'abdominal_pain' is not owned here (its "
+             "can't-miss list is surgical); the DKA pitfall covers it. Reviewer knowledge: SGLT2-inhibitor link of "
+             "DKA without marked hyperglycaemia; content of the thyroid storm / adrenal crisis / hyponatraemia "
+             "work-up items; hypercalcaemia (Ca/PTH), myxoedema coma, physical signs, pediatric cerebral oedema and "
+             "pregnancy notes.",
     ),
     SpecialtySpec(
         id="psych", name_ko="정신",
@@ -568,10 +679,10 @@ SPECIALTIES.update({s.id: s for s in (
              "C_NMS_DELPHI (abstract). Serotonin toxicity by clonus/hyperreflexia (Hunter): C_HUNTER (abstract). "
              "Catatonia signs: C_BFCRS (instrument). Alcohol withdrawal assessment: C_CIWA_AR (instrument). "
              "Autoimmune encephalitis in the organic differential: C_AUTOIMMUNE_ENCEPHALITIS (bibliographic data "
-             "verified; psychiatric presentation from reviewer knowledge). First-episode psychosis work-up list, "
-             "hypoactive delirium in the elderly, Wernicke, pediatric and postpartum psychosis notes: reviewer "
-             "knowledge. bipolar_dsm5tr moved here from neuro (2026-09-29); protocol 'psychiatric' and 'cognitive' "
-             "stay shared with neuro (organic cause first).",
+             "verified). bipolar_dsm5tr moved here from neuro (2026-09-29); protocol 'psychiatric' and 'cognitive' "
+             "stay shared with neuro (organic cause first). Reviewer knowledge: psychiatric presentation of "
+             "autoimmune encephalitis; first-episode psychosis work-up list, hypoactive delirium in the elderly, "
+             "Wernicke, pediatric and postpartum psychosis notes.",
     ),
 )})
 
@@ -638,7 +749,10 @@ def render_profile(profile: dict) -> str:
         return s
     if b == "pregnant":
         if profile.get("postpartum") and profile.get("weeks") is None:
-            return "[환자 구분] 산후 환자: 산후 6주까지 전자간증·폐색전증·뇌정맥동 혈전증 위험이 남습니다."
+            # ACOG PB 222 / Sibai 2012 (postpartum preeclampsia-eclampsia), Kamel 2014 (thrombosis risk highest in the
+            # first 6 weeks, still raised to 12 weeks), AHA 2024 CVT statement (see consult_sources.py)
+            return ("[환자 구분] 산후 환자: 전자간증·자간증은 산후에도 생깁니다. 혈전(폐색전증·뇌졸중·뇌정맥동 혈전증) 위험은 "
+                    "산후 6주에 가장 높고 12주까지 남습니다.")
         w = profile.get("weeks")
         stage = "" if w is None else (f" {w}주(20주 전)" if w < 20 else f" {w}주(20주 이후)")
         return f"[환자 구분] 임신 중{stage}: 임신 관련 응급을 먼저 생각하고 약·영상 안전을 지키세요."

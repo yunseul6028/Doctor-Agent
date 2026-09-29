@@ -12,7 +12,8 @@ API
 - gate(state, proposed_dx, remaining_turns, max_gate_turns=3, gate_turns_used=0) -> dict
 
 Critical results: a critical imaging / ECG finding the policy's result interpreter read as present
-(state.result_criticals, see CRITICAL_RESULT_DANGER) confirms the matching danger and puts it on the checked list.
+(state.result_criticals, see CRITICAL_RESULT_DANGER) confirms the matching danger and puts it on the checked list;
+a precursor finding (CRITICAL_RESULT_REQUIRES, e.g. a pneumothorax without tension signs) only puts it on the list.
 
 Evidence is read only from the environment's text (initial info + responses), never from the doctor's own questions
 ("객혈이 있나요?" is not a hemoptysis finding). A result counts for a rule-out only when it is read as normal; an
@@ -286,7 +287,8 @@ class _Ctx:
         self.spo2 = self._latest(_RE_SPO2, int, "spo2")
         self.temp = self._latest_temp()
         self.onset_h = self._onset_hours()
-        self.critical = critical_result_dangers(state)  # result interpreter (see CRITICAL_RESULT_DANGER)
+        # result interpreter (see CRITICAL_RESULT_DANGER): confirming findings, and findings that only raise a danger
+        self.critical, self.critical_raised = _critical_results(state)
 
     # -- readers ----------------------------------------------------------------------------
     def _measured(self, t: _Turn) -> dict[str, list[float]]:
@@ -1136,14 +1138,29 @@ def _cauda_out(c: _Ctx):
     return h + e if h is not None and e is not None else None
 
 
+# Words that make a pneumothorax a tension pneumothorax (report or findings). Shared with the critical-result reader.
+TENSION_PTX_MARKERS = ("긴장성", "종격동 이동", "종격동 전위", "종격동 편위", "기관 편위", "기관 전위", "mediastinal shift",
+                       "tracheal deviation", "tension")
+
+
 def _ptx_confirm(c: _Ctx):
+    tension = _affirmed_any_language(c.facts, TENSION_PTX_MARKERS) or (c.sbp is not None and c.sbp < 90)
+    if not tension:
+        return None
     for pid in ("cxr_ptx", "chest_ct_ptx"):
         o = c.probe(pid)
-        if o.result == "abnormal" and (c.affirmed(("긴장성", "종격동 이동", "종격동 전위", "기관 편위", "mediastinal shift",
-                                                   "tracheal deviation", "tension"))
-                                       or (c.sbp is not None and c.sbp < 90)):
+        if o.result == "abnormal":
             return o.spans
-    return None
+    # a pneumothorax the result interpreter read on imaging (raised, not confirmed by the reading itself)
+    return c.critical_raised.get("긴장성 기흉")
+
+
+def _ptx_out(c: _Ctx):
+    """Normal breath sounds, or imaging without pneumothorax. Once imaging showed a pneumothorax (critical result),
+    only the bedside check can rule tension out."""
+    if c.critical_raised.get("긴장성 기흉"):
+        return _is("breath_sounds", "normal")(c)
+    return _any(_is("breath_sounds", "normal"), _is("cxr_ptx", "normal"), _is("chest_ct_ptx", "normal"))(c)
 
 
 _AD_ALIASES = ("대동맥 박리", "급성 대동맥 증후군", "대동맥박리", "aortic dissection", "acute aortic syndrome")
@@ -1153,7 +1170,7 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
     RuleOut(
         "긴장성 기흉", ("기흉", "tension pneumothorax", "pneumothorax"), 1,
         "양측 호흡음 대칭(청진) 또는 흉부 X선/CT에 기흉 없음",
-        rule_out=_any(_is("breath_sounds", "normal"), _is("cxr_ptx", "normal"), _is("chest_ct_ptx", "normal")),
+        rule_out=_ptx_out,
         confirm=_ptx_confirm,
         steps=(Step("breath_sounds", reason="긴장성 기흉은 임상 진단: 청진이 가장 빠름"),
                Step("cxr_ptx", reason="기흉 확인(불안정하면 영상 전에 감압)")),
@@ -1161,7 +1178,9 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
         note="BTS 2023 (verified citation): tension pneumothorax is a clinical diagnosis; decompression must not wait "
              "for imaging (reviewer knowledge, as in protocols.py). Normal bilateral breath sounds / a CXR without "
              "pneumothorax as rule-out evidence is our operationalisation. Live when dyspnea, trauma, SpO2 < 94% or "
-             "SBP < 90."),
+             "SBP < 90. 2026-09-29: a pneumothorax on imaging confirms only with tension words in the report "
+             "(mediastinal/tracheal shift, 긴장성, tension; negation-aware) or SBP < 90; otherwise the danger stays "
+             "unresolved and only normal breath sounds rule it out (CRITICAL_RESULT_REQUIRES, _ptx_out)."),
     RuleOut(
         "아나필락시스", ("anaphylaxis", "아나필락시스 쇼크", "anaphylactic shock"), 1,
         "수축기 혈압 ≥ 90, 산소포화도 ≥ 94%, 기도·호흡 평가 정상(천명·협착음·인두/후두 부종 없음)",
@@ -1397,14 +1416,77 @@ CRITICAL_RESULT_DANGER: dict[str, str] = {
 }
 
 
-def critical_result_dangers(state) -> dict[str, list[str]]:
-    """{danger name: evidence} from the critical results the policy's result interpreter read in this case."""
-    out: dict[str, list[str]] = {}
+# Concepts that are only a precursor of the mapped danger: they confirm it only when the reading or the report of that
+# turn affirms one of these words (negation-aware). Otherwise the danger is raised (put on the checked list, so the gate
+# asks for the bedside check) but not confirmed; the finding itself still reaches the doctor through the policy's
+# one-time critical-result alert. A pneumothorax on imaging is not a tension pneumothorax (2026-09-29): tension is
+# confirmed by the report (mediastinal / tracheal shift, "긴장성", "tension") or, as in _ptx_confirm, by the gate's
+# own readers (an abnormal chest image with SBP < 90 or tension words anywhere in the environment's text).
+CRITICAL_RESULT_REQUIRES: dict[str, tuple[str, ...]] = {"IMG:cxr_ptx": TENSION_PTX_MARKERS}
+
+
+_RE_EN_NEG_BEFORE = re.compile(r"\b(?:no|without|not|absent|negative for|nor)\b[^.;]{0,25}$")
+
+
+_RE_SHIFT_KO = re.compile(r"(?:종격동|기관)[이가은는]?\s?(?:[가-힣]{1,5}\s?){0,2}?(?:이동|전위|편위|밀려|치우)[가-힣]*")
+
+
+def _affirmed_any_language(text: str, kws: tuple[str, ...]) -> bool:
+    """contains_affirmed (Korean negation) plus a guard for English negation before the word ("without mediastinal
+    shift", "no tension"). With the tension markers, free Korean word order ("종격동이 좌측으로 이동함") also counts."""
+    text = str(text)
+    if kws is TENSION_PTX_MARKERS:
+        for m in _RE_SHIFT_KO.finditer(text):
+            if contains_affirmed(text[max(0, m.start() - 20):m.end() + 20], (m.group(0),)):
+                return True
+    if not contains_affirmed(text, kws):
+        return False
+    for k in kws:
+        for m in re.finditer(re.escape(k), text):
+            if not _RE_EN_NEG_BEFORE.search(text[max(0, m.start() - 40):m.start()]) and contains_affirmed(
+                    text[max(0, m.start() - 40):m.end() + 40], (k,)):
+                return True
+    return False
+
+
+def _critical_text(state, c: dict) -> str:
+    """Reading summary/label plus the environment's response of the turn the critical result came from."""
+    parts = [str(c.get("summary") or ""), str(c.get("label") or "")]
+    turns = getattr(state, "turns", None) or []
+    i = c.get("turn")
+    if isinstance(i, int) and 1 <= i <= len(turns):
+        parts.append(getattr(turns[i - 1], "response", "") or "")
+    return ". ".join(p for p in parts if p)
+
+
+def _critical_results(state) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """(confirmed, raised_only): {danger name: evidence} from the present (not hedged) critical results."""
+    confirmed: dict[str, list[str]] = {}
+    raised: dict[str, list[str]] = {}
     for c in getattr(state, "result_criticals", None) or []:
-        name = CRITICAL_RESULT_DANGER.get(str(c.get("concept", "")))
-        if name and c.get("polarity") == "present":
-            out.setdefault(name, []).append(f"{c.get('test', '')}: {c.get('summary') or c.get('label', '')}"[:120])
-    return out
+        concept = str(c.get("concept", ""))
+        name = CRITICAL_RESULT_DANGER.get(concept)
+        if not name or c.get("polarity") != "present":
+            continue
+        ev = f"{c.get('test', '')}: {c.get('summary') or c.get('label', '')}"[:120]
+        need = CRITICAL_RESULT_REQUIRES.get(concept)
+        if need and not _affirmed_any_language(_critical_text(state, c).lower(), need):
+            raised.setdefault(name, []).append(ev)
+        else:
+            confirmed.setdefault(name, []).append(ev)
+    return confirmed, {k: v for k, v in raised.items() if k not in confirmed}
+
+
+def critical_result_dangers(state) -> dict[str, list[str]]:
+    """{danger name: evidence} from the critical results the policy's result interpreter read in this case that
+    confirm the danger (CRITICAL_RESULT_REQUIRES: findings that confirm only with extra words in the reading)."""
+    return _critical_results(state)[0]
+
+
+def critical_result_raised(state) -> dict[str, list[str]]:
+    """{danger name: evidence} for critical results that raise a danger without confirming it (a pneumothorax on
+    imaging without tension signs raises 긴장성 기흉, so the gate still asks for the bedside check)."""
+    return _critical_results(state)[1]
 
 
 # --------------------------------------------------------------------------------------------
@@ -1485,7 +1567,7 @@ def _dangers(state, c: _Ctx, exclude: str | None) -> list[dict]:
             found[r.name]["p"] = max(found[r.name]["p"], e.p)
         else:
             found[r.name] = {"source": "ddx_ledger", "p": e.p}
-    for name in c.critical:
+    for name in list(c.critical) + list(c.critical_raised):
         if name in RULE_OUT and name not in found:
             found[name] = {"source": "critical_result", "p": 0.0}
     excluded = lookup(exclude) if exclude else None
