@@ -237,16 +237,62 @@ def test_result_hint_respects_budgets():
 def test_danger_gate_confirms_danger_from_critical_result():
     assert set(danger_gate.CRITICAL_RESULT_DANGER) <= result_interpreter._CRITICAL_CONCEPTS
     assert set(danger_gate.CRITICAL_RESULT_DANGER.values()) <= set(danger_gate.RULE_OUT)
-    st = _state(("흉부 X선", "소견 설명 없음"), initial="30세 남성. 주호소: 기침")
-    assert danger_gate.status("긴장성 기흉", st)[0] != "confirmed"
-    st.result_criticals.append({"turn": 1, "test": "흉부 X선", "concept": "IMG:cxr_ptx", "label": "기흉",
-                                "polarity": "present", "summary": "기흉(우측): 있음"})
-    st_, ev = danger_gate.status("긴장성 기흉", st)
-    assert st_ == "confirmed" and "기흉" in ev[0]
+    st = _state(("CT 대동맥", "소견 설명 없음"), initial="60세 남성. 주호소: 기침")
+    assert danger_gate.status("대동맥 박리", st)[0] != "confirmed"
+    st.result_criticals.append({"turn": 1, "test": "CT 대동맥", "concept": "IMG:ct_dissection", "label": "대동맥 박리",
+                                "polarity": "present", "summary": "대동맥 박리: 있음"})
+    st_, ev = danger_gate.status("대동맥 박리", st)
+    assert st_ == "confirmed" and "박리" in ev[0]
     g = danger_gate.gate(st, "폐렴", remaining_turns=30)
-    assert g["allow"] and g["kind"] == "confirmed_other" and g["danger"] == "긴장성 기흉"
+    assert g["allow"] and g["kind"] == "confirmed_other" and g["danger"] == "대동맥 박리"
     st.result_criticals[0]["polarity"] = "uncertain"  # hedged readings do not confirm
-    assert danger_gate.status("긴장성 기흉", st)[0] != "confirmed"
+    assert danger_gate.status("대동맥 박리", st)[0] != "confirmed"
+
+
+def _ptx_critical(summary: str = "기흉(우측): 있음") -> dict:
+    return {"turn": 1, "test": "흉부 X선", "concept": "IMG:cxr_ptx", "label": "기흉", "polarity": "present",
+            "summary": summary}
+
+
+def test_pneumothorax_on_imaging_raises_but_does_not_confirm_tension():
+    """A pneumothorax on imaging is not a tension pneumothorax (2026-09-29): raised (bedside check asked), not
+    confirmed, and imaging no longer counts as its rule-out."""
+    assert "IMG:cxr_ptx" in danger_gate.CRITICAL_RESULT_REQUIRES
+    st = _state(("흉부 X선", "소견 설명 없음"), initial="30세 남성. 주호소: 기침")
+    st.result_criticals.append(_ptx_critical())
+    assert danger_gate.status("긴장성 기흉", st)[0] == "unresolved"
+    assert danger_gate.critical_result_dangers(st) == {}
+    assert "긴장성 기흉" in danger_gate.critical_result_raised(st)
+    ds = danger_gate.unresolved_dangers(st)
+    assert ds and ds[0]["dx"] == "긴장성 기흉" and ds[0]["status"] == "unresolved" and ds[0]["source"] == "critical_result"
+    g = danger_gate.gate(st, "자연 기흉", remaining_turns=30)  # the pneumothorax itself is a fine diagnosis
+    assert g["kind"] != "confirmed_other"
+    g = danger_gate.gate(st, "폐렴", remaining_turns=30)
+    assert not g["allow"] and g["danger"] == "긴장성 기흉" and g["action"][0] == ActionType.EXAM  # breath sounds
+    # English / Korean negated tension words do not confirm
+    for s in ("right pneumothorax without mediastinal shift", "우측 기흉, 종격동 이동은 없음", "no tension",
+              "우측 기흉, 종격동이 좌측으로 이동하지 않음", "긴장성 소견 없음"):
+        st.result_criticals[0] = _ptx_critical(s)
+        assert danger_gate.status("긴장성 기흉", st)[0] != "confirmed", s
+
+
+@pytest.mark.parametrize("summary,response", [
+    ("긴장성 기흉(우측): 있음", "소견 설명 없음"),
+    ("기흉(우측): 있음", "우측 대량 기흉, 종격동이 좌측으로 이동함"),
+    ("기흉(우측): 있음", "Large right pneumothorax with mediastinal shift to the left."),
+])
+def test_pneumothorax_with_tension_signs_confirms(summary, response):
+    st = _state(("흉부 X선", response), initial="30세 남성. 주호소: 갑자기 숨이 차요")
+    st.result_criticals.append(_ptx_critical(summary))
+    st_, ev = danger_gate.status("긴장성 기흉", st)
+    assert st_ == "confirmed" and ev
+
+
+def test_pneumothorax_with_hypotension_confirms_tension():
+    st = _state(("흉부 X선", "소견 설명 없음"), ("활력징후", "혈압 78/40 mmHg, 맥박 132회"),
+                initial="30세 남성. 주호소: 갑자기 숨이 차요")
+    st.result_criticals.append(_ptx_critical())
+    assert danger_gate.status("긴장성 기흉", st)[0] == "confirmed"
 
 
 # ---------------------------------------------------------------- prompt wording / tools

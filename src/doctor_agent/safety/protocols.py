@@ -17,6 +17,10 @@ Verification (2026-09-25)
 - 2026-09-27: false-trigger fixes from a per-case audit of data/cases_aug (see tests) and 6 categories added
   (chronic urticaria, hearing loss, adult neck mass, bleeding tendency, chronic limb weakness, infant bilious
   vomiting) with 8 more citations checked against PubMed E-utilities on 2026-09-27.
+- 2026-09-29: 11 safety-relevant "unverified" checks re-checked against the source text (aorta imaging, PE work-up x2,
+  epinephrine x2, anaphylaxis airway, stroke glucose / onset time / imaging, neutropenic CBC, early-pregnancy
+  ultrasound): 6 -> primary, 5 -> secondary; epinephrine/airway now cite WAO 2020 (full text read). What was read is
+  in each Check.note.
 """
 from __future__ import annotations
 
@@ -319,8 +323,17 @@ G_INFANT_VOMITING = Citation(
     verified=True, short_author="ACR 영아 구토 적정성 기준",
 )
 
+# 2026-09-29: open-access anaphylaxis guideline whose full text was read (PMC7607509); the epinephrine and airway checks
+# cite it because the recommendation text of the AAAAI/ACAAI practice parameter (G_ANAPHYLAXIS) was not accessible.
+G_WAO_ANAPHYLAXIS = Citation(
+    "Cardona V, Ansotegui IJ, Ebisawa M, et al.",
+    "World allergy organization anaphylaxis guidance 2020",
+    "World Allergy Organ J", 2020, "13(10):100472", doi="10.1016/j.waojou.2020.100472", pmid="33204386",
+    verified=True, short_author="WAO 아나필락시스 지침",
+)
+
 GUIDELINES: tuple[Citation, ...] = (
-    G_CHEST_PAIN, G_AORTA, G_PE, G_HF, G_PLEURAL, G_ANAPHYLAXIS, G_HEADACHE, G_MENINGITIS, G_STROKE,
+    G_CHEST_PAIN, G_AORTA, G_PE, G_HF, G_PLEURAL, G_ANAPHYLAXIS, G_WAO_ANAPHYLAXIS, G_HEADACHE, G_MENINGITIS, G_STROKE,
     G_SEPSIS, G_NEUTROPENIA, G_EARLY_PREGNANCY, G_ECTOPIC, G_AAA, G_AMI, G_ENDOCARDITIS,
     G_SYNCOPE, G_PALPITATIONS, G_HEMOPTYSIS, G_COUGH, G_LIVER, G_JAUNDICE_IMAGING, G_NEONATAL_JAUNDICE, G_HOT_JOINT,
     G_GOUT_DX, G_LOW_BACK_PAIN, G_SJS_TEN, G_PRURITUS, G_VTE_DX, G_GLOMERULAR, G_AMENORRHEA, G_PMB, G_MECFS,
@@ -702,12 +715,19 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   when="폐·흉막·대동맥 등 다른 원인 평가",
                   note="Guideline suggests CXR to evaluate alternative cardiac/pulmonary/thoracic causes."),
             Check("aorta_imaging", "양팔 혈압 비교 + 대동맥 영상검사(CT 혈관조영 등)", "test", _KW_AORTA, G_AORTA,
-                  "unverified", triggers=_TRIG_AORTA, when="찢어지는 통증, 등으로 뻗는 통증, 양팔 혈압 차이 등",
+                  "primary", triggers=_TRIG_AORTA, when="찢어지는 통증, 등으로 뻗는 통증, 양팔 혈압 차이 등",
                   acute_only=2,
-                  note="Use with ADD-RS (knowledge/clinical_rules.py)."),
+                  note="Use with ADD-RS (knowledge/clinical_rules.py). 2026-09-29, full text read (PMC9876736): "
+                  "sec. 7.1 'BP should be measured in both arms and both lower extremities' in suspected AAS; sec. 7.2 "
+                  "rec. 1 (COR 1, LOE C-LD) CT recommended for initial diagnostic imaging, TEE/MRI reasonable "
+                  "alternatives (2a)."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
-                  "unverified", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
-                  acute_only=2, note="ESC 2019: clinical probability (Wells/Geneva), D-dimer if not high probability, CTPA."),
+                  "secondary", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
+                  acute_only=2, note="ESC 2019: clinical probability (Wells/Geneva), D-dimer if not high probability, CTPA. "
+                  "2026-09-29: guideline body text read in part (academic.oup.com, via fetch): Wells or revised Geneva "
+                  "for clinical probability; negative D-dimer with low/intermediate probability excludes PE in ~30%; "
+                  "negative CTPA excludes PE at low/intermediate probability. Recommendation table (sec. 4.11) not "
+                  "seen, hence secondary."),
         ),
     ),
     Protocol(
@@ -726,11 +746,15 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "unverified", when="심부전 의심(성인)", min_age=18,
                   note="Class 1: natriuretic peptides to support/exclude HF in patients presenting with dyspnea."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
-                  "unverified", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
-                  acute_only=2, min_age=18),
+                  "secondary", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
+                  acute_only=2, min_age=18, note="As chest_pain pe_workup (ESC 2019 body text read in part, "
+                  "2026-09-29)."),
             Check("epinephrine", "아나필락시스 의심 시 즉시 에피네프린 근육주사", "treatment",
-                  ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_ANAPHYLAXIS, "unverified",
-                  triggers=_TRIG_ANAPHYLAXIS, when="두드러기·입술/혀 부종·알레르겐 노출 후 호흡곤란"),
+                  ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_WAO_ANAPHYLAXIS, "primary",
+                  triggers=_TRIG_ANAPHYLAXIS, when="두드러기·입술/혀 부종·알레르겐 노출 후 호흡곤란",
+                  note="2026-09-29: WAO 2020 full text read (PMC7607509): 'Intramuscular epinephrine (adrenaline) "
+                  "continues to be the first-line treatment for anaphylaxis'; 0.01 mg/kg IM, max 0.5 mg. Citation "
+                  "moved from the AAAAI/ACAAI 2020 practice parameter (text not accessible)."),
         ),
     ),
     Protocol(
@@ -760,17 +784,25 @@ PROTOCOLS: tuple[Protocol, ...] = (
         cant_miss=("급성 허혈성 뇌졸중", "뇌출혈", "저혈당", "일과성 허혈 발작 후 조기 뇌졸중"),
         checks=(
             _vitals(G_STROKE),
-            Check("glucose", "혈당 측정", "test", _KW_GLUCOSE, G_STROKE, "unverified",
+            Check("glucose", "혈당 측정", "test", _KW_GLUCOSE, G_STROKE, "secondary",
                   when="모든 급성 신경학적 결손·의식 변화",
-                  note="Blood glucose is the only lab required before IV alteplase; hypoglycemia mimics stroke."),
+                  note="Blood glucose is the only lab required before IV alteplase; hypoglycemia mimics stroke. "
+                  "2026-09-29: full text HTTP 403; confirmed via ACC 'Ten points to remember' (2019-11-06): 'a "
+                  "noncontrast head CT and glucose are the only required tests' before IV tPA. Hypoglycaemia among "
+                  "the commonest stroke mimics: Okano 2018 (PMID 29988676, abstract)."),
             Check("onset_time", "증상 시작 시각(마지막으로 정상이었던 시각) 확인", "ask",
                   ("마지막으로 정상", "마지막 정상", "증상 시작", "발병 시각", "언제부터", "몇 시", "last known well",
                    "onset time", "when did"),
-                  G_STROKE, "unverified", when="급성 신경학적 결손", note="Determines reperfusion eligibility."),
+                  G_STROKE, "secondary", when="급성 신경학적 결손",
+                  note="Determines reperfusion eligibility. 2026-09-29: via ACC 'Ten points to remember': IV tPA "
+                  "within 3 h (selected patients 4.5 h) of last known normal; thrombectomy in selected patients 6-24 h "
+                  "from last known normal."),
             Check("neuro_exam", "신경학적 진찰(국소 결손, 의식 수준)", "exam", _KW_NEURO_EXAM, G_STROKE, "unverified",
                   when="모든 급성 신경 증상"),
-            Check("brain_imaging", "비조영 뇌 CT 또는 뇌 MRI", "test", _KW_BRAIN_IMAGING, G_STROKE, "unverified",
-                  when="급성 뇌졸중 의심", note="Emergent brain imaging before any reperfusion therapy."),
+            Check("brain_imaging", "비조영 뇌 CT 또는 뇌 MRI", "test", _KW_BRAIN_IMAGING, G_STROKE, "secondary",
+                  when="급성 뇌졸중 의심",
+                  note="Emergent brain imaging before any reperfusion therapy. 2026-09-29: via ACC 'Ten points to "
+                  "remember' (noncontrast head CT required before IV tPA; MRI DWI for unclear onset)."),
         ),
     ),
     Protocol(
@@ -794,7 +826,10 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "criteria."),
             Check("cbc_neutropenia", "일반혈액검사(호중구 수)", "test",
                   ("일반혈액", "혈구", "cbc", "백혈구", "호중구", "complete blood count", "neutrophil count"), G_NEUTROPENIA,
-                  "unverified", triggers=_TRIG_NEUTROPENIA, when="항암치료 중·면역저하 환자의 발열"),
+                  "primary", triggers=_TRIG_NEUTROPENIA, when="항암치료 중·면역저하 환자의 발열",
+                  note="2026-09-29: IDSA 2010 full text read (academic.oup.com, via fetch): recommendation 5 (A-III) "
+                  "labs include CBC with differential and platelets; neutropenia = ANC < 500/mm3 or expected to "
+                  "fall below 500 within 48 h; recommendation 6 (A-III): at least 2 sets of blood cultures."),
             Check("meningitis_workup", "혈액배양 + 요추천자(CT 선행 적응증 확인)", "test",
                   _KW_BLOOD_CULTURE + _KW_LP, G_MENINGITIS, "secondary", triggers=_TRIG_HEADACHE_MENINGISM,
                   when="발열과 두통·목 강직·의식 변화 동반"),
@@ -818,17 +853,23 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "stated menopause."),
             Check("pelvic_us", "임신 양성이면 골반(질식) 초음파", "test",
                   ("질식 초음파", "골반 초음파", "경질 초음파", "transvaginal", "pelvic ultrasound", "pelvic us"),
-                  G_EARLY_PREGNANCY, "unverified", predicate="current_pregnancy",
+                  G_EARLY_PREGNANCY, "primary", predicate="current_pregnancy",
                   when="임신 확인된(또는 월경 지연) 복통·질출혈",
                   note="2026-09-27: current pregnancy only, not an obstetric history ('임신은 2번 했고') or an "
-                  "infant's birth history."),
+                  "infant's birth history. 2026-09-29: ACEP 2017 full text read (acep.org PDF), critical question 1, "
+                  "Level B: 'Perform or obtain a pelvic ultrasound for symptomatic pregnant patients with any b-hCG "
+                  "level'."),
             Check("aaa_imaging", "복부 대동맥 초음파 또는 CT", "test",
                   ("복부 초음파", "복부 ct", "대동맥 초음파", "abdominal ultrasound", "abdominal ct", "ct abdomen",
                    "aortic ultrasound"),
                   G_AAA, "unverified", triggers=_TRIG_AAA, min_age=50,
                   when="50세 이상(또는 나이 미상)·등/옆구리 통증·박동성 종괴·실신·저혈압",
                   note="min_age=50 is our operationalisation (AAA is rare below 50; SVS screening starts at 65, or "
-                  "55 with risk); it stops flank pain in young adults (pyelonephritis, DKA) from requiring it."),
+                  "55 with risk); it stops flank pain in young adults (pyelonephritis, DKA) from requiring it. "
+                  "2026-09-29: still unverified for symptomatic patients. Read in the ACC/AHA 2022 aortic guideline "
+                  "(PMC9876736): abdominal ultrasound is the recommended tool for AAA screening/surveillance, and 24% "
+                  "of ruptured AAA were < 65 years (not < 50). Ruptured AAA misdiagnosed in 30%, renal colic the "
+                  "commonest (Marston 1992, PMID 1619721, abstract)."),
             Check("mesenteric_cta", "장간막 허혈 의심 시 지체 없이 CT 혈관조영", "test",
                   ("ct 혈관조영", "ct 혈관 조영", "cta", "ct angiogra", "복부 혈관조영", "mesenteric"), G_AMI,
                   "primary", triggers=_TRIG_AMI, when="심방세동, 진찰 소견에 비해 심한 통증",
@@ -848,12 +889,16 @@ PROTOCOLS = PROTOCOLS + (
             Check("airway_breathing", "기도·호흡 평가(입술·혀·목 부종, 쉰 목소리, 천명음·쌕쌕거림, 청진)", "exam",
                   ("기도", "천명", "쌕쌕", "호흡음", "청진", "쉰 목소리", "목소리", "삼키기", "stridor", "wheez",
                    "airway", "auscult", "hoarse", "혀 부종", "입술 부종", "인두 부종", "후두 부종"),
-                  G_ANAPHYLAXIS, "unverified", when="모든 급성 알레르기 반응",
-                  note="Airway/breathing involvement is a defining feature of anaphylaxis; from reviewer knowledge, "
-                  "not a numbered recommendation read in the practice parameter."),
+                  G_WAO_ANAPHYLAXIS, "primary", when="모든 급성 알레르기 반응",
+                  note="2026-09-29: WAO 2020 full text read (PMC7607509), Table 1 criterion 1: skin/mucosal "
+                  "involvement (e.g. swollen lips-tongue-uvula) with respiratory compromise (dyspnea, "
+                  "wheeze-bronchospasm, stridor, reduced PEF, hypoxemia) makes anaphylaxis highly likely, so the "
+                  "airway/breathing assessment decides it. Citation moved from the AAAAI/ACAAI practice parameter."),
             Check("epinephrine", "아나필락시스 의심 시 즉시 에피네프린 근육주사", "treatment",
-                  ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_ANAPHYLAXIS, "unverified",
-                  when="호흡기·순환기 증상 동반 알레르기 반응"),
+                  ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_WAO_ANAPHYLAXIS, "primary",
+                  when="호흡기·순환기 증상 동반 알레르기 반응",
+                  note="2026-09-29: WAO 2020 full text read (PMC7607509): IM epinephrine is first-line; 'all "
+                  "anaphylaxis reactions must be appropriately treated with intramuscular adrenaline'."),
         ),
     ),
 )

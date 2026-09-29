@@ -91,6 +91,46 @@ def test_spec_references_exist(sid):
         assert c.pmid or c.doi or not c.verified  # guideline documents without PMID/DOI (e.g. RCOG GTG 63)
 
 
+def test_consult_sources_verified_used_and_in_ledger():
+    """2026-09-29 verification pass: every new source is PubMed-verified, cited by a spec and in the license ledger."""
+    from pathlib import Path
+
+    from doctor_agent.agent.subagents.consult_sources import CONSULT_SOURCES
+    ledger = (Path(__file__).resolve().parents[1] / "docs" / "licenses.md").read_text(encoding="utf-8")
+    used = {id(c) for s in SPECIALTIES.values() for c in s.citations}
+    for c in CONSULT_SOURCES:
+        assert c.verified and c.pmid, c.title
+        assert id(c) in used, c.title
+        assert f"PMID {c.pmid}" in ledger, c.title
+    assert len({c.pmid for c in CONSULT_SOURCES}) == len(CONSULT_SOURCES)
+
+
+@pytest.mark.parametrize("sid", sorted(SPECIALTIES))
+def test_spec_verification_level_matches_note(sid):
+    """verification = weakest level of the spec's own claims: 'unverified' iff reviewer knowledge is still listed."""
+    spec = SPECIALTIES[sid]
+    left = "Reviewer knowledge:" in spec.note
+    assert (spec.verification == "unverified") == left, sid
+    assert "reviewer knowledge." not in spec.note.lower().replace("reviewer knowledge:", ""), sid
+
+
+def test_verified_claim_wording_2026_09_29():
+    preg = user_msg(build_consult(case(PREGNANT), "peds_obgyn"))
+    assert "단백뇨 또는 중증 소견이면 전자간증" in preg and "4시간 간격 2회" in preg  # ACOG PB 222 Box 2
+    assert "산후 6주:" not in preg and "혈소판 <10만" in preg
+    assert "1분기 후 ACE 억제제·ARB" in preg and "16주부터 테트라사이클린" in preg  # Dathe & Schaefer 2019
+    post = render_profile(patient_profile(case(POSTPARTUM)))
+    assert "12주" in post and "산후 6주까지 전자간증" not in post  # Kamel 2014; PB 222 has no 6-week limit
+    assert "차폐" not in user_msg(build_consult(case(PREGNANT), "resp_id"))  # shielding not in ACOG CO 723
+    child_gi = user_msg(build_consult(case(CHILD), "gi_liver"))
+    assert "증상만으로 배제 불가, 초음파" in child_gi and "다리 당김" not in child_gi  # Hom 2022
+    assert "하벽" not in user_msg(build_consult(case(ADULT_M), "gi_liver"))  # Canto 2000 is about MI, not inferior MI
+    assert "도플러 혈류 정상으로 난소 염전 배제 금지" in user_msg(build_consult(case(ADULT_F), "peds_obgyn"))  # ACOG 783
+    renal = user_msg(build_consult(case("70세 남성. 주호소: 옆구리 통증"), "renal_uro"))
+    assert "심전도는 고칼륨에 둔감" in renal and "영상 기다리지 말고" in renal and "근색소뇨(또는 혈색소뇨)" in renal
+    assert "누우면 숨참" not in user_msg(build_consult(case(ADULT_M), "heme_onc"))  # not in Rice 2006
+
+
 def test_every_protocol_category_has_an_owner():
     owned = {c for s in SPECIALTIES.values() for c in s.protocol_categories}
     # fatigue / neck_mass were unowned until heme_onc was added (2026-09-28)
