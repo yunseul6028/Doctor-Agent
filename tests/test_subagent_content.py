@@ -54,7 +54,28 @@ def sys_msg(call: SubagentCall) -> str:
 
 def test_specialty_ids():
     assert set(SPECIALTY_IDS) == {"cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn",
-                                  "heme_onc", "renal_uro"}
+                                  "heme_onc", "renal_uro", "endo_metab", "psych"}
+    assert SPECIALTY_IDS[-2:] == ("endo_metab", "psych")  # appended after the existing entries
+
+
+def test_criteria_owners_after_endo_psych():
+    owners = lambda cid: {sid for sid, s in SPECIALTIES.items() if cid in s.criteria_ids}  # noqa: E731
+    assert owners("bipolar_dsm5tr") == {"psych"}  # moved from neuro (2026-09-29)
+    assert "endo_metab" in owners("dka_hhs_2024")
+
+
+def test_endo_metab_and_psych_content():
+    s = case("24세 남성. 주호소: 하루 전부터 복통과 구토")
+    s.ddx_ledger.update([{"dx": "당뇨병성 케톤산증", "p": 0.5, "status": "유력"}])
+    endo = user_msg(build_consult(s, "endo_metab"))
+    assert "위장관 질환으로 오인" in endo and "케톤" in endo and "TSH" in endo and "코르티솔" in endo and "PTH" in endo
+    assert "ADA 2024 DKA/HHS" in endo  # criteria linked for the DKA candidate
+    assert "혈당이 조금만 높아도" in user_msg(build_consult(case(PREGNANT), "endo_metab"))
+    psych = user_msg(build_consult(case("35세 남성. 주호소: 최근 우울하고 이상한 행동을 해요"), "psych"))
+    assert "자살" in psych and "섬망" in psych and "클로누스" in psych
+    assert "기질적 원인" in sys_msg(build_consult(case(ADULT_M), "psych"))
+    assert "산후 정신병" in user_msg(build_consult(case(POSTPARTUM), "psych"))
+    assert "산후 정신병" not in user_msg(build_consult(case(ADULT_M), "psych"))
 
 
 def test_kdigo_aki_owned_by_renal_uro_only():

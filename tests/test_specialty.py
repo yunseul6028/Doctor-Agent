@@ -32,15 +32,23 @@ def _state(initial="55세 남성. 주호소: 1시간 전 시작된 가슴 통증
     ("급성 충수염", "gi_liver"), ("원발성 담즙성 담관염", "gi_liver"), ("중증근무력증", "neuro"),
     ("Myasthenia gravis", "neuro"), ("지주막하 출혈", "neuro"), ("전신홍반루푸스", "rheum_immune"), ("통풍", "rheum_immune"),
     ("아나필락시스", "rheum_immune"), ("자궁외 임신", "peds_obgyn"), ("자간전증", "peds_obgyn"), ("신생아 황달", "peds_obgyn"),
-    ("세균성 수막염", "neuro"), ("감염성 심내막염", "cardio"), ("당뇨병성 케톤산증", None), ("급성 신우신염", "renal_uro"),
-    ("주요 우울장애", None),
+    ("세균성 수막염", "neuro"), ("감염성 심내막염", "cardio"), ("당뇨병성 케톤산증", "endo_metab"),
+    ("급성 신우신염", "renal_uro"), ("주요 우울장애", "psych"),
     # heme_onc / renal_uro (2026-09-28) and the site-first rule for solid tumours
     ("철결핍성 빈혈", "heme_onc"), ("Acute myeloid leukemia", "heme_onc"), ("다발성 골수종", "heme_onc"),
     ("혈전성 혈소판 감소성 자반증", "heme_onc"), ("호중구 감소성 발열", "heme_onc"), ("유방암", "heme_onc"),
     ("급성 신손상", "renal_uro"), ("양성 전립선 비대증", "renal_uro"), ("고환 염전", "renal_uro"),
     ("신장 세포암", "renal_uro"), ("저나트륨혈증", "renal_uro"), ("급성 요폐", "renal_uro"), ("횡문근융해증", "renal_uro"),
     ("폐암", "resp_id"), ("대장암", "gi_liver"), ("헤노흐-쇤라인 자반증", "rheum_immune"), ("루푸스 신염", "rheum_immune"),
-    ("담도 폐쇄", "gi_liver"), ("뇌정맥동 혈전증", "neuro"), ("메트암페타민 중독", None), ("부신 기능 부전", None),
+    ("담도 폐쇄", "gi_liver"), ("뇌정맥동 혈전증", "neuro"), ("메트암페타민 중독", None),
+    # endo_metab / psych (2026-09-29) and their borders with neuro, renal_uro, heme_onc
+    ("부신 기능 부전", "endo_metab"), ("그레이브스병", "endo_metab"), ("Thyroid storm", "endo_metab"),
+    ("점액수종 혼수", "endo_metab"), ("갈색세포종", "endo_metab"), ("인슐린종", "endo_metab"), ("갑상선 유두암", "endo_metab"),
+    ("뇌하수체 선종", "endo_metab"), ("SIADH", "endo_metab"), ("고칼슘혈증", "endo_metab"), ("조현병", "psych"),
+    ("섬망", "psych"), ("진전 섬망", "psych"), ("신경이완제 악성 증후군", "psych"), ("세로토닌 증후군", "psych"),
+    ("긴장증", "psych"), ("신경성 식욕부진증", "psych"), ("베르니케 뇌병증", "neuro"), ("알츠하이머병", "neuro"),
+    ("경도인지장애", "neuro"), ("고칼륨혈증", "renal_uro"), ("탈수", "renal_uro"), ("AL 아밀로이드증", "heme_onc"),
+    ("갑상혀관낭", None),
 ])
 def test_specialty_of_known_names(name, expected):
     assert sp.specialty_of(name) == expected
@@ -51,15 +59,16 @@ def test_specialty_of_never_raises(bad):
     assert sp.specialty_of(bad) in (None, *sp.SPECIALTIES)
 
 
-def test_eight_ids():
+def test_ten_ids_append_only():
     assert sp.SPECIALTIES == ("cardio", "resp_id", "gi_liver", "neuro", "rheum_immune", "peds_obgyn", "heme_onc",
-                              "renal_uro")
+                              "renal_uro", "endo_metab", "psych")
     assert set(sp.SPECIALTY_KO) == set(sp.SPECIALTIES)
 
 
-def test_detail_groups_outside_the_eight():
-    assert sp.specialty_detail("당뇨병성 케톤산증")["group"] == "endo_metab"  # endocrine stays unmapped
+def test_detail_groups():
+    assert sp.specialty_detail("당뇨병성 케톤산증")["group"] == "endo_metab"
     assert sp.specialty_detail("주요 우울장애")["group"] == "psych"
+    assert sp.specialty_detail("건선")["group"] == "derm" and sp.specialty_of("건선") is None
     assert sp.specialty_detail("급성 신손상")["group"] == "renal_uro"
     assert sp.specialty_detail("철결핍성 빈혈")["group"] == "heme_onc"
     d = sp.specialty_detail("급성 충수염")
@@ -70,7 +79,7 @@ def test_detail_groups_outside_the_eight():
     ("I63.9", ("neuro", "neuro")), ("I21", ("cardio", "cardio")), ("K35", ("gi_liver", "gi_liver")),
     ("B18.1", ("gi_liver", "gi_liver")), ("A41.9", ("resp_id", "resp_id")), ("O14", ("peds_obgyn", "peds_obgyn")),
     ("M32", ("rheum_immune", "rheum_immune")), ("M54.5", (None, "msk_ortho")), ("N10", ("renal_uro", "renal_uro")),
-    ("E83.0", ("gi_liver", "gi_liver")), ("E11", (None, "endo_metab")), ("Q21.1", ("cardio", "cardio")),
+    ("E83.0", ("gi_liver", "gi_liver")), ("E11", ("endo_metab", "endo_metab")), ("Q21.1", ("cardio", "cardio")),
     ("C34", ("resp_id", "resp_id")), ("C92", ("heme_onc", "heme_onc")), ("T78.2", ("rheum_immune", "rheum_immune")),
     # heme_onc: blood, haematological malignancy, unowned tumour sites; immune/vasculitic exceptions
     ("D50", ("heme_onc", "heme_onc")), ("D69.3", ("heme_onc", "heme_onc")), ("D69.0", ("rheum_immune", "rheum_immune")),
@@ -83,9 +92,17 @@ def test_detail_groups_outside_the_eight():
     # renal_uro: kidney/urinary, male genital, electrolytes, diabetic/hypertensive kidney disease
     ("N17", ("renal_uro", "renal_uro")), ("N44", ("renal_uro", "renal_uro")), ("N40", ("renal_uro", "renal_uro")),
     ("N83.5", ("peds_obgyn", "peds_obgyn")), ("C61", ("renal_uro", "renal_uro")), ("C67", ("renal_uro", "renal_uro")),
-    ("E87.1", ("renal_uro", "renal_uro")), ("E11.2", ("renal_uro", "renal_uro")), ("E11.1", (None, "endo_metab")),
+    ("E87.1", ("renal_uro", "renal_uro")), ("E11.2", ("renal_uro", "renal_uro")), ("E11.1", ("endo_metab", "endo_metab")),
     ("I12", ("renal_uro", "renal_uro")), ("I13", ("cardio", "cardio")), ("Q61", ("renal_uro", "renal_uro")),
     ("R33", ("renal_uro", "renal_uro")), ("N63", (None, "other")),
+    # endo_metab / psych (2026-09-29)
+    ("E05.5", ("endo_metab", "endo_metab")), ("E27.2", ("endo_metab", "endo_metab")), ("E83.5", ("endo_metab", "endo_metab")),
+    ("E22.2", ("endo_metab", "endo_metab")), ("E87.1", ("renal_uro", "renal_uro")), ("E86", ("renal_uro", "renal_uro")),
+    ("E85", ("heme_onc", "heme_onc")), ("E84", ("resp_id", "resp_id")), ("C73", ("endo_metab", "endo_metab")),
+    ("C74.1", ("endo_metab", "endo_metab")), ("D35.2", ("endo_metab", "endo_metab")), ("D44.3", ("endo_metab", "endo_metab")),
+    ("F03", ("neuro", "neuro")), ("F04", ("neuro", "neuro")), ("F06.7", ("neuro", "neuro")), ("F05.0", ("psych", "psych")),
+    ("F06.1", ("psych", "psych")), ("F10.3", ("psych", "psych")), ("F20", ("psych", "psych")), ("F32", ("psych", "psych")),
+    ("G21.0", ("neuro", "neuro")), ("G30", ("neuro", "neuro")),
 ])
 def test_kcd_table(code, expected):
     assert sp._code_entry(code) == expected
@@ -119,29 +136,46 @@ def test_every_id_has_evidence_tags():
     for cat in ("fatigue", "neck_mass", "bleeding"):
         assert "heme_onc" in sp.CATEGORY_SPECIALTY[cat]
     assert "renal_uro" in sp.CATEGORY_SPECIALTY["edema"]
-    assert sp.CRITERIA_SPECIALTY["dka_hhs_2024"] == ()  # endocrine is not an id
+    assert sp.CRITERIA_SPECIALTY["dka_hhs_2024"] == ("endo_metab",)  # 2026-09-29 (was untagged)
+    assert sp.CRITERIA_SPECIALTY["bipolar_dsm5tr"] == ("psych",)
+    assert "psych" in sp.CATEGORY_SPECIALTY["psychiatric"] and "psych" in sp.CATEGORY_SPECIALTY["cognitive"]
+    assert "endo_metab" in sp.CATEGORY_SPECIALTY["fatigue"] and "endo_metab" in sp.CATEGORY_SPECIALTY["palpitations"]
 
 
 def _gold(name):
     return [json.loads(x) for x in (ROOT / "data/labels" / name).read_text(encoding="utf-8").splitlines() if x.strip()]
 
 
+def _corr3():
+    return {r["name"]: r for r in _gold("specialty_gold_v3.jsonl") if r["source"] == "v3_corrected"}
+
+
 def test_gold_set_regression():
-    """v1 (six ids) with the v2 corrected copies applied: the v1 file itself is kept unchanged."""
+    """v1 (six ids) with the v2 then v3 corrected copies applied: the v1/v2 files themselves are kept unchanged."""
     corr = {r["name"]: r for r in _gold("specialty_gold_v2.jsonl") if r["source"] == "v1_corrected"}
+    corr.update(_corr3())
     rows = [corr.get(r["name"], r) for r in _gold("specialty_gold_v1.jsonl")]
     assert len(rows) >= 80
     assert all(r["specialty"] in (None, *sp.SPECIALTIES) for r in rows)
     strict = sum(sp.specialty_of(r["name"]) == r["specialty"] for r in rows) / len(rows)
-    assert strict >= 0.9  # 2026-09-28 six ids: first pass 0.948, after fixes 0.974; eight ids 0.966 → 0.974
+    assert strict >= 0.9  # six ids: first pass 0.948 → 0.974; eight ids 0.966 → 0.974; ten ids 0.974 (first pass)
 
 
 def test_gold_v2_new_names():
-    rows = [r for r in _gold("specialty_gold_v2.jsonl") if r["source"] == "v2_new"]
+    c3 = _corr3()
+    rows = [c3.get(r["name"], r) for r in _gold("specialty_gold_v2.jsonl") if r["source"] == "v2_new"]
     assert len(rows) >= 30 and sum(r["specialty"] in ("heme_onc", "renal_uro") for r in rows) >= 30
     assert all(r["specialty"] in (None, *sp.SPECIALTIES) for r in rows)
     strict = sum(sp.specialty_of(r["name"]) == r["specialty"] for r in rows) / len(rows)
     assert strict >= 0.9  # 2026-09-28: first pass 44/48 (0.917), after fixes 48/48
+
+
+def test_gold_v3_new_names():
+    rows = [r for r in _gold("specialty_gold_v3.jsonl") if r["source"] == "v3_new"]
+    assert len(rows) >= 30 and sum(r["specialty"] in ("endo_metab", "psych") for r in rows) >= 30
+    assert all(r["specialty"] in (None, *sp.SPECIALTIES) for r in rows)
+    strict = sum(sp.specialty_of(r["name"]) == r["specialty"] for r in rows) / len(rows)
+    assert strict >= 0.9  # 2026-09-29: first pass 42/43 (0.977), after the 점액수종 keyword fix 43/43
 
 
 # ---------------------------------------------------------------- route
@@ -166,19 +200,34 @@ def test_route_ignores_ruled_out():
 
 
 def test_route_none_when_nothing_maps():
-    s = _state(ddx=[("당뇨병성 케톤산증", 0.7), ("주요 우울장애", 0.3)])
+    s = _state(ddx=[("건선", 0.7), ("급성 중이염", 0.3)])
     spec, share, why = sp.route(s)
-    assert spec is None and share == 0.0 and why and "8개 분과" in why[-1]
+    assert spec is None and share == 0.0 and why and "10개 분과" in why[-1]
 
 
 def test_route_new_ids_take_the_mass_outside():
-    s = _state(ddx=[("당뇨병성 케톤산증", 0.7), ("급성 신손상", 0.3)])
+    s = _state(ddx=[("건선", 0.7), ("급성 신손상", 0.3)])
     spec, share, why = sp.route(s)
     assert spec == "renal_uro" and share == pytest.approx(0.3) and any("밖 후보" in x for x in why)
     s = _state("45세 여성. 주호소: 2주간 지속된 피로와 잇몸 출혈",
                ddx=[("급성 골수성 백혈병", 0.5), ("재생불량성 빈혈", 0.3), ("지역사회획득 폐렴", 0.2)])
     spec, share, why = sp.route(s)
     assert spec == "heme_onc" and share == pytest.approx(0.8) and "혈액·종양" in why[0]
+
+
+def test_route_endo_metab_and_psych():
+    # DKA presenting as abdominal pain: past trajectories kept it among GI candidates
+    s = _state("24세 남성. 주호소: 하루 전부터 복통과 구토", ddx=[("당뇨병성 케톤산증", 0.6), ("급성 췌장염", 0.2),
+                                                         ("고삼투성 고혈당 상태", 0.1), ("급성 위장염", 0.1)])
+    spec, share, why = sp.route(s)
+    assert spec == "endo_metab" and share == pytest.approx(0.7) and "내분비·대사" in why[0]
+    s = _state("72세 여성. 주호소: 이틀 전부터 헛것을 보고 횡설수설", ddx=[("섬망", 0.5), ("알코올 금단 증후군", 0.2),
+                                                              ("세균성 수막염", 0.2), ("알츠하이머병", 0.1)])
+    spec, share, why = sp.route(s)
+    assert spec == "psych" and share == pytest.approx(0.7) and "정신" in why[0] and any("신경" in x for x in why)
+    # hyponatraemia (E87) stays with renal_uro; SIADH moves with the endocrine causes
+    assert sp.route(_state(ddx=[("저나트륨혈증", 0.6), ("부신 기능 부전", 0.4)]))[0] == "renal_uro"
+    assert sp.route(_state(ddx=[("SIADH", 0.6), ("저나트륨혈증", 0.4)]))[0] == "endo_metab"
 
 
 def test_route_testicular_torsion_child_vs_adult():
@@ -264,6 +313,28 @@ def test_resources_heme_onc_fatigue():
     assert any(p["category"] == "fatigue" and p["in_specialty"] for p in res["protocols"])
     assert any("백혈병" in c["name"] for c in res["kb_candidates"])
     assert sp.render_resources(res).startswith("[혈액·종양 분과 참고 자료")
+
+
+def test_resources_endo_metab_dka():
+    s = _state("24세 남성. 주호소: 하루 전부터 복통과 구토", ddx=[("당뇨병성 케톤산증", 0.7), ("급성 췌장염", 0.3)],
+               pos=["복통", "구토", "다뇨"], responses=["혈당 480 mg/dL, pH 7.12, HCO3 9, 요케톤 3+입니다."])
+    res = sp.resources("endo_metab", s)
+    assert res["criteria"] and res["criteria"][0]["id"] == "dka_hhs_2024" and "band" in res["criteria"][0]
+    assert sp.render_resources(res).startswith("[내분비·대사 분과 참고 자료")
+    res = sp.resources("endo_metab", _state("50세 여성. 주호소: 한 달째 심한 피로", ddx=[("갑상선 기능 저하증", 0.6),
+                                                                              ("철결핍성 빈혈", 0.4)]))
+    assert any(p["category"] == "fatigue" and p["in_specialty"] for p in res["protocols"])
+    assert res["criteria"] and res["criteria"][0]["id"] == "dka_hhs_2024" and not res["criteria"][0]["for_dx"]
+
+
+def test_resources_psych():
+    s = _state("28세 여성. 주호소: 일주일째 잠을 안 자고 말이 많아졌어요", ddx=[("양극성 장애", 0.6), ("조현병", 0.4)])
+    res = sp.resources("psych", s)
+    assert any(c["id"] == "bipolar_dsm5tr" for c in res["criteria"])
+    s = _state("35세 남성. 주호소: 최근 우울하고 이상한 행동을 해요", ddx=[("주요 우울장애", 0.7), ("조현병", 0.3)])
+    res = sp.resources("psych", s)
+    assert any(p["category"] == "psychiatric" and p["in_specialty"] for p in res["protocols"])
+    assert sp.render_resources(res).startswith("[정신 분과 참고 자료")
 
 
 def test_resources_bad_inputs():
