@@ -1,5 +1,4 @@
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -8,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from doctor_agent.knowledge import kb  # noqa: E402
+from perf import assert_fast
 
 pytestmark = pytest.mark.skipif(not kb.available(), reason="data/kb not built (python scripts/build_kb.py)")
 
@@ -127,11 +127,13 @@ def test_every_field_has_a_source():
             assert t["src"].get("ko") in KNOWN_SOURCES
 
 
+@pytest.mark.perf
 def test_latency():
     k = kb.get_kb()
-    t0 = time.perf_counter()
-    for _ in range(5):
-        k.candidates(["발열", "기침", "흉통", "호흡곤란"])
-        k.lookup("급성 췌장염")
-        k.normalize_diagnosis("급성 심근경색")
-    assert (time.perf_counter() - t0) / 5 < 0.5
+
+    def five():
+        for _ in range(5):
+            k.candidates(["발열", "기침", "흉통", "호흡곤란"])
+            k.lookup("급성 췌장염")
+            k.normalize_diagnosis("급성 심근경색")
+    assert_fast(five, 0.5, per=5, what="candidates+lookup+normalize")  # strict budget: < 500 ms per round

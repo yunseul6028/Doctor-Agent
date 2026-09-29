@@ -1,7 +1,5 @@
 """knowledge/specialty.py: specialty mapping, routing, evidence slicing."""
 import json
-import statistics
-import time
 from pathlib import Path
 
 import pytest
@@ -11,6 +9,7 @@ from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.knowledge import clinical_rules, diagnostic_criteria, kb
 from doctor_agent.knowledge import specialty as sp
 from doctor_agent.safety import protocols
+from perf import assert_fast
 
 pytestmark = pytest.mark.skipif(not kb.available(), reason="data/kb not built")
 ROOT = Path(__file__).resolve().parents[1]
@@ -274,17 +273,11 @@ def test_resources_bad_inputs():
     assert sp.render_resources({"specialty": "cardio", "criteria": [{"bad": 1}]}) == ""
 
 
+@pytest.mark.perf
 def test_latency_after_warm():
-    """Budget: < 20 ms per call after load. Median checked with slack (shared CI machines are noisy)."""
+    """Strict budget: route() < 20 ms and resources() < 40 ms per call after load (tests/perf.py adds load slack)."""
     assert sp.warm()
     s = _state(ddx=[("급성 심근경색", 0.5), ("Acute ischemic stroke due to left MCA occlusion", 0.2),
                     ("Toxic ingestion/Metabolic acidosis", 0.2), ("대동맥 박리", 0.1)], pos=["흉통", "식은땀", "구토"])
-    tr, tres = [], []
-    for _ in range(5):
-        t0 = time.perf_counter()
-        sp.route(s)
-        tr.append(time.perf_counter() - t0)
-        t0 = time.perf_counter()
-        sp.resources("cardio", s)
-        tres.append(time.perf_counter() - t0)
-    assert statistics.median(tr) < 0.02 and statistics.median(tres) < 0.04
+    assert_fast(lambda: sp.route(s), 0.02, what="specialty.route()")
+    assert_fast(lambda: sp.resources("cardio", s), 0.04, what="specialty.resources()")

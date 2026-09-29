@@ -17,6 +17,7 @@ from doctor_agent.env.interface import Action, ActionType, Environment, Observat
 from doctor_agent.llm import client as client_mod
 from doctor_agent.llm.client import BillingError, LLMTimeout, OpenAICompatClient, extract_text
 from doctor_agent.llm.harmony import split_harmony
+from perf import limit
 
 ROOT = Path(__file__).resolve().parents[1]
 ACT = json.dumps({"type": "ASK", "content": "열이 있나요?", "confidence": 0.2}, ensure_ascii=False)
@@ -277,7 +278,8 @@ def test_watchdog_abandons_hung_call():
     guard.call_timeout_s = 0.1
     t0 = time.monotonic()
     assert guard.chat([{"role": "user", "content": "x"}]) == ""
-    assert time.monotonic() - t0 < 1.0 and "timeout" in guard.errors[0]
+    # 1 s strict (load-scaled), but always < 1.9 s so the 2 s hang still proves the timeout fired.
+    assert time.monotonic() - t0 < min(limit(1.0), 1.9) and "timeout" in guard.errors[0]
 
 
 # --- 4. prompt length control -----------------------------------------------------------------------------------------

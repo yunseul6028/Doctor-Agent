@@ -1,7 +1,6 @@
 """Finding → term matching (curated tables, lab parsing), candidate filters, diagnosis normalisation, and a small
 offline-benchmark regression (scripts/eval_kb.py) so ranking quality cannot silently drop."""
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -10,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from doctor_agent.knowledge import kb, kb_curated  # noqa: E402
+from perf import assert_fast
 
 pytestmark = pytest.mark.skipif(not kb.available(), reason="data/kb not built (python scripts/build_kb.py)")
 
@@ -147,15 +147,24 @@ def test_normalize_does_not_cross_word_boundaries():
     assert n is None or not n["code"].startswith("R53")
 
 
+@pytest.mark.perf
 def test_normalize_deterministic_and_fast():
-    t0 = time.perf_counter()
-    first = [kb.normalize_diagnosis(x) for x in ("다카야수 동맥염", "마이그스 증후군", "Reactive arthritis")]
-    again = [kb.normalize_diagnosis(x) for x in ("다카야수 동맥염", "마이그스 증후군", "Reactive arthritis")]
+    names = ("다카야수 동맥염", "마이그스 증후군", "Reactive arthritis")
+    first = [kb.normalize_diagnosis(x) for x in names]
+    again = [kb.normalize_diagnosis(x) for x in names]
     assert first == again
-    assert (time.perf_counter() - t0) / 6 < 0.2
+    assert_fast(lambda: [kb.normalize_diagnosis(x) for x in names], 0.2, per=3,
+                what="normalize_diagnosis()")  # strict budget: < 200 ms per call
 
 
 # --- offline benchmark regression -----------------------------------------------------------------
+
+def _dev_subset() -> list[dict]:
+    from scripts import eval_kb as E
+    cases = E.load_cases(("sample", "clinicalqa"))
+    sub = [c for c in cases if c["_set"] == "sample"]
+    return sub + sorted((c for c in cases if c["_set"] == "clinicalqa"), key=lambda c: c["_id"])[:34]
+
 
 def test_benchmark_regression_dev_subset():
     """Fixed dev subset (all 16 sample cases + first 34 clinicalqa cases by id) of scripts/eval_kb.py.
@@ -163,9 +172,7 @@ def test_benchmark_regression_dev_subset():
     kb_tests.py) top-1 25/50, top-10 35/50, top-50 39/50; 2026-09-27 (Orphanet frequencies + HIRA prevalence prior)
     top-1 26/50, top-10 38/50, top-50 41/50. Margin of 3 cases."""
     from scripts import eval_kb as E
-    cases = E.load_cases(("sample", "clinicalqa"))
-    sub = [c for c in cases if c["_set"] == "sample"]
-    sub += sorted((c for c in cases if c["_set"] == "clinicalqa"), key=lambda c: c["_id"])[:34]
+    sub = _dev_subset()
     rows = [E.rank_case(c) for c in sub]
     top10 = sum(1 for r in rows if r["rank"] and r["rank"] <= 10)
     top50 = sum(1 for r in rows if r["rank"])
@@ -174,7 +181,19 @@ def test_benchmark_regression_dev_subset():
     assert top1 >= 23, top1
     assert top10 >= 35, top10
     assert top50 >= 38, top50
-    assert max(r["ms"] for r in rows) < 500
+    # Latency is checked separately (test_benchmark_latency_dev_subset): the per-case "ms" measured inside rank_case is a
+    # single un-warmed wall-clock sample, which made this accuracy regression flaky under machine load.
+
+
+@pytest.mark.perf
+def test_benchmark_latency_dev_subset():
+    """Strict budget: every dev-subset case ranks in < 500 ms (idle: ~30 ms; the first, un-warmed call ~140 ms).
+    Warm up once, find the slowest case, then re-time that case best-of-N against the (load-scaled) budget."""
+    from scripts import eval_kb as E
+    sub = _dev_subset()
+    E.rank_case(sub[0])  # warm-up (lazy lexicon / regex caches)
+    slowest = max(sub, key=lambda c: E.rank_case(c)["ms"])
+    assert_fast(lambda: E.rank_case(slowest), 0.5, what=f"rank_case({slowest.get('_id')})")
 
 
 # --- normalisation-layer migration (doctor_agent.nlp) ---------------------------------------------

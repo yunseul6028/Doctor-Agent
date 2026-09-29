@@ -19,12 +19,16 @@ import statistics
 import sys
 import time
 from itertools import combinations
+from pathlib import Path
 
-from doctor_agent.agent import question_planner as qp
-from doctor_agent.agent.state import CaseState, Turn
-from doctor_agent.env.interface import Action, ActionType
-from doctor_agent.knowledge import kb, kb_tests
-from doctor_agent.nlp import parse
+ROOT = Path(__file__).resolve().parents[2]  # repo root
+sys.path.insert(0, str(ROOT / "src"))
+
+from doctor_agent.agent import question_planner as qp  # noqa: E402
+from doctor_agent.agent.state import CaseState, Turn  # noqa: E402
+from doctor_agent.env.interface import Action, ActionType  # noqa: E402
+from doctor_agent.knowledge import kb, kb_tests  # noqa: E402
+from doctor_agent.nlp import parse  # noqa: E402
 
 NS = (0, 2, 4)
 GENERIC_TOK = {"증상", "주호소", "질환", "검사", "진찰"}
@@ -158,7 +162,10 @@ def top1_confirm(state):
 
 
 def main():
-    files = sorted(glob.glob("data/cases_aug/*/*.json"))
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print(__doc__)
+        return 0
+    files = sorted(glob.glob(str(ROOT / "data/cases_aug/*/*.json")))
     cases = [json.load(open(f, encoding="utf-8")) for f in files]
     lat = []
     res = {}

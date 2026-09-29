@@ -12,7 +12,7 @@ migration plan below.
 | `src/doctor_agent/nlp/lexicon.py` | loads `data/lexicon/concepts.json` once at import (read-only); `scan()` finds mentions | yes |
 | `src/doctor_agent/nlp/findings.py` | `parse()`, `match()`, `concepts_in()`, `affirmed()`, `denied()`; `assess_spans()` (polarity/subject of spans found by another vocabulary); `spans_of()`, `age_from_text()`; stable public helper names (see API) | yes |
 | `data/lexicon/kb_links.json` | concept → KB term ids with link kind (27 KB; `python scripts/eval_kb.py --build-links`) | yes |
-| `data/lexicon/concepts.json` | built lexicon (≈362 KB, 619 concepts, 6.5k surface forms, 150 regexes) | yes (**add `data/lexicon` to `scripts/package.py` INCLUDE**) |
+| `data/lexicon/concepts.json` | built lexicon (≈385 KB; recounted 2026-09-29: 634 concepts, 6,855 surface forms, 152 regexes (148 `re` + 4 `negre`), 57 block words) | yes (**add `data/lexicon` to `scripts/package.py` INCLUDE**) |
 | `data/lexicon/seed.tsv` | hand-authored seed (long format `id<TAB>field<TAB>value`) | source only |
 | `scripts/build_lexicon.py` | merges seed + existing tables → `concepts.json` (`--check` for staleness) | no |
 | `scripts/label_findings.py` | gold-set pipeline (extract / dev / sample / show / freeze / metrics / errors) | no |
@@ -33,16 +33,16 @@ physiology, `ECG`, `HX` history & risk factors, `QUAL` pain quality / timing mod
 
 - form kinds: `lay` (구어체), `med` (Korean medical), `en`, `abbr`, `neg` (absence expression: "잘 먹어요" → no anorexia).
   The 4th element marks a figurative form that survives the simile rule ("몸이 불덩이 같아요").
-- `kb`: KB term ids whose label/synonym equals a concept label or synonym (318 concepts linked), plus `TF:` ids for
+- `kb`: KB term ids whose label/synonym equals a concept label or synonym (333 concepts linked, 2026-09-29), plus `TF:` ids for
   the 262 `kb_tests` result concepts. `protocol`: clinical_rules category and safety keyword-tuple names that
   mention the concept (`LEXICON.by_protocol("protocols:_TRIG_AMS")`).
 - flags: `group` (an absent group makes its members absent in `match`), `cue` (emit only with an explicit cue:
   `HX:pmh`, `LAB:hcg_pos`), `fig`, `kb_tests`.
 - provenance per entry: `seed`, `casefreq`, `curated` (kb_curated), `grounding`, `kb_tests`, `clinical_rules`,
   `protocols`, `danger_gate`, `preconditions`; KB links from `data/kb`. First owner of a surface form wins
-  (49 conflicts, logged by `--show-conflicts`); ambiguous forms are dropped (`DROP_FORMS`, `CURATED_RE_SKIP`).
+  (50 conflicts as of 2026-09-29, logged by `--show-conflicts`); ambiguous forms are dropped (`DROP_FORMS`, `CURATED_RE_SKIP`).
 
-Size by category: SYM 157, SIGN 88, LAB 198 (17 own + 181 from kb_tests), IMG 80, ECG 9, HX 59, QUAL 17, GRP 11.
+Size by category (2026-09-29): SYM 157, SIGN 88, LAB 198 (24 own + 174 from kb_tests), IMG 94, ECG 10, HX 59, QUAL 17, GRP 11.
 
 ## Finding
 
@@ -207,7 +207,7 @@ Principle: switch one module at a time behind its existing function signature, c
 | `agent/grounding.py:is_grounded`, `_ground`, `_parse_claim`, `Evidence` | 80 synonym groups, own polarity/number/clause code | `match(claim, parse(evidence))`; build evidence once per check with `parse(text, source)` per response. **Done** (2026-09-28): concept claims via `parse` + `findings._supports` with grounding-side guards (strict numbers, bare-item list negation, reference-range check of kb_tests values, same-response conflicts, site-narrowed absent parents, claim qualifier words, past/quit vs current); concept-free claims keep a literal-word reader (layer cues, `_LAB_RX` analyte names). `_GROUPS` stays only as `build_lexicon.py` input |
 | `agent/grounding.py:check_findings`, `_ground_qa` | yes/no by `_YES/_NO` regex | `parse(response, context={"question": q})` per ASK turn, then `match`; status 음성 → claim `"<item> 없음"`. **Done**: `apply()` parses each ASK answer with its question (parses cached on the case state); `_ground_qa` kept (same signature) for callers that pass (question, answer) pairs |
 | `agent/grounding.py:check_ddx_support`, `ungrounded_in_text`, `_item_ok` | `_REASON_SPLIT` + `_FINDING_MARK` | keep splitting; `finding_like` = `bool(parse(chunk, "claim"))`, then `match`. **Done** (`finding_like` = a non-kb_tests concept, a number or `_FINDING_MARK`: kb_tests reads disease names such as 대동맥 박리 as results) |
-| `knowledge/kb.py:KnowledgeBase._match_spans`, `match_terms`, `_groups` | KB labels + `kb_curated.SYNONYMS/REGEX/BLOCK_WORDS` | **done 2026-09-28** (`_analyze`): `parse(finding, "claim")` → concept → term ids from `data/lexicon/kb_links.json` (+ nearest linked ancestor at weight 0.4); the KB-label scan stays for **all** terms (the lexicon links only 294 concepts; limiting the scan to unlinked terms would drop KB-specific labels) and each label hit takes the polarity of the lexicon mention it overlaps, else `assess_spans()` |
+| `knowledge/kb.py:KnowledgeBase._match_spans`, `match_terms`, `_groups` | KB labels + `kb_curated.SYNONYMS/REGEX/BLOCK_WORDS` | **done 2026-09-28** (`_analyze`): `parse(finding, "claim")` → concept → term ids from `data/lexicon/kb_links.json` (+ nearest linked ancestor at weight 0.4); the KB-label scan stays for **all** terms (the lexicon links only 307 concepts in `kb_links.json` as of 2026-09-29; limiting the scan to unlinked terms would drop KB-specific labels) and each label hit takes the polarity of the lexicon mention it overlaps, else `assess_spans()` |
 | `knowledge/kb.py:candidates` (`_NEG`, `_strip_neg`) | end-of-text negation regex | **done**: present → query terms; absent (also inside a positive-list finding) → negatives; uncertain / hypothetical / a relative's → nothing; a negative-list finding that states nothing absent negates what it names. `_NEG`, `_NEG_TAIL`, `_strip_neg` removed |
 | `knowledge/kb_curated.py:lab_terms` | vital/lab thresholds | **done**: measured findings of `parse` (`LAB_VALUES="curated"` switch keeps the old one; dev MRR −0.01 with it). `SYNONYMS`/`REGEX` no longer read at runtime (682/689 phrases map to the same term through the lexicon; test `test_lexicon_covers_the_retired_curated_synonyms`) but stay in the file: `scripts/build_lexicon.py` and the links builder read them |
 | `knowledge/kb_tests.py:detect` | test-result engine | **kept, called directly** by `kb.test_findings`: via `parse` (per clause, `TF:` → concept → `TF:`) measured dev MRR 0.5630 vs 0.5652 direct, and `parse` has no "reported absent" context (`detect(f, -1)`) for the negative list |

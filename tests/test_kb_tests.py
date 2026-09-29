@@ -3,7 +3,6 @@ results and their polarity, table/KB consistency, ranking effect of decisive res
 import gzip
 import json
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -12,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from doctor_agent.knowledge import kb, kb_tests  # noqa: E402
+from perf import assert_fast
 
 needs_kb = pytest.mark.skipif(not kb.available(), reason="data/kb not built (python scripts/build_kb.py)")
 
@@ -202,6 +202,7 @@ def test_match_terms_includes_test_findings():
 
 
 @needs_kb
+@pytest.mark.perf
 def test_size_and_latency():
     size = sum(p.stat().st_size for p in (ROOT / "data" / "kb").iterdir() if p.is_file())
     assert size <= 20e6
@@ -211,7 +212,8 @@ def test_size_and_latency():
                 "Troponin-I < 0.01 ng/mL", "D-dimer 0.3 μg/mL", "Na 138 mEq/L, K 4.1 mEq/L", "AST 22 U/L, ALT 18 U/L"] * 3
     k = kb.get_kb()
     k.candidates(findings)
-    t0 = time.perf_counter()
-    for _ in range(10):
-        k.candidates(findings, negatives=["흉통 없음", "케톤 음성"])
-    assert (time.perf_counter() - t0) / 10 < 0.1
+
+    def ten():
+        for _ in range(10):
+            k.candidates(findings, negatives=["흉통 없음", "케톤 음성"])
+    assert_fast(ten, 0.1, per=10, what="candidates()")  # strict budget: < 100 ms per call
