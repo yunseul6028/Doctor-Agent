@@ -168,12 +168,13 @@ class SubagentManager:
 
     def before_step(self, state, anchoring: dict | None = None) -> None:
         """Consult and anchoring-moment advocate triggers, at the start of Policy.next_action (after the advisors).
-        Their hints are queued for the main prompt of this step."""
+        Their hints are queued for the main prompt of this step. The anchoring-moment advocate only runs with
+        cfg.advocate_on_anchoring (off by default: see docs/experiments.md "trigger calibration")."""
         if not getattr(self.cfg, "use_subagents", False):
             return
         self.observe(state)
         self._consult(state)
-        if anchoring:
+        if anchoring and getattr(self.cfg, "advocate_on_anchoring", False):
             self._advocate(state, anchoring.get("dx"), str(anchoring.get("why") or anchoring.get("msg") or ""),
                            "anchoring", queue=True)
 

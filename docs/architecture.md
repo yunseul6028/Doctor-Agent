@@ -268,7 +268,7 @@ advisor were off), switchable, and logged to `result["safety_log"]` with a Korea
 |---|---|---|---|---|
 | Triage (`safety/triage.py`) | `AGENT_USE_TRIAGE` | every turn | `unstable`, or `unknown` (vitals missing) with a red flag (`TRIAGE_RED_FLAGS`: ams, chest_pain, syncope, bleeding, anaphylaxis, airway, respiratory, seizure, sepsis_suspected, trauma) → `render_for_prompt` (≤ 250 chars) as an alert **above the case view** (`prompts.TRIAGE_ALERT`), kept in low-time mode; `concerning` → ordinary hint; `stable` / `unknown` without red flags → nothing | `triage`, on level change only |
 | Starting DDx (`anchoring.initial_differential`) | `AGENT_USE_ANCHORING` | turn 1 only | `render_for_prompt` (≤ 300 chars) as a hint | `anchoring` / `initial_ddx` |
-| Anchoring check (`anchoring.anchoring_check`) | `AGENT_USE_ANCHORING` | from turn 3, each turn until it fires | its `prompt_ko` as a hint in the next prompt, **once per case** (`state.anchoring_shown`, set only when the hint really made it into the prompt; a raising check is not retried) | `anchoring` / `premature_closure` |
+| Anchoring check (`anchoring.anchoring_check`) | `AGENT_USE_ANCHORING` | from turn `AGENT_ANCHORING_MIN_TURNS` (5; was 3, calibrated 2026-09-29, see below), each turn until it fires | its `prompt_ko` as a hint in the next prompt, **once per case** (`state.anchoring_shown`, set only when the hint really made it into the prompt; a raising check is not retried) | `anchoring` / `premature_closure` |
 | Question planner (`question_planner.suggest(k=planner_k=3)`) | `AGENT_USE_PLANNER` **and** `AGENT_USE_KB` | every turn | `render_for_prompt` (≤ 300 chars, protocol items left out) as a hint | `planner`, when the suggestions change |
 | Confidence (`confidence.assess`) | `AGENT_USE_CONFIDENCE` | DIAGNOSE proposal after the protocol pushback and the can't-miss gate | score < `AGENT_CONFIDENCE_PUSHBACK_BELOW` (0.3) and not `must_continue` → one retry hint (`prompts.confidence_pushback`) per case (`state.confidence_pushback`); only with > 3 turns left, not in low-time mode, and ≥ 2 attempts of `MAX_ATTEMPTS` left | `confidence`, every assessment (score, components, recommendation, pushback) |
 
@@ -310,8 +310,10 @@ Two pure functions for the policy (the lead wires them in; no state kept between
   are marked "미검증"), 1 KB candidate (`kb.candidates` on the chief complaint), then fill. Sex/age filters
   (`kb.patient_profile` + `clinical_rules.rule_age_years` on the demographics). `render_for_prompt(ddx)` ≤ 300 chars,
   meant to be shown once at turn 1.
-- `anchoring_check(state) -> {"dx", "p", "reasons", "why_ko", "prompt_ko", "suggested_actions"} | None`: only after
-  `MIN_TURNS`=3 turns, top live DDx p ≥ 0.4 and the same top in the last snapshot. Reasons: `stable_untested` (top since
+- `anchoring_check(state, min_turns=None) -> {"dx", "p", "reasons", "why_ko", "prompt_ko", "suggested_actions"} | None`:
+  only after `min_turns` turns (default `MIN_TURNS` = 5; the policy passes `AGENT_ANCHORING_MIN_TURNS`, same default;
+  was 3 — from turn 3 it fired more on trajectories that ended right than wrong, docs/experiments.md "trigger
+  calibration"), top live DDx p ≥ 0.4 and the same top in the last snapshot. Reasons: `stable_untested` (top since
   turn ≤ 2 and no EXAM/TEST named it, its KB tests/decisive results or its discriminating results vs. the 2nd candidate),
   `weak_support` (p ≥ 0.6 with ≤ 1 distinct supporting item found in the initial info + responses and not marked
   unverified), `contradicted` (≥ 2 distinct "against" items that are grounded findings, not "결과 없음/확인 필요").
@@ -475,17 +477,25 @@ Framework (pipeline branch):
   forced-diagnosis fallback never see them; a ref is dropped from `refs` when the main model itself puts the same
   diagnosis in its `ddx` (the model's own decision, not an automatic promotion). ≤ 4 refs.
 
-### Triggers (each at most once per case; all switches default on)
+### Triggers (each at most once per case; the `AGENT_USE_*` switches default on)
 | Sub-agent | Switch | Trigger | Output goes to |
 |---|---|---|---|
-| Consult (`consult:<specialty>`) | `AGENT_USE_CONSULT` | start of `next_action`: (a) `turn_count ≥ 3` and `specialty.route(state)` returns a specialty with share ≥ 0.6, or (b) `turn_count ≥ 6` and the model's own `confidence` < 0.5 on each of the last 3 parsed turns (then the routed specialty is used whatever its share; none → skip `no_specialty`) | hint on the main prompt of this `next_action` (the prompt right after the call), `ddx_add` → refs |
-| Advocate (`advocate`) | `AGENT_USE_ADVOCATE` | (a) the turn the anchoring (premature-closure) hint is really shown (`proposed_dx` = the anchored top DDx, reason = the check's `why_ko`) → hint on the same prompt, next to the anchoring hint; else (b) a DIAGNOSE proposal that is about to go to the pre-diagnosis review (same guards: < 2 reviews, > 3 turns left, not degraded) with code confidence (`confidence.assess`) < 0.65 → its hint is appended to the **review view** as `[반대 의견 검토(자문)]` (the reviewer decides hold/approve; no extra turn is spent) | as left; `ddx_add` → refs |
+| Consult (`consult:<specialty>`) | `AGENT_USE_CONSULT` | start of `next_action`: (a) `turn_count ≥ AGENT_CONSULT_MIN_TURNS` (5; was 3) and `specialty.route(state)` returns a specialty with share ≥ `AGENT_CONSULT_MIN_SHARE` (0.6), or (b) `turn_count ≥ AGENT_CONSULT_LOW_CONF_AFTER` (6) and the model's own `confidence` < `AGENT_CONSULT_LOW_CONF` (0.5) on each of the last `AGENT_CONSULT_LOW_CONF_TURNS` (3) parsed turns (then the routed specialty is used whatever its share; none → skip `no_specialty`) | hint on the main prompt of this `next_action` (the prompt right after the call), `ddx_add` → refs |
+| Advocate (`advocate`) | `AGENT_USE_ADVOCATE` | (a) only with `AGENT_ADVOCATE_ON_ANCHORING=1` (default off since 2026-09-29): the turn the anchoring (premature-closure) hint is really shown (`proposed_dx` = the anchored top DDx, reason = the check's `why_ko`) → hint on the same prompt, next to the anchoring hint; else (b) a DIAGNOSE proposal that is about to go to the pre-diagnosis review (same guards: < 2 reviews, > 3 turns left, not degraded) with code confidence (`confidence.assess`) < `AGENT_ADVOCATE_CONF_BELOW` (0.4; was 0.65) → its hint is appended to the **review view** as `[반대 의견 검토(자문)]` (the reviewer decides hold/approve; no extra turn is spent) | as left; `ddx_add` → refs |
 | LLM radiology (`radiology`) | `AGENT_USE_LLM_RADIOLOGY` (+ `AGENT_USE_RESULT_INTERPRETER`) | a result read by the code interpreter with `result_interpreter.needs_llm(interp)` true; ≤ `max_llm_radiology` (1) per case | `prompts.build_result_interpreter_messages` (`RESULT_INTERPRETER_PROMPT`, code reading as draft, result text ≤ 3000 chars). Items → findings ledger with `source="llm_radiology"` (있음 → 양성, 의심 → 양성 "의심", 없음 → 음성; detail site/value/test/"LLM 판독"; ≤ 6 items). They go through the **grounding check like model findings** (not trusted by construction) and never replace a code reading of the same item (`FindingsLedger.add`). Critical present items → `state.result_criticals` with concept `llm:<finding>` (one-time alert; not mapped to the danger gate). Summary → hint `prompts.SUBAGENT_HINT` on the next main prompt |
 
 Why the advocate has two moments: (a) is cheap (no hold, the hint only redirects exploration) and coincides with the
 moment code already suspects anchoring; (b) is the last chance before a low-confidence diagnosis and only enriches the
 existing review (it cannot add turns: the review is skipped with ≤ 3 turns left or in low-time mode). The cap is one
 advocate call per case, whichever comes first.
+
+Trigger calibration (2026-09-29, `eval/offline/eval_triggers.py`, replay of 224 trajectories of non-competition dev
+models; docs/experiments.md "trigger calibration"): the old numbers fired the anchoring check on 58%, the routed consult
+on 75% and the advocate on 75% of trajectories, with no more (anchoring: fewer) fires on those that ended wrong. Now:
+anchoring and routed consult start at turn 5 (27% / 36%, lift 1.3 / 1.2 in sample, no better than random across runs);
+the advocate only fires before review at code confidence < 0.4 (33%, lift 1.6 in sample, 1.5–1.6 out of sample) — moment
+(a) is off because it did not pick out wrong cases. **Re-check on gpt-oss-20b trajectories** (fire rates differed by up
+to 10× between dev models).
 
 ### Global guards and budget
 - Master switch `AGENT_USE_SUBAGENTS` (default on; ablation condition `v6-no-subagents`, **not** in `dev`).
