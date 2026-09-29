@@ -74,13 +74,47 @@ _AGE_RE = re.compile(r"(\d{1,3})\s*(세|살|개월|months?|years?)", re.I)
 
 _GENERIC_NAMES = {"증후군", "질환", "장애", "종양", "신생물", "감염", "감염증", "염증", "손상", "기타", "결핍", "결핍증",
                   "syndrome", "disease", "disorder", "disorders", "infection", "neoplasm", "tumor", "tumour", "cancer",
-                  "carcinoma", "lesion", "deficiency", "insufficiency", "failure", "injury", "inflammation"}
+                  "carcinoma", "lesion", "deficiency", "insufficiency", "failure", "injury", "inflammation",
+                  "nervepalsy", "palsy", "paralysis"}  # "6th nerve palsy" is not peroneal "Nerve Palsy, Peroneal"
 
 
-_CONTEXT = re.compile(r"임신|분만|산후|산욕|신생아|태아|소아|영아|턱|치아|동반|의한|제외|pregnan|neonat|newborn|fetal|child|"
-                      r"infant|due|with|without")
+# extra words of a longer name that change the concept (superstring step); 외상/traumatic: "두개내 출혈" is not S06
+# injury; inherited subtypes: "hypocalcemia" is not "autosomal dominant hypocalcemia"
+_CONTEXT = re.compile(r"임신|분만|산후|산욕|신생아|태아|소아|영아|턱|치아|동반|의한|제외|외상|가족성|유전성|선천|pregnan|neonat|"
+                      r"newborn|fetal|child|infant|due|with|without|traum|injur|autosom|familial|hereditar|congenital|"
+                      r"xlinked")
+# "X, Y" names also index X: always when Y is a pure qualifier ("세균성 수막염, 달리 분류되지 않은"); otherwise only when X
+# is a multi-word English phrase ("VENTRICULAR TACHYCARDIA, CATECHOLAMINERGIC ..." → ventricular tachycardia) or a
+# Korean noun of ≥3 characters — single words and short/adjectival heads are fragments ("심장성, 심장 또는 심근부전
+# NOS" → "심장성", "용혈, 간효소상승 및 ..." → "용혈" on HELLP, "Hypocalcemia, Autosomal Dominant 2", "disease, X-linked")
+_COMMA_QUAL = re.compile(r"^(nos|nec|unspecified|not elsewhere classified|달리 분류되지 않은|상세불명의?|acute|chronic|"
+                         r"급성|만성)$", re.I)
 
 
+def _comma_head_ok(head: str, tail: str) -> bool:
+    if _COMMA_QUAL.match(tail.strip()):
+        return True
+    h = head.strip()
+    if _HANGUL.search(h):
+        return len(_n(h)) >= 3 and not re.search(r"(성|의|및|또는|한|는)$", h)
+    words = [w for w in re.split(r"[^0-9a-z']+", h.lower()) if w]
+    return len(words) >= 2 and len(_n(h)) >= 8 and not any(ch.isdigit() for ch in h)
+
+
+def _word_ends(name: str) -> frozenset[int]:
+    """Offsets in the compact key where a word of the name ends ("supraventricular tachycardia" → {16, 27})."""
+    out, n = set(), 0
+    for w in _EN_SPACE.split(name.lower()):
+        if w:
+            n += len(w)
+            out.add(n)
+    return frozenset(out)
+# MedlinePlus topic titles are topics, not synonyms: one naming an overdose/poisoning is not indexed on a profile coded
+# outside poisoning (T36-T65, X40-X49) or acute intoxication (F1x.0) ("Opioid Overdose" on opioid abuse F11.1)
+_POISON_TITLE = re.compile(r"overdose|poisoning|toxicity|intoxication", re.I)
+
+
+_KO_DX_SUFFIX = {"증", "병", "군", "환", "애"}  # generic "disease" endings (-증, -병, 증후군, 질환, 장애)
 _POL_RANK = {"other": 0, "absent": 1, "present": 2}
 _NO_LINK = {"SYM:pain", "HX:pmh"}  # generic concepts: no KB term (the label scan's _GENERIC / stop list)
 _VALUE_CUES = ("value", "value+ref", "normal-word", "urine")
@@ -263,14 +297,22 @@ class KnowledgeBase:
         self.by_id = {d["id"]: i for i, d in enumerate(self.diseases)}
         # exact name index: normalised name → [(disease idx, is primary name)]
         self.names: dict[str, list[tuple[int, bool]]] = defaultdict(list)
+        self._word_ends: dict[str, frozenset[int]] = {}  # Latin name key → word end offsets (superstring boundaries)
         for i, d in enumerate(self.diseases):
+            poison_ok = _poison_coded(d)
             for lst in ("names_ko", "names_en"):
-                for j, (name, _src) in enumerate(d[lst]):
+                for j, (name, src) in enumerate(d[lst]):
+                    if src == "MedlinePlus" and not poison_ok and _POISON_TITLE.search(name):
+                        continue
                     key = _n(_PAREN.sub("", name)) or _n(name)
                     if key:
                         self.names[key].append((i, j == 0))
+                        if not _HANGUL.search(key):
+                            self._word_ends.setdefault(key, _word_ends(_PAREN.sub("", name) or name))
                     # "세균성 수막염, 달리 분류되지 않은" → also index "세균성 수막염"
-                    for extra in (_n(name.split(",")[0]) if "," in name else "", _n(_QUAL.sub("", name))):
+                    head, _c, tail = name.partition(",")
+                    pre = _n(head) if tail and _comma_head_ok(head, tail) else ""
+                    for extra in (pre, _n(_QUAL.sub("", name))):
                         if len(extra) >= 2 and extra != key:
                             self.names[extra].append((i, False))
         # ---- finding → term labels: KB labels minus generic/ambiguous ones (lay wording comes from the lexicon)
@@ -350,6 +392,7 @@ class KnowledgeBase:
         self._bix: dict[str, tuple[dict[str, set[str]], dict[str, int]]] = {}
         self._kcd: dict[str, tuple[list[str], str, str]] | None = None
         self._kcd_names: dict[str, str] | None = None
+        self._kcd_loose: dict[str, str] = {}
 
     # ------------------------------------------------------------------ helpers
     def _richness(self, i: int) -> float:
@@ -407,7 +450,11 @@ class KnowledgeBase:
                     break
             for k in cand or ():
                 if (k != key and k.endswith(key) and len(key) >= 0.6 * len(k)
-                        and not _CONTEXT.search(k[: len(k) - len(key)])):
+                        and not _CONTEXT.search(k[: len(k) - len(key)])
+                        # English: the extra part is whole words ("ventricular tachycardia" is not the end of
+                        # "supraventricular tachycardia")
+                        and (pool != "names" or k not in self._word_ends
+                             or len(k) - len(key) in self._word_ends[k])):
                     if best is None or (len(k), k) < (len(best), best):
                         best = k
         return best
@@ -416,7 +463,9 @@ class KnowledgeBase:
         """Normalised name keys to try: (same concept, backed-off concept with qualifiers dropped, spaced forms of
         the same-concept variants for word boundaries).
         Spelling pairs and qualifiers come from kb_curated (NAME_SUBS, NAME_MODIFIERS)."""
-        base = _PAREN.sub(" ", text or "").lower().replace("-", " ")
+        # a hyphen between Korean syllables joins a compound ("폐-신장 증후군"): kept as a joint mark (\x00, dropped by
+        # _n) so that _contained does not take "신장 증후군" out of it; other hyphens become spaces
+        base = re.sub(r"(?<=[가-힣])-(?=[가-힣])", "\x00", _PAREN.sub(" ", text or "").lower()).replace("-", " ")
         base = re.sub(r"\s+", " ", base).strip() or (text or "").lower()
 
         def spell(s: str) -> list[str]:
@@ -457,9 +506,13 @@ class KnowledgeBase:
         ≥1/3 of it) or cover ≥60% of it; Latin-only names need ≥8 chars; generic heads ("증후군") never count."""
         best = None
         for spaced in keys:
-            key, ends, starts = "", set(), set()
+            key, ends, starts, joints = "", set(), set(), set()
             for w in spaced.split():
                 starts.add(len(key))
+                off = len(key)
+                for part in w.split("\x00")[:-1]:
+                    off += len(_n(part))
+                    joints.add(off)
                 key += _n(w)
                 ends.add(len(key))
             n = len(key)
@@ -468,11 +521,12 @@ class KnowledgeBase:
                     if best is not None and j - i <= len(best):
                         break
                     sub = key[i:j]
-                    if not (j in ends and sub != key and sub in pool and sub not in _GENERIC_NAMES):
+                    if not (j in ends and sub != key and sub in pool and sub not in _GENERIC_NAMES
+                            and sub not in kb_curated.CONTAINED_BLOCK):
                         continue
                     hangul = bool(_HANGUL.search(sub))
                     whole_word = i in starts and j == n  # the last word(s) of the query: "지역사회 획득 폐렴" → 폐렴
-                    if i not in starts and (not hangul or len(sub) < 4):  # "근무력증" is not "무력증"
+                    if i not in starts and (not hangul or len(sub) < 4 or i in joints):  # "근무력증" is not "무력증"
                         continue
                     if ((hangul and (whole_word or (j == n and (len(sub) >= 4 or 3 * len(sub) >= n))
                                      or (len(sub) >= 3 and len(sub) >= 0.6 * n)))
@@ -502,11 +556,18 @@ class KnowledgeBase:
         sub = self._contained(spaced, self.names)
         if sub:
             return self._best_hit(sub)
-        return self._fuzzy(same[0] if same else _n(name_or_id)) if fuzzy else None
+        words = spaced[0].split() if spaced else []
+        return self._fuzzy(same[0] if same else _n(name_or_id), words) if fuzzy else None
 
-    def _fuzzy(self, key: str) -> int | None:
-        """Char-bigram Dice over profile names. Short keys/abbreviations never go fuzzy; Korean matches below 0.7
-        must share the first two characters (spelling variants, not "추간판 탈출증" → "승모판 탈출증")."""
+    def _fuzzy(self, key: str, words: list[str] | None = None) -> int | None:
+        """Char-bigram Dice over profile names. Short keys/abbreviations never go fuzzy. Korean: the first character
+        (usually the organ: "폐동맥 색전증" is not "신동맥 색전증") must agree, or the query's first two characters occur
+        in the name (word order: "신경이완제 악성증후군" → "악성 신경이완증후군"), and the head noun must agree
+        (_same_head, or from FUZZY_SURE on the query's last two characters occur in the name: "과립막세포종" →
+        "과립막 세포 종양"; "심장 혈관육종" is not "심장혈관 질환", "발열성 호중구감소증" not "발열성 호중구피부증"); below
+        FUZZY_SURE also the first two characters ("추간판 탈출증" is not "승모판 탈출증"). English: every query word of ≥4 letters must be mostly (≥60% of its
+        bigrams) present in the name ("opioid poisoning" is not "carbon monoxide poisoning"). Never a match that
+        differs by an antonym morpheme (kb_curated.NAME_ANTONYMS: "저칼슘혈증" is not "고칼슘혈증")."""
         hangul = bool(_HANGUL.search(key))
         if len(key) < (5 if hangul else 6):  # "고환염전" (torsion) must not fuzz into "고환염" (orchitis)
             return None
@@ -516,13 +577,22 @@ class KnowledgeBase:
         for g in qg:
             for k in ix.get(g, ()):
                 cand[k] += 1
+        wgrams = [_bigrams(w) for w in (words or ()) if len(w) >= 4 and not _HANGUL.search(w)]
         best, best_rank = None, (0.0, 0, "")
         lo = self.FUZZY_MIN if hangul else self.FUZZY_MIN_LATIN
         for k, inter in cand.items():
             s = 2 * inter / (len(qg) + nbig[k])
             if s < lo or s < best_rank[0] - 1e-9:
                 continue
-            if hangul and s < self.FUZZY_SURE and k[:2] != key[:2]:
+            if hangul and ((k[0] != key[0] and key[:2] not in k)
+                           or not (_same_head(k, key) or (s >= self.FUZZY_SURE and key[-2:] in k))
+                           or (s < self.FUZZY_SURE and k[:2] != key[:2])):
+                continue
+            if wgrams:
+                kg = _bigrams(k)
+                if any(len(wg & kg) < 0.6 * len(wg) for wg in wgrams):
+                    continue
+            if _antonym_swap(key, k):
                 continue
             rank = (round(s, 9), -len(k), k)  # deterministic tie-break: shorter, then lexicographic
             if best is None or rank > best_rank:
@@ -1043,7 +1113,7 @@ class KnowledgeBase:
 
     def _kcd_table(self):
         if self._kcd is None:
-            self._kcd, self._kcd_names = {}, {}
+            self._kcd, self._kcd_names, self._kcd_loose = {}, {}, {}
             with gzip.open(self.kb_dir / "kcd.tsv.gz", "rt", encoding="utf-8") as f:
                 next(f)
                 for line in f:
@@ -1054,6 +1124,15 @@ class KnowledgeBase:
                         self._kcd_names.setdefault(_n(nm), code)
                     for nm in names:
                         self._kcd_names.setdefault(_n(_QUAL.sub("", nm)), code)
+                    # parenthesised parts dropped or kept ("상세불명의 두개내출혈(비외상성)" → "두개내출혈",
+                    # "헤노흐(-쇤라인)자반" → "헤노흐자반" / "헤노흐쇤라인자반"): a second-tier table, read only after
+                    # the exact KCD and profile names (dropping "(만성)" must not override a profile's own name)
+                    for nm in names:
+                        if _PAREN.search(nm):
+                            q = _QUAL.sub("", nm)
+                            for v in (_PAREN.sub("", q), _PAREN.sub("", nm), q.replace("(", "").replace(")", "")):
+                                if len(_n(v)) >= 2:
+                                    self._kcd_loose.setdefault(_n(v), code)
         return self._kcd, self._kcd_names
 
     def _kcd_result(self, code: str, how: str, profile: dict | None = None) -> dict:
@@ -1069,20 +1148,37 @@ class KnowledgeBase:
         return res
 
     def normalize_diagnosis(self, text: str, fuzzy: bool = True) -> dict | None:
-        """Standard Korean name + KCD code. Order: explicit code → exact KCD/profile name (spelling variants) →
-        same with qualifiers dropped ("backoff") → longest known name inside the text ("contained") → fuzzy.
+        """Standard Korean name + KCD code. Order: explicit code → curated one-offs (kb_curated.NAME_CODES, poisoning
+        → T codes, bare abbreviations) → exact KCD/profile name (spelling variants; then KCD names with parenthesised
+        parts dropped/kept) → same with qualifiers dropped ("backoff") → longest known name inside the text
+        ("contained") → fuzzy. Audited by scripts/audit_normalize.py (tests/test_normalize_audit.py).
         fuzzy=False skips the last step (char-bigram Dice; 40-100 ms on long English names) for latency-bound callers."""
         t = (text or "").strip()
         if not t:
             return None
         kcd, kcd_names = self._kcd_table()
-        m = _CODE.search(t.upper())
-        if m and (m.group(1) + m.group(2) + (m.group(3) or "")) in kcd:
-            return self._kcd_result(m.group(1) + m.group(2) + (m.group(3) or ""), "code")
+        code = _explicit_code(t, kcd)
+        if code:
+            return self._kcd_result(code, "code")
+        low = t.lower()
+        for rx, code in _NAME_CODES:  # explicit, documented one-offs (kb_curated.NAME_CODES)
+            if rx.search(low) and code in kcd:
+                return self._kcd_result(code, "curated")
+        if kb_curated.POISON_WORDS.search(low):  # "Opioid overdose" → T40.2 (kb_curated.POISON_CODES)
+            for rx, code in _POISON_CODES:
+                if rx.search(low) and code in kcd:
+                    return self._kcd_result(code, "curated")
+        ab = _abbreviation(t)
+        if ab:  # bare abbreviations: curated meaning, or none when ambiguous ("ACS" is not acrocallosal syndrome)
+            if ab in kb_curated.ABBR_AMBIGUOUS:
+                return None
+            if ab in kb_curated.ABBREVIATIONS:
+                res = self.normalize_diagnosis(kb_curated.ABBREVIATIONS[ab], fuzzy=fuzzy)
+                return {**res, "match": "abbreviation"} if res else None
         same, back, spaced = self._variants(t)
 
-        def from_kcd(key: str, how: str) -> dict:
-            code = kcd_names[key]
+        def from_kcd(key: str, how: str, table: dict | None = None) -> dict:
+            code = (table or kcd_names)[key]
             i = self._best_hit(key)
             same_code = i is not None and code in [c for c, _ in self.diseases[i]["codes"].get("kcd", [])]
             prof = self.profile(i) if same_code else None
@@ -1092,7 +1188,7 @@ class KnowledgeBase:
 
         def from_profile(i: int, how: str) -> dict:
             p = self.profile(i)
-            code = _best_kcd(p["codes"])
+            code = self.best_code(i)
             if code:
                 return self._kcd_result(code, how, p)
             return {"name": p["name_ko"] or p["name_en"], "code": "", "code_system": "", "name_en": p["name_en"],
@@ -1105,6 +1201,13 @@ class KnowledgeBase:
                 i = self._best_hit(key)
                 if i is not None:
                     return from_profile(i, how_p)
+            # second tier: KCD names with the parenthesised part dropped/kept, and "-증" dropped ("헤노흐-쇤라인
+            # 자반증" → KCD "헤노흐(-쇤라인)자반")
+            for key in keys + [k[:-1] for k in keys if len(k) >= 4 and k[-1] == "증" and _HANGUL.search(k)]:
+                if key in self._kcd_loose:
+                    return from_kcd(key, how_k, self._kcd_loose)
+                if key in kcd_names:
+                    return from_kcd(key, how_k)
             if keys is same:  # a slightly longer official name containing the text ("어깨의 유착성 관절낭염")
                 sup_k, sup_p = self._superstring(same, "kcd"), self._superstring(same, "names")
                 if sup_k and len(sup_k) <= len(sup_p or sup_k):
@@ -1119,6 +1222,16 @@ class KnowledgeBase:
             return from_profile(self._best_hit(sub_p), "contained")
         i = self._resolve(t, fuzzy=fuzzy)
         return from_profile(i, "fuzzy") if i is not None else None
+
+    def best_code(self, i: int) -> str:
+        """KCD code of profile i (see _best_kcd)."""
+        d = self.diseases[i]
+        pin = kb_curated.PROFILE_KCD.get(d["id"])
+        if pin and pin in [c for c, _ in d["codes"].get("kcd", [])]:
+            return pin
+        kcd, _ = self._kcd_table()
+        own = [n for n, _ in d["names_en"][:1] + d["names_ko"][:1]]
+        return _best_kcd(d["codes"], lambda c: kcd.get(c, ([], "", ""))[0][:3] + [kcd.get(c, ([], "", ""))[1]], own)
 
     def render_for_prompt(self, findings: list[str] | None = None, dx: list[str] | None = None, k: int = 3,
                           max_chars: int = 800) -> str:
@@ -1135,7 +1248,7 @@ class KnowledgeBase:
             return ""
         lines = ["[지식베이스 참고: 출처 있는 질환 정보. 확진 근거가 아니라 문진·검사 계획용]"]
         for n, (p, hit) in enumerate(rows, 1):
-            code = _best_kcd(p["codes"])
+            code = self.best_code(self.by_id[p["id"]])
             head = f"{n}. {p['name_ko'] or p['name_en']}" + (f" ({_fmt_code(code)})" if code else "")
             parts = []
             if hit:
@@ -1174,15 +1287,109 @@ class KnowledgeBase:
         return out
 
 
-def _best_kcd(codes: dict) -> str:
-    """Most supported KCD category across sources (DO/Wikidata/DDXPlus ICD-10 codes), then its shortest code."""
+def _explicit_code(t: str, kcd: dict) -> str:
+    """A KCD code written in the text: a subcode ("I21.9") anywhere; a bare 3-character code only when it is the whole
+    text, bracketed ("(I21)") or labelled ("KCD I21") — "파르보바이러스 B19 감염증" is not B19 viral hepatitis,
+    "HLA-B27" is not B27."""
+    up = t.upper()
+    for m in _CODE.finditer(up):
+        code = m.group(1) + m.group(2) + (m.group(3) or "")
+        if code not in kcd:
+            continue
+        if m.group(3):
+            return code
+        rest = (up[:m.start()] + up[m.end():]).strip()
+        before, after = up[:m.start()].rstrip(), up[m.end():].lstrip()
+        if (not re.search(r"[0-9A-Z가-힣]", rest) or (before.endswith(("(", "[")) and after.startswith((")", "]")))
+                or re.search(r"(KCD|ICD(-?10)?|코드)\s*[:：]?$", before)):
+            return code
+    return ""
+
+
+def _abbreviation(t: str) -> str:
+    """Upper-case key of a bare abbreviation ("ACS", "acs", "IC/BPS"): letters only (plus "/" or "-"), 2-6 letters,
+    written in capitals or at most 3 letters long; "" otherwise."""
+    s = t.strip()
+    letters = re.sub(r"[/\-]", "", s)
+    if not re.fullmatch(r"[A-Za-z]{2,6}", letters):
+        return ""
+    return s.upper() if (letters.isupper() or len(letters) <= 3) else ""
+
+
+def _best_kcd(codes: dict, names_of=None, own: list[str] | None = None) -> str:
+    """Most supported KCD category across sources (DO/Wikidata/DDXPlus ICD-10 codes). Ties: the code whose KCD title
+    agrees best with the profile's own names (names_of(code) → KCD titles, own = profile names; DO cites ICD-10-CM codes
+    whose KCD title can differ: necrotizing enterocolitis K55.3 is angiodysplasia in KCD, P77 is NEC), then the
+    category listed first (source order; the old shortest-then-alphabetical rule sent vasculitis [I77.6, I80, L95,
+    M30, M31] to I80 phlebitis), then its shortest code."""
     kcd = [c for c, _ in codes.get("kcd", [])]
     if not kcd:
         return ""
     votes: dict[str, int] = defaultdict(int)
+    first: dict[str, int] = {}
     for c, _ in codes.get("icd10", []):
-        votes[re.sub(r"[^0-9A-Z]", "", c.upper())[:3]] += 1
-    return min(kcd, key=lambda c: (-votes.get(c[:3], 0), len(c), c))
+        c3 = re.sub(r"[^0-9A-Z]", "", c.upper())[:3]
+        votes[c3] += 1
+        first.setdefault(c3, len(first))
+    for c in kcd:
+        first.setdefault(c[:3], len(first))
+    agree: dict[str, float] = defaultdict(float)  # per 3-character category
+    mine = [_n(x) for x in own or () if _n(x)]
+    if names_of and mine and len({c[:3] for c in kcd}) > 1:
+        for c in kcd:
+            if c[:3] in _NO_AGREE:
+                continue
+            titles = [_n(_PAREN.sub("", _QUAL.sub("", x))) for x in names_of(c) if x]
+            best = max((_dice(a, b) for a in mine for b in titles if b), default=0.0)
+            if best >= 0.4:  # weak overlaps ("유방의 ... 신생물") do not count
+                agree[c[:3]] = max(agree[c[:3]], round(best, 2))
+    # the category is chosen first; inside it the shortest code, as before
+    return min(kcd, key=lambda c: (-votes.get(c[:3], 0), -agree.get(c[:3], 0.0), first[c[:3]], len(c), c))
+
+
+_POISON_RANGES = (("T36", "T65"), ("X40", "X49"))
+# sequelae categories never win a tie on title agreement ("뇌염" is not B94.1 "바이러스뇌염의 후유증")
+_NO_AGREE = {"B90", "B91", "B92", "B94", "E64", "E68", "G09", "I69", "O97", "T90", "T91", "T92", "T93", "T94", "T95",
+             "T96", "T97", "T98", "Y85", "Y86", "Y87", "Y88", "Y89"}
+_POISON_CODES = [(re.compile(rx), code) for rx, code in kb_curated.POISON_CODES]
+_NAME_CODES = [(re.compile(rx), code) for rx, code, _why in kb_curated.NAME_CODES]
+
+
+def _poison_coded(d: dict) -> bool:
+    """True when the profile has no KCD code or one in poisoning (T36-T65, X40-X49) or acute intoxication (F1x.0)."""
+    kcd = [c for c, _ in d["codes"].get("kcd", [])]
+    return not kcd or any(any(lo <= c[:3] <= hi for lo, hi in _POISON_RANGES)
+                          or (c[0] == "F" and "10" <= c[1:3] <= "19" and c[3:4] == "0") for c in kcd)
+
+
+def _same_head(a: str, b: str) -> bool:
+    """Korean head nouns agree: the same last character once a generic disease ending (-증, -병) is dropped, or both
+    end in a generic disease ending ("대동맥 축착증" ~ "대동맥의 축착", "혈소판 과다증" ~ "혈소판증가증"; not
+    "심장 혈관육종" ~ "심장혈관 질환")."""
+    if a[-1] == b[-1] or {a[-1], b[-1]} <= _KO_DX_SUFFIX:
+        return True
+    a2 = a[:-1] if a[-1] in "증병" and len(a) > 2 else a
+    b2 = b[:-1] if b[-1] in "증병" and len(b) > 2 else b
+    return a2[-1] == b2[-1]
+
+
+def _dice(a: str, b: str) -> float:
+    ga, gb = _bigrams(a), _bigrams(b)
+    return 2 * len(ga & gb) / (len(ga) + len(gb)) if ga and gb else 0.0
+
+
+def _antonym_swap(a: str, b: str) -> bool:
+    """True when swapping one antonym morpheme of a (kb_curated.NAME_ANTONYMS) brings it closer to b: the fuzzy match
+    rests on the opposite concept ("저칼슘혈증" → "고칼슘혈증", "osteoclastoma" → "osteoblastoma")."""
+    base = _dice(a, b)
+    for x, y in kb_curated.NAME_ANTONYMS:
+        for s, t in ((x, y), (y, x)):
+            i = a.find(s)
+            while i >= 0:
+                if t in b and _dice(a[:i] + t + a[i + len(s):], b) > base + 1e-9:
+                    return True
+                i = a.find(s, i + 1)
+    return False
 
 
 def _fmt_code(code: str) -> str:

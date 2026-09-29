@@ -16,6 +16,8 @@ phrase list into a concept → term link in data/lexicon/kb_links.json. Still re
                   열감" is not fever)
     BLOCK_WORDS   words that contain a shorter label but mean something else ("수포음" = crackles, not vesicle)
     NAME_SUBS / NAME_MODIFIERS   diagnosis-name normalisation
+    CONTAINED_BLOCK / NAME_ANTONYMS / POISON_CODES / ABBREVIATIONS / ABBR_AMBIGUOUS / NAME_CODES / PROFILE_KCD
+                  documented one-offs of the 2026-09-29 normalisation audit (scripts/audit_normalize.py)
 Not read at runtime (build-time sources, A/B switches):
     SYNONYMS      extra Korean/English phrases for a term
     REGEX         flexible phrasings for a term
@@ -379,8 +381,95 @@ NAME_SUBS = [("지주막", "거미막"), ("갑상선", "갑상샘"), ("담관", 
              ("뇌막", "수막"), ("자발성", "자연"), ("질환", "병"), ("신부전", "콩팥병"),
              ("신질환", "콩팥병"), ("신장", "콩팥"), ("요로 감염", "요로감염"), ("위장관염", "위장염"),
              ("대퇴골", "넙다리뼈"), ("경색", "경색증"), ("결핍", "결핍증"), ("협착증", "협착"),
-             ("stemi", "st분절상승 심근경색"), ("nstemi", "st분절비상승 심근경색")]
+             ("stemi", "st분절상승 심근경색"), ("nstemi", "st분절비상승 심근경색"),
+             # transliterations of Takayasu (KCD M31.4 "대동맥궁증후군[다까야수]"; KB profile "타카야수 동맥염")
+             ("다카야수", "타카야수"), ("다까야수", "타카야수"),
+             # KCD M02.3 "라이터질환"; without this "라이터 증후군" fuzzes into Reye syndrome ("라이증후군", G93.7)
+             ("라이터 증후군", "라이터질환"), ("라이터증후군", "라이터질환"),
+             # BPPV: "양성 발작성 체위/두위 현훈" → KB "양성 발작성 체위성 현기증" (H81.1); a bare 현훈→현기증 pair
+             # would send it to R42 "현기증" through the contained step
+             ("체위 현훈", "체위성 현기증"), ("두위 현훈", "체위성 현기증"), ("양성 돌발성", "양성 발작성"),
+             ("전염성 단핵구증", "감염성 단핵구증"),
+             ("호중구 감소", "중성구 감소"), ("호중구감소", "중성구 감소"),  # KCD D70 "중성구 감소증"
+             ("중독성 홍반", "독성 홍반"),
+             ("뇌수막염", "수막염"),
+             ("결핵성 림프절염", "결핵성 말초림프절병증"),  # KCD A18.2 (not I88.9 nonspecific lymphadenitis)  # "세균성 뇌수막염" → G00 "세균성 수막염" (not G03 unspecified meningitis)  # "신생아 중독성 홍반" → KCD P83.1 "신생아 독성 홍반" (not L53.0)  # KCD B27; fuzzy no longer crosses a different first word
+             # common synonym of 폐색전증 (I26); Korean fuzzy no longer crosses organs ("신동맥 색전증")
+             ("폐동맥 색전", "폐색전"), ("폐동맥색전", "폐색전")]
 # leading/trailing qualifiers that can be dropped to back off to the general concept
 NAME_MODIFIERS = ["급성", "만성", "아급성", "원발성", "일차성", "이차성", "속발성", "특발성", "재발성", "우측", "좌측",
                   "양측", "파열된", "파열", "의증", "추정", "진행성", "acute", "chronic", "subacute", "primary",
                   "secondary", "idiopathic", "recurrent", "left", "right", "bilateral", "ruptured", "suspected"]
+
+# Diagnosis-name normalisation guards (added by the 2026-09-29 audit, scripts/audit_normalize.py; each entry is a
+# documented one-off, the generic fixes live in kb.py):
+# Korean homograph heads never taken as the "contained" disease of a longer name. key → why
+CONTAINED_BLOCK = {
+    "이식증": "異食症 pica (F50.8) vs 移植 transplant/implant + 증: '흉강 비장 이식증' is thoracic splenosis",
+}
+# antonym / contrasting morphemes: a fuzzy name match must not be one that differs from the query by swapping one of
+# these ("저칼슘혈증" is not "고칼슘혈증", "osteoclastoma" is not "osteoblastoma", "epidermoid" is not "dermoid" cyst)
+NAME_ANTONYMS = [("고", "저"), ("과", "저"), ("hyper", "hypo"), ("clast", "blast"), ("epidermoid", "dermoid")]
+# poisoning / overdose names → KCD T code: (agent regex, code). Applied only when the name also carries a poisoning
+# word (POISON_WORDS); codes from the KCD-8 T36-T65 titles in data/kb/kcd.tsv.gz. The KB alone sends "Opioid overdose"
+# to F11.1 (a MedlinePlus topic title on the opioid-abuse profile) and "opioid poisoning" by fuzzy match to carbon
+# monoxide. Agents whose code is not unambiguous in the ICD-10 drug table (e.g. lithium: T43.5 vs T56.8) are left out.
+POISON_WORDS = re.compile(r"overdose|poisoning|toxicity|intoxication|과다\s?복용|과량\s?복용|음독|중독")
+POISON_CODES = [
+    (r"heroin|헤로인", "T401"),
+    (r"methadone|메타돈", "T403"),
+    (r"opioid|opiate|아편유사제|오피오이드|morphine|모르핀|fentanyl|펜타닐|oxycodone|옥시코돈|codeine|코데인", "T402"),
+    (r"acetaminophen|paracetamol|tylenol|아세트아미노펜|파라세타몰|타이레놀", "T391"),
+    (r"salicylate|aspirin|살리실산|아스피린", "T390"),
+    (r"benzodiazepine|벤조디아제핀|벤조다이아제핀", "T424"),
+    (r"tricyclic|\btca\b|삼환계|삼환 ?항우울제", "T430"),
+    (r"digoxin|digitalis|디곡신|디기탈리스", "T460"),
+    (r"organophosph|carbamate|유기인|카바메이트", "T600"),
+    (r"methanol|메탄올|메틸 ?알코올", "T511"),
+    (r"ethylene glycol|에틸렌 ?글리콜", "T523"),
+    (r"\biron\b|철분|(?<![가-힣])철 ", "T454"),
+]
+# bare clinical abbreviations (kb._abbreviation: capitals, or ≤3 letters) → the name normalised instead. The KB's own
+# synonym index maps many abbreviations to rare diseases ("ACS" → acrocallosal syndrome Q04.0, "SJS" → Sjögren,
+# "FHF" → TNF receptor-associated periodic syndrome); abbreviations the KB already resolves correctly are not listed.
+ABBREVIATIONS = {
+    "ACS": "급성 관상동맥 증후군", "SJS": "Stevens-Johnson syndrome", "TEN": "독성 표피 괴사 용해",
+    "SLE": "systemic lupus erythematosus", "MDD": "major depressive disorder", "HF": "heart failure",
+    "CHF": "congestive heart failure", "VT": "심실성 빈맥", "DVT": "하지 심부정맥 혈전증", "ICH": "뇌내출혈",
+    "IE": "infective endocarditis", "FHF": "급성 간부전", "ALF": "급성 간부전", "DGI": "파종성 임균 감염",
+    "IBS": "irritable bowel syndrome", "ODD": "oppositional defiant disorder", "NEC": "necrotizing enterocolitis",
+}
+# bare abbreviations with several common clinical meanings → no normalisation (the caller keeps the raw text)
+ABBR_AMBIGUOUS = {
+    "HD": "Huntington / Hirschsprung / Hodgkin disease / haemodialysis",
+    "PD": "Parkinson disease / panic disorder / peritoneal dialysis",
+    "MS": "multiple sclerosis / mitral stenosis",
+    "AS": "ankylosing spondylitis / aortic stenosis / Angelman syndrome",
+    "AD": "aortic dissection / atopic dermatitis / Alzheimer disease",
+    "CD": "Crohn disease / celiac disease / conduct disorder",
+    "PV": "polycythaemia vera / pemphigus vulgaris",
+    "PG": "pyoderma gangrenosum / pemphigoid gestationis",
+    "CDI": "Clostridioides difficile infection / central diabetes insipidus",
+    "ET": "essential thrombocythaemia / essential tremor",
+    "CRS": "chronic rhinosinusitis / cytokine release / congenital rubella syndrome",
+    "ASD": "atrial septal defect / autism spectrum disorder",
+    "PM": "polymyositis / pyomyositis",
+}
+# explicit name → KCD code one-offs, checked right after an explicit code: (regex on the lowercased name, code, why).
+# Only for can't-miss or common names the KB has no entry for (or maps to a subtype); keep this list short.
+NAME_CODES = [
+    (r"^(급성\s?)?관상\s?동맥\s?증후군$|^acute coronary syndromes?$", "I249",
+     "not in the KB; ICD-10 codes ACS as acute ischaemic heart disease (I24.9) until MI (I21) or unstable angina "
+     "(I20.0) is known"),
+    (r"^당뇨병?\s?성?\s?(신증|신병증|콩팥병)$|^diabetic (nephropathy|kidney disease)$", "E142",
+     "contained step gives E14 (diabetes, no renal code); KCD E14.2 diabetes with renal complications"),
+    (r"^(원발성\s?)?면역성?\s?혈소판\s?감소(증|성 자반증?)$|^immune thrombocytop(enia|enic purpura)$", "D693",
+     "ITP; contained step gives D69.6 thrombocytopenia unspecified; KCD D69.3 특발성 혈소판감소성 자반"),
+    (r"^(저|고)칼슘\s?혈증$|^hyp(o|er)calc(a)?emia$", "E835",
+     "KB: 저칼슘혈증 fuzzy → 고칼슘혈증, hypocalcemia → autosomal dominant hypocalcaemia subtype; KCD E83.5 disorders "
+     "of calcium metabolism"),
+]
+# profile id → KCD code, for profiles whose cited ICD-10 codes tie across unrelated categories
+PROFILE_KCD = {
+    "DOID:865": "I776",  # vasculitis: Wikidata lists I77.6, I80 (phlebitis), L95 (skin-limited), M30, M31
+}
