@@ -373,6 +373,8 @@ so no Accuracy / Efficiency / Safety row.
   psych consult asks organic-cause tests before settling on a psychiatric diagnosis (Safety).
 
 ### 2026-09-29 · trigger calibration: anchoring check, consult, advocate (offline replay, no LLM)
+
+> **Re-measured after endo_metab/psych (10 specialties, commit 96f3712 onward):** consult old rule 84.4% → chosen rule (turn ≥ 5, share ≥ 0.6) 40.2%, wrong 16/26, lift 1.53, out-of-sample 1.10 / 1.08. The consult numbers in the table below were measured at 1853b06 (8 specialties). Conclusion unchanged: turn 5 is a cost decision, not evidence of selecting wrong cases. README 9.3 uses the re-measured values.
 `python eval/offline/eval_triggers.py [--results DIR]` (repo-relative; `-v` lists the rules picked per fold). No prompt
 change and no LLM run, so no Accuracy / Efficiency / Safety row: these are trigger statistics, not scores.
 **Calibrated on Gemini/Gemma trajectories only (gemini-3.5-flash-lite 160, gemma-4-26b-a4b-it 48, gemini-3.6-flash 16):
