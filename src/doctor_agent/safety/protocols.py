@@ -21,6 +21,13 @@ Verification (2026-09-25)
   epinephrine x2, anaphylaxis airway, stroke glucose / onset time / imaging, neutropenic CBC, early-pregnancy
   ultrasound): 6 -> primary, 5 -> secondary; epinephrine/airway now cite WAO 2020 (full text read). What was read is
   in each Check.note.
+- 2026-09-29 (second pass): the remaining 26 "unverified" checks re-checked by safety impact: 15 -> primary, 3 ->
+  secondary, 8 stay unverified (vitals in chest pain / headache / stroke, chest pain CXR, stroke neuro exam, abdominal
+  exam, chronic weakness x2; notes say why). 6 secondary checks also read in full text -> primary (PE work-up x2,
+  headache CT, infant bilious vomiting imaging, syncope ECG and cardiac history). Citations moved where the text that
+  was read belongs
+  to another guideline (ESC 2018 syncope, ACR 2023 acute pelvic pain, ACC/AHA 2022 aorta, WAO 2020, AHA/ACC/HFSA 2022).
+  aaa_imaging: min_age=50 replaced by predicate "aaa" (age >= 50 or unstated, or any age with an aortopathy clue).
 """
 from __future__ import annotations
 
@@ -332,6 +339,21 @@ G_WAO_ANAPHYLAXIS = Citation(
     verified=True, short_author="WAO 아나필락시스 지침",
 )
 
+# 2026-09-29 (second pass): guidelines whose full text was read for checks previously "unverified"; bibliographic data
+# generated from PubMed E-utilities esummary on 2026-09-29.
+G_ESC_SYNCOPE = Citation(
+    "Brignole M, Moya A, de Lange FJ, et al.",
+    "2018 ESC Guidelines for the diagnosis and management of syncope",
+    "Eur Heart J", 2018, "39(21):1883-1948", doi="10.1093/eurheartj/ehy037", pmid="29562304",
+    verified=True, short_author="ESC 실신 지침",
+)
+G_ACR_PELVIC_PAIN = Citation(
+    "Expert Panel on GYN and OB Imaging; Brook OR, Dadour JR, et al.",
+    "ACR Appropriateness Criteria Acute Pelvic Pain in the Reproductive Age Group: 2023 Update",
+    "J Am Coll Radiol", 2024, "21(6S):S3-S20", doi="10.1016/j.jacr.2024.02.014", pmid="38823952",
+    verified=True, short_author="ACR 가임기 급성 골반통 적정성 기준",
+)
+
 GUIDELINES: tuple[Citation, ...] = (
     G_CHEST_PAIN, G_AORTA, G_PE, G_HF, G_PLEURAL, G_ANAPHYLAXIS, G_WAO_ANAPHYLAXIS, G_HEADACHE, G_MENINGITIS, G_STROKE,
     G_SEPSIS, G_NEUTROPENIA, G_EARLY_PREGNANCY, G_ECTOPIC, G_AAA, G_AMI, G_ENDOCARDITIS,
@@ -339,6 +361,7 @@ GUIDELINES: tuple[Citation, ...] = (
     G_GOUT_DX, G_LOW_BACK_PAIN, G_SJS_TEN, G_PRURITUS, G_VTE_DX, G_GLOMERULAR, G_AMENORRHEA, G_PMB, G_MECFS,
     G_DEMENTIA, G_PSYCH_EVAL,
     G_URTICARIA, G_SSNHL, G_ARHL, G_HEARING_IMAGING, G_NECK_MASS, G_HEMOPHILIA, G_IIM_CRITERIA, G_INFANT_VOMITING,
+    G_ESC_SYNCOPE, G_ACR_PELVIC_PAIN,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -676,7 +699,25 @@ def _myopathy_pattern(cc: str, text: str) -> bool:
     return not one_side and not any(k in t for k in _TRIG_SENSORY)
 
 
+# Aortopathy clues that keep AAA imaging below age 50: ACC/AHA 2022 Table 15 strong risk factors (family history of AAA,
+# inherited vascular connective tissue disorder; vascular Ehlers-Danlos: aneurysm and rupture at young ages) and a known
+# aneurysm. Negation-aware ("대동맥류는 없어요" does not count).
+_TRIG_AORTOPATHY = ("마르판", "엘러스", "엘레르스", "로이스-디츠", "로이스 디츠", "결합조직 질환", "결합 조직 질환", "결합조직질환",
+                    "대동맥류", "대동맥 동맥류", "marfan", "ehlers", "loeys", "connective tissue", "aortic aneurysm")
+
+
+def _aaa_suspected(cc: str, text: str) -> bool:
+    """AAA clue (back/flank pain, pulsatile mass, syncope, shock) at age >= 50 or unstated age; below 50 only with an
+    aortopathy clue. The age floor is our operationalisation (see the aaa_imaging note: no acute AAA below 55 in the
+    Oxford Vascular Study, Howard 2015)."""
+    if not contains_affirmed(text, _TRIG_AAA):
+        return False
+    age = age_years(cc)
+    return age is None or age >= 50 or contains_affirmed(text, _TRIG_AORTOPATHY)
+
+
 PREDICATES = {
+    "aaa": _aaa_suspected,
     "sepsis": _sepsis_suspected, "ie": _ie_suspected, "neonate": _neonate, "not_neonate": _not_neonate,
     "neonate_prolonged": _neonate_prolonged, "hemoptysis": _hemoptysis, "chronic_cough": _chronic_cough_only,
     "unilateral_leg": _unilateral_leg, "not_unilateral_leg": _not_unilateral_leg, "amenorrhea": _amenorrhea,
@@ -687,9 +728,9 @@ PREDICATES = {
 }
 
 
-def _vitals(citation: Citation, when: str = "도착 즉시", note: str = "") -> Check:
+def _vitals(citation: Citation, when: str = "도착 즉시", note: str = "", verification: str = "unverified") -> Check:
     return Check("vitals", "활력징후(혈압, 맥박, 호흡수, 체온, 산소포화도)", "exam", _KW_VITALS, citation,
-                 "unverified", when=when, note=note or "Basic initial assessment; not a specific numbered "
+                 verification, when=when, note=note or "Basic initial assessment; not a specific numbered "
                  "recommendation checked in the guideline text.")
 
 
@@ -713,7 +754,8 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "Not applied to months-long chest pain (acute_only=2; ECG still applies to stable chest pain)."),
             Check("cxr", "흉부 X선", "test", _KW_CXR, G_CHEST_PAIN, "unverified",
                   when="폐·흉막·대동맥 등 다른 원인 평가",
-                  note="Guideline suggests CXR to evaluate alternative cardiac/pulmonary/thoracic causes."),
+                  note="Reviewer knowledge: the guideline suggests CXR to evaluate alternative cardiac/pulmonary/"
+                  "thoracic causes. 2026-09-29: full text and executive summary HTTP 403; no summary read that states it."),
             Check("aorta_imaging", "양팔 혈압 비교 + 대동맥 영상검사(CT 혈관조영 등)", "test", _KW_AORTA, G_AORTA,
                   "primary", triggers=_TRIG_AORTA, when="찢어지는 통증, 등으로 뻗는 통증, 양팔 혈압 차이 등",
                   acute_only=2,
@@ -722,33 +764,46 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "rec. 1 (COR 1, LOE C-LD) CT recommended for initial diagnostic imaging, TEE/MRI reasonable "
                   "alternatives (2a)."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
-                  "secondary", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
+                  "primary", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
                   acute_only=2, note="ESC 2019: clinical probability (Wells/Geneva), D-dimer if not high probability, CTPA. "
-                  "2026-09-29: guideline body text read in part (academic.oup.com, via fetch): Wells or revised Geneva "
-                  "for clinical probability; negative D-dimer with low/intermediate probability excludes PE in ~30%; "
-                  "negative CTPA excludes PE at low/intermediate probability. Recommendation table (sec. 4.11) not "
-                  "seen, hence secondary."),
+                  "2026-09-29: guideline body text read in part (academic.oup.com, via fetch). Second pass 2026-09-29: "
+                  "recommendation table sec. 4.11 read in the guideline PDF (society-hosted copy of ehz405): diagnostic "
+                  "strategy based on clinical probability (clinical judgement or validated rule, I-A); plasma D-dimer, "
+                  "preferably highly sensitive, in outpatients/ED patients with low or intermediate probability; "
+                  "suspected high-risk PE (haemodynamic instability): bedside echo or emergency CTPA."),
         ),
     ),
     Protocol(
         category="dyspnea", name_ko=CATEGORY_NAMES["dyspnea"],
         cant_miss=("폐색전증", "급성 심부전", "아나필락시스", "긴장성 기흉"),
         checks=(
-            _vitals(G_PE, note="Hemodynamic status (shock/hypotension) defines high-risk PE in ESC 2019; "
-                    "SpO2 is basic assessment. Not checked in the guideline text."),
-            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_HF, "unverified", when="모든 급성 호흡곤란(성인)",
+            _vitals(G_PE, verification="primary",
+                    note="2026-09-29 (second pass), ESC 2019 sec. 4.11 read in the guideline PDF: suspected PE is split "
+                    "by haemodynamic instability (suspected high-risk PE -> bedside echo or emergency CTPA, i.v. UFH "
+                    "without delay), so blood pressure/heart rate decide the pathway; that this needs vital signs on "
+                    "arrival is our reading. SpO2 is basic assessment."),
+            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_HF, "secondary", when="모든 급성 호흡곤란(성인)",
                   min_age=18,
                   note="HF guideline recommends ECG in initial evaluation of suspected HF. Adult guideline: not "
-                  "applied to newborns/children (2026-09-27)."),
-            Check("cxr", "흉부 X선", "test", _KW_CXR, G_PLEURAL, "unverified", when="기흉·폐렴·폐부종 평가",
-                  note="Tension pneumothorax is a clinical diagnosis; do not delay decompression for imaging."),
+                  "applied to newborns/children (2026-09-27). 2026-09-29: full text HTTP 403; confirmed in the "
+                  "open-access comparison of AHA/ACC/HFSA 2022 and ESC 2021 (Behnoush 2023, PMC10192289, Table 2): "
+                  "12-lead ECG COR 1 in both."),
+            Check("cxr", "흉부 X선", "test", _KW_CXR, G_HF, "secondary", when="기흉·폐렴·폐부종 평가",
+                  note="2026-09-29: citation moved from BTS 2023 pleural to AHA/ACC/HFSA 2022: chest X-ray COR 1 in "
+                  "the diagnostic evaluation of HF (Behnoush 2023, PMC10192289, Table 2; guideline full text HTTP "
+                  "403). BTS 2023 (full text read, thorax.bmj.com): radiology incl. CXR is part of the effusion "
+                  "detection pathway and the pneumothorax pathway (Appendix 1). The former note 'tension "
+                  "pneumothorax is a clinical diagnosis; do not delay decompression for imaging' is not in BTS 2023 "
+                  "and was removed (tension is handled by safety/danger_gate)."),
             Check("natriuretic_peptide", "BNP 또는 NT-proBNP", "test", ("bnp", "nt-probnp", "나트륨이뇨"), G_HF,
-                  "unverified", when="심부전 의심(성인)", min_age=18,
-                  note="Class 1: natriuretic peptides to support/exclude HF in patients presenting with dyspnea."),
+                  "secondary", when="심부전 의심(성인)", min_age=18,
+                  note="Class 1: natriuretic peptides to support/exclude HF in patients presenting with dyspnea. "
+                  "2026-09-29: confirmed in Behnoush 2023 (PMC10192289, Table 2: 'BNP/NT-proBNP, patients with "
+                  "dyspnoea for diagnosis or exclusion', COR 1 in AHA 2022 and ESC 2021)."),
             Check("pe_workup", "폐색전증 사전확률 평가 후 D-dimer 또는 CT 폐동맥조영", "test", _KW_PE_TEST, G_PE,
-                  "secondary", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
-                  acute_only=2, min_age=18, note="As chest_pain pe_workup (ESC 2019 body text read in part, "
-                  "2026-09-29)."),
+                  "primary", triggers=_TRIG_PE, when="객혈, 한쪽 다리 부종, 최근 수술·부동 등 위험인자",
+                  acute_only=2, min_age=18, note="As chest_pain pe_workup (ESC 2019 recommendation table sec. 4.11 "
+                  "read, 2026-09-29)."),
             Check("epinephrine", "아나필락시스 의심 시 즉시 에피네프린 근육주사", "treatment",
                   ("에피네프린", "epinephrine", "아드레날린", "adrenaline", "epipen"), G_WAO_ANAPHYLAXIS, "primary",
                   triggers=_TRIG_ANAPHYLAXIS, when="두드러기·입술/혀 부종·알레르겐 노출 후 호흡곤란",
@@ -763,14 +818,19 @@ PROTOCOLS: tuple[Protocol, ...] = (
         checks=(
             _vitals(G_HEADACHE),
             Check("neuro_exam", "신경학적 진찰(의식, 동공, 국소 결손, 경부 강직)", "exam", _KW_NEURO_EXAM, G_HEADACHE,
-                  "unverified", when="모든 급성 두통",
-                  note="The ACEP recommendations are conditioned on a normal neurologic exam, so it must be done."),
+                  "primary", when="모든 급성 두통",
+                  note="The ACEP recommendations are conditioned on a normal neurologic exam, so it must be done. "
+                  "2026-09-29: ACEP 2019 full text read (acep.org PDF): critical question 1 Level B (Ottawa SAH Rule, "
+                  "incl. limited neck flexion on examination, for patients with a normal neurologic examination) and "
+                  "question 3 Level B (normal NCCT within 6 h in a patient with a normal neurologic examination). "
+                  "Population: adults; pediatric, pregnant, trauma and chronic headaches excluded."),
             Check("brain_ct", "비조영 뇌 CT(발병 6시간 이내 음성이면 지주막하 출혈 배제에 유용)", "test",
-                  _KW_BRAIN_CT, G_HEADACHE, "secondary", triggers=_TRIG_THUNDERCLAP, acute_only=1,
+                  _KW_BRAIN_CT, G_HEADACHE, "primary", triggers=_TRIG_THUNDERCLAP, acute_only=1,
                   when="벼락두통·갑자기 시작해 1시간 이내 최고조·인생 최악의 두통",
-                  note="Abstract confirms critical question 3 (normal NCCT within 6 h). The Level B answer "
-                  "(negative NCCT within 6 h in neurologically normal patients rules out SAH) is from "
-                  "reviewer knowledge; use with the Ottawa SAH Rule."),
+                  note="2026-09-29: ACEP 2019 full text read (acep.org PDF), critical question 3, Level B: 'Use a "
+                  "normal noncontrast head CT performed within 6 hours of symptom onset in an ED headache patient "
+                  "with a normal neurologic examination, to rule out nontraumatic SAH'; use with the Ottawa SAH Rule "
+                  "(question 1, Level B: high sensitivity to rule out, low specificity)."),
             Check("meningitis_workup", "혈액배양 + 요추천자(CT 선행 적응증 확인)", "test",
                   _KW_BLOOD_CULTURE + _KW_LP, G_MENINGITIS, "secondary", triggers=_TRIG_MENINGITIS,
                   when="두통과 발열·목 강직·의식 변화 동반",
@@ -798,7 +858,10 @@ PROTOCOLS: tuple[Protocol, ...] = (
                   "within 3 h (selected patients 4.5 h) of last known normal; thrombectomy in selected patients 6-24 h "
                   "from last known normal."),
             Check("neuro_exam", "신경학적 진찰(국소 결손, 의식 수준)", "exam", _KW_NEURO_EXAM, G_STROKE, "unverified",
-                  when="모든 급성 신경 증상"),
+                  when="모든 급성 신경 증상",
+                  note="Reviewer knowledge: AHA/ASA 2019 recommends a stroke severity scale, preferably the NIHSS. "
+                  "2026-09-29: full text, stroke.org PDF and the AHA slide deck all HTTP 403; the ACC summary read "
+                  "mentions NIHSS only as an eligibility threshold, so not upgraded."),
             Check("brain_imaging", "비조영 뇌 CT 또는 뇌 MRI", "test", _KW_BRAIN_IMAGING, G_STROKE, "secondary",
                   when="급성 뇌졸중 의심",
                   note="Emergent brain imaging before any reperfusion therapy. 2026-09-29: via ACC 'Ten points to "
@@ -809,21 +872,25 @@ PROTOCOLS: tuple[Protocol, ...] = (
         category="fever", name_ko=CATEGORY_NAMES["fever"],
         cant_miss=("패혈증", "뇌수막염", "호중구감소성 발열"),
         checks=(
-            _vitals(G_SEPSIS, note="SSC 2021 recommends against qSOFA alone vs SIRS/NEWS/MEWS for screening; "
-                    "vital signs feed those scores."),
+            _vitals(G_SEPSIS, verification="primary",
+                    note="2026-09-29: SSC 2021 read (PMC8486643): rec. 1 sepsis screening for acutely ill, high-risk "
+                    "patients, with tools such as SIRS criteria, vital signs, qSOFA, NEWS or MEWS; rec. 2 (strong) "
+                    "against qSOFA as a single screening tool compared with SIRS, NEWS or MEWS. These tools are built "
+                    "from vital signs."),
             Check("blood_culture", "항생제 투여 전 혈액배양", "test", _KW_BLOOD_CULTURE, G_SEPSIS, "primary",
                   when="패혈증 의심(급성 발열 + 오한·저혈압·빈맥·의식 변화 등)", predicate="sepsis",
                   note="SSC 2021: obtain cultures including blood before antimicrobials if it does not delay "
                   "treatment (read in PMC8486643, co-published version)."),
             Check("lactate", "혈중 젖산", "test", ("젖산", "락테이트", "lactate", "lactic"), G_SEPSIS, "primary",
                   when="패혈증 의심(급성 발열 + 오한·저혈압·빈맥·의식 변화 등)", predicate="sepsis", note="SSC 2021: suggest measuring blood lactate (weak recommendation)."),
-            Check("blood_culture_ie", "감염성 심내막염 의심 시 항생제 전 혈액배양(여러 세트)", "test", _KW_BLOOD_CULTURE,
-                  G_ENDOCARDITIS, "unverified", predicate="ie",
+            Check("blood_culture_ie", "감염성 심내막염 의심 시 항생제 전 혈액배양(30분 간격 3세트 이상)", "test", _KW_BLOOD_CULTURE,
+                  G_ENDOCARDITIS, "primary", predicate="ie",
                   when="발열 + 심잡음·판막질환/인공판막·최근 치과/판막 시술·주사 약물·색전 징후·균혈증",
-                  note="Citation bibliographically verified (PubMed 37622656). The recommendation (>=3 blood "
-                  "culture sets before antibiotics in suspected IE) is from reviewer knowledge, not re-read in "
-                  "the guideline text. The clue list is our operationalisation of IE risk / modified Duke minor "
-                  "criteria."),
+                  note="2026-09-29: ESC 2023 full text read (guideline PDF, society-hosted copy of ehad193): sec. "
+                  "5.3.1 'At least three sets of blood cultures should be obtained at 30-minute intervals prior to "
+                  "antibiotic therapy' from a peripheral vein; sec. 7.12 empirical therapy: three sets at 30-min "
+                  "intervals before antibiotics. The clue list is our operationalisation of IE risk / modified Duke "
+                  "minor criteria."),
             Check("cbc_neutropenia", "일반혈액검사(호중구 수)", "test",
                   ("일반혈액", "혈구", "cbc", "백혈구", "호중구", "complete blood count", "neutrophil count"), G_NEUTROPENIA,
                   "primary", triggers=_TRIG_NEUTROPENIA, when="항암치료 중·면역저하 환자의 발열",
@@ -839,18 +906,26 @@ PROTOCOLS: tuple[Protocol, ...] = (
         category="abdominal_pain", name_ko=CATEGORY_NAMES["abdominal_pain"],
         cant_miss=("장 천공", "자궁외 임신", "복부 대동맥류 파열", "장간막 허혈"),
         checks=(
-            _vitals(G_AAA),
+            _vitals(G_AORTA, verification="primary",
+                    note="2026-09-29: ACC/AHA 2022 read (PMC9876736), sec. 6.5.5.2 rec. 1 (COR 1, B-R): in ruptured AAA "
+                    "that is hemodynamically stable, CT to plan repair; symptomatic AAA needs ICU arterial BP "
+                    "monitoring. Hemodynamic status therefore decides the pathway; the check itself is basic "
+                    "assessment (our reading). Citation moved from SVS 2018 (text not accessible)."),
             Check("abdominal_exam", "복부 진찰(압통 위치, 반발 압통, 근성 방어)", "exam",
                   ("복부 진찰", "복부 촉진", "배 진찰", "압통", "반발", "근성 방어", "복막 자극", "abdominal exam",
                    "palpat", "rebound", "guarding", "tenderness"),
                   C_ALVARADO, "unverified", when="모든 복통",
-                  note="Tenderness and rebound are Alvarado components; cited as the source for exam findings, "
-                  "not as a guideline."),
-            Check("pregnancy_test", "임신 검사(β-hCG)", "test", _KW_PREGNANCY, G_ECTOPIC, "unverified",
+                  note="Basic assessment (reviewer knowledge). RLQ tenderness and rebound are Alvarado components "
+                  "(abstract); cited as the source for exam findings, not as a guideline."),
+            Check("pregnancy_test", "임신 검사(β-hCG)", "test", _KW_PREGNANCY, G_ACR_PELVIC_PAIN, "primary",
                   predicate="pregnancy_test_abdominal", when="가임기 여성의 복통(임신 사실이 이미 알려진 경우 제외)",
-                  note="ACOG PB 193 / ACEP 2017 cover ectopic pregnancy evaluation (hCG + transvaginal US). "
-                  "Recommendation text not re-read. 2026-09-27: not for known pregnancy (임신 38주), age > 55 or "
-                  "stated menopause."),
+                  note="2026-09-29: ACR AC Acute Pelvic Pain in the Reproductive Age Group 2023 narrative read "
+                  "(gravitas.acr.org PDF): a serum β-hCG test is usually performed when a premenopausal patient "
+                  "presents with acute pelvic pain; knowledge of pregnancy is of utmost importance (ectopic "
+                  "pregnancy, radiation); every imaging variant is split by β-hCG result. Citation moved from ACOG PB "
+                  "193 (text not accessible; ectopic work-up still G_ECTOPIC in danger_gate). Applying it to "
+                  "abdominal pain generally (not only pelvic) is our reading. 2026-09-27: not for known pregnancy "
+                  "(임신 38주), age > 55 or stated menopause."),
             Check("pelvic_us", "임신 양성이면 골반(질식) 초음파", "test",
                   ("질식 초음파", "골반 초음파", "경질 초음파", "transvaginal", "pelvic ultrasound", "pelvic us"),
                   G_EARLY_PREGNANCY, "primary", predicate="current_pregnancy",
@@ -862,14 +937,21 @@ PROTOCOLS: tuple[Protocol, ...] = (
             Check("aaa_imaging", "복부 대동맥 초음파 또는 CT", "test",
                   ("복부 초음파", "복부 ct", "대동맥 초음파", "abdominal ultrasound", "abdominal ct", "ct abdomen",
                    "aortic ultrasound"),
-                  G_AAA, "unverified", triggers=_TRIG_AAA, min_age=50,
-                  when="50세 이상(또는 나이 미상)·등/옆구리 통증·박동성 종괴·실신·저혈압",
-                  note="min_age=50 is our operationalisation (AAA is rare below 50; SVS screening starts at 65, or "
-                  "55 with risk); it stops flank pain in young adults (pyelonephritis, DKA) from requiring it. "
-                  "2026-09-29: still unverified for symptomatic patients. Read in the ACC/AHA 2022 aortic guideline "
-                  "(PMC9876736): abdominal ultrasound is the recommended tool for AAA screening/surveillance, and 24% "
-                  "of ruptured AAA were < 65 years (not < 50). Ruptured AAA misdiagnosed in 30%, renal colic the "
-                  "commonest (Marston 1992, PMID 1619721, abstract)."),
+                  G_AORTA, "primary", predicate="aaa",
+                  when="50세 이상(또는 나이 미상; 결합조직 질환·대동맥류 병력/가족력이면 나이 무관)·등/옆구리 통증·"
+                  "박동성 종괴·실신·저혈압",
+                  note="2026-09-29 (second pass), ACC/AHA 2022 read (PMC9876736): pain in the back, abdomen or flank "
+                  "attributable to the AAA is a high-risk symptom of impending rupture (symptomatic AAA -> ICU, repair "
+                  "in 24-48 h); sec. 6.5.5.2 rec. 1 (COR 1, B-R) CT in hemodynamically stable ruptured AAA; abdominal "
+                  "ultrasound is the recommended screening/surveillance tool. Citation moved from SVS 2018 (text not "
+                  "accessible). Age floor kept at 50 (decision 2026-09-29): ACC/AHA 2022 cites 24% of ruptured AAA "
+                  "< 65 y (NIS), which argues against a 65 floor, not against 50; in the population-based Oxford "
+                  "Vascular Study (Howard 2015, PMC4599457, Table 2, full text) 0 of 103 acute AAA events were aged "
+                  "45-54 and 7 (6.8%) were 55-64. Below 50 the check still applies with an aortopathy clue (ACC/AHA "
+                  "Table 15 strong risk factors: family history of AAA, inherited vascular connective tissue disorder; "
+                  "vascular Ehlers-Danlos ruptures at young ages) or a known aneurysm; otherwise young flank pain "
+                  "(pyelonephritis, renal colic, DKA) does not require it. Ruptured AAA misdiagnosed in 30%, renal "
+                  "colic the commonest (Marston 1992, PMID 1619721, abstract)."),
             Check("mesenteric_cta", "장간막 허혈 의심 시 지체 없이 CT 혈관조영", "test",
                   ("ct 혈관조영", "ct 혈관 조영", "cta", "ct angiogra", "복부 혈관조영", "mesenteric"), G_AMI,
                   "primary", triggers=_TRIG_AMI, when="심방세동, 진찰 소견에 비해 심한 통증",
@@ -884,8 +966,11 @@ PROTOCOLS = PROTOCOLS + (
         category="allergy", name_ko=CATEGORY_NAMES["allergy"],
         cant_miss=("아나필락시스", "상기도 부종(혈관부종)"),
         checks=(
-            _vitals(G_ANAPHYLAXIS, note="Hypotension/hypoxia define severity in anaphylaxis; basic assessment, "
-                    "not a numbered recommendation checked in the practice parameter text."),
+            _vitals(G_WAO_ANAPHYLAXIS, verification="primary",
+                    note="2026-09-29: WAO 2020 full text read (PMC7607509): Table 1 criteria define hypotension by "
+                    "systolic BP (age-specific) and respiratory compromise incl. hypoxemia; 'At frequent and regular "
+                    "intervals, evaluate the patient's blood pressure, heart rate and perfusion, and respiratory and "
+                    "mental status'. Citation moved from the AAAAI/ACAAI practice parameter (text not accessible)."),
             Check("airway_breathing", "기도·호흡 평가(입술·혀·목 부종, 쉰 목소리, 천명음·쌕쌕거림, 청진)", "exam",
                   ("기도", "천명", "쌕쌕", "호흡음", "청진", "쉰 목소리", "목소리", "삼키기", "stridor", "wheez",
                    "airway", "auscult", "hoarse", "혀 부종", "입술 부종", "인두 부종", "후두 부종"),
@@ -932,37 +1017,45 @@ PROTOCOLS = PROTOCOLS + (
                    "대동맥 박리", "내출혈·저혈량"),
         checks=(
             Check("vitals", "활력징후(누운 자세·선 자세 혈압/맥박 포함)", "exam", _KW_VITALS + ("기립", "orthostatic"),
-                  G_SYNCOPE, "unverified", when="모든 실신",
-                  note="Orthostatic BP/HR is part of the initial evaluation in the guideline; the COR/LOE was not "
-                  "read (full text returned HTTP 403)."),
-            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_SYNCOPE, "secondary", when="모든 실신 초기 평가",
-                  note="Class I: resting 12-lead ECG in the initial evaluation. Full text paywalled (HTTP 403); "
-                  "confirmed via ACC 'Ten points to remember' and ACEP Now summaries."),
+                  G_ESC_SYNCOPE, "primary", when="모든 실신",
+                  note="2026-09-29: ESC 2018 full text read (society-hosted PDF of ehy037), sec. 4.1.1: the initial "
+                  "syncope evaluation consists of careful history, 'physical examination, including supine and "
+                  "standing BP measurements', and ECG. Citation moved from ACC/AHA/HRS 2017 (full text HTTP 403)."),
+            Check("ecg", "12유도 심전도", "test", _KW_ECG, G_ESC_SYNCOPE, "primary", when="모든 실신 초기 평가",
+                  note="2026-09-29: ESC 2018 sec. 4.1.1 (full text read): ECG is part of the initial syncope "
+                  "evaluation. ACC/AHA/HRS 2017 Class I resting 12-lead ECG, previously confirmed via ACC and ACEP "
+                  "Now summaries (full text HTTP 403)."),
             Check("cardiac_history", "심장성 실신 단서 문진(운동 중·누운 자세 실신, 전조 없는 실신, 두근거림, "
                   "심질환, 가족 돌연사)", "ask",
                   ("운동 중", "운동할 때", "누운 상태", "누워 있을 때", "전조", "두근", "심장병", "심장 질환", "심장질환",
                    "돌연사", "급사", "exertion", "palpitation", "heart disease", "sudden death", "prodrome"),
-                  G_SYNCOPE, "secondary", when="모든 실신",
-                  note="Class I: detailed history and physical examination. The specific cardiac-syncope clues are "
-                  "the guideline's high-risk features as summarized by ACC; wording ours."),
+                  G_ESC_SYNCOPE, "primary", when="모든 실신",
+                  note="2026-09-29: ESC 2018 full text read: features suggesting cardiac syncope = during exertion or "
+                  "when supine, sudden-onset palpitation immediately followed by syncope, family history of "
+                  "unexplained sudden death at young age, structural heart disease or CAD; high-risk features also "
+                  "list syncope without prodrome. Wording ours."),
         ),
     ),
     Protocol(
         category="palpitations", name_ko=CATEGORY_NAMES["palpitations"],
         cant_miss=("심실성 빈맥", "심방세동", "WPW 증후군", "QT 연장 증후군", "갑상선 기능 항진증"),
         checks=(
-            _vitals(G_PALPITATIONS, when="모든 두근거림",
-                    note="Part of the physical examination in the EHRA initial evaluation; vital signs as such are "
-                    "not a separately worded recommendation."),
+            _vitals(G_PALPITATIONS, when="모든 두근거림", verification="primary",
+                    note="2026-09-29: EHRA 2011 full text read (academic.oup.com, via fetch): the physical examination "
+                    "assesses the frequency and regularity of the heart rhythm (auscultation or arterial pulse) and, "
+                    "for tolerance of the rhythm disturbance, blood pressure and signs of heart failure. Vital signs "
+                    "as a bundle are our wording."),
             Check("ecg", "12유도 심전도", "test", _KW_ECG, G_PALPITATIONS, "primary", when="모든 두근거림",
                   note="EHRA 2011: initial evaluation of all patients = history, physical examination and a "
                   "standard 12-lead ECG (read in the Europace full text)."),
-            Check("tsh", "갑상선 기능 검사(TSH)", "test", _KW_TSH, G_PALPITATIONS, "unverified",
+            Check("tsh", "갑상선 기능 검사(TSH)", "test", _KW_TSH, G_PALPITATIONS, "primary",
                   triggers=("체중 감소", "체중이 줄", "살이 빠", "더위", "열불내성", "땀이 많", "손 떨림", "손이 떨",
                             "떨림", "갑상선", "weight loss", "heat intolerance", "tremor", "thyroid"),
                   when="체중 감소·더위 못 견딤·떨림 등 갑상선 기능 항진 단서",
-                  note="EHRA 2011 says specific laboratory tests when a systemic cause is suspected (read); choosing "
-                  "TSH for these clues is our operationalisation."),
+                  note="EHRA 2011 (full text, re-read 2026-09-29 via fetch): when a systemic or pharmacological cause "
+                  "is suspected, specific laboratory tests on the basis of the clinical presentation, e.g. "
+                  "haemochrome, electrolytes, glycaemia, thyroid function, urinary catecholamines, illicit substances. "
+                  "The trigger clues for thyroid testing are our operationalisation."),
         ),
     ),
     Protocol(
@@ -976,11 +1069,14 @@ PROTOCOLS = PROTOCOLS + (
             Check("chest_ct", "흉부 CT(조영증강) 또는 CT 혈관조영", "test", _KW_CHEST_CT, G_HEMOPTYSIS, "primary",
                   predicate="hemoptysis", when="모든 객혈",
                   note="Same ACR AC 2020 statement (abstract)."),
-            Check("cxr_cough", "흉부 X선", "test", _KW_CXR, G_COUGH, "unverified", predicate="chronic_cough",
+            Check("cxr_cough", "흉부 X선", "test", _KW_CXR, G_COUGH, "primary", predicate="chronic_cough",
                   when="2주 이상 지속되는 기침",
                   note="Read (PMC3345522): CXR for cough with lung-cancer risk factors (grade E/A) and bronchoscopy "
-                  "for suspected airway malignancy. Applying CXR to every cough lasting >= 2 weeks is reviewer "
-                  "knowledge of the ACCP chronic-cough algorithm, not re-read."),
+                  "for suspected airway malignancy. 2026-09-29 (re-read): 'In areas where there is a high prevalence "
+                  "of TB, chronic cough should be defined ... as being 2 to 3 weeks in duration' (grade B) and "
+                  "'Sputum smears and cultures for acid-fast bacilli and a chest radiograph should be obtained "
+                  "whenever possible' (grade B); children with chronic cough: CXR and spirometry as a minimum (E/B). "
+                  "Treating Korea as a higher-TB-prevalence setting for the >= 2-week cut-off is our reading."),
         ),
     ),
     Protocol(
@@ -999,12 +1095,14 @@ PROTOCOLS = PROTOCOLS + (
                   G_LIVER, "primary", predicate="not_neonate", when="모든 황달",
                   note="ACG 2017 recommendation 19: acute hepatitis with elevated PT and/or encephalopathy needs "
                   "immediate referral to a liver specialist. That PT must be measured to apply it is our reading."),
-            Check("abdominal_us", "복부(간·담도) 초음파", "test",
+            Check("abdominal_us", "복부 초음파(또는 조영증강 복부 CT·MRCP)", "test",
                   ("복부 초음파", "간 초음파", "담도 초음파", "상복부 초음파", "우상복부 초음파", "abdominal ultrasound",
                    "abdominal us", "ruq ultrasound", "liver ultrasound", "복부 ct", "abdominal ct", "mrcp"),
-                  G_JAUNDICE_IMAGING, "unverified", predicate="not_neonate", when="모든 황달(담도 폐쇄 감별)",
-                  note="ACR AC Jaundice 2019 abstract lists US among the modalities; US as the usual first test is "
-                  "reviewer knowledge (variant tables not read)."),
+                  G_JAUNDICE_IMAGING, "primary", predicate="not_neonate", when="모든 황달(담도 폐쇄 감별)",
+                  note="2026-09-29: ACR AC Jaundice rating tables read (acsearch.acr.org narrative, 2018 version): "
+                  "variant 1 (jaundice, no known predisposing condition, initial imaging) US abdomen, MRI abdomen "
+                  "with MRCP and CT abdomen with IV contrast all 'Usually Appropriate'; ERCP 'Usually Not "
+                  "Appropriate'. The former claim that US is the single usual first test was dropped."),
             Check("neonatal_bilirubin", "혈청 또는 경피 빌리루빈(TSB/TcB) 측정", "test",
                   ("빌리루빈", "bilirubin", "tsb", "tcb", "경피"), G_NEONATAL_JAUNDICE, "secondary",
                   predicate="neonate", when="황달이 있는 생후 28일 이내 신생아",
@@ -1091,10 +1189,13 @@ PROTOCOLS = PROTOCOLS + (
         category="edema", name_ko=CATEGORY_NAMES["edema"],
         cant_miss=("심부정맥혈전증", "신증후군/사구체신염", "심부전", "간경변"),
         checks=(
-            Check("urinalysis", "소변 검사(단백뇨·혈뇨)", "test", _KW_URINALYSIS, G_GLOMERULAR, "unverified",
+            Check("urinalysis", "소변 검사(단백뇨·혈뇨)", "test", _KW_URINALYSIS, G_GLOMERULAR, "primary",
                   predicate="not_unilateral_leg", when="양측·전신·얼굴 부종 또는 거품뇨",
-                  note="KDIGO 2021 bibliographically verified; the urinalysis/proteinuria assessment recommendation "
-                  "was not read (executive-summary abstract only). Applying it to bilateral edema is ours."),
+                  note="2026-09-29: KDIGO 2021 full guideline read (kdigo.org PDF, Kidney Int 100(4S)): nephrotic "
+                  "syndrome = edema with hypoalbuminemia and nephrotic-range proteinuria > 3.5 g/d (practice point "
+                  "2.4.1); proteinuria and hematuria are the markers followed in glomerular disease (chapter 1). No "
+                  "recommendation addresses edema work-up as such: testing the urine for protein/blood in bilateral "
+                  "edema is our reading."),
             Check("dvt_workup", "심부정맥혈전증 평가(사전확률 → D-dimer 또는 하지 정맥 압박 초음파)", "test",
                   ("d-dimer", "d dimer", "디다이머", "d-이합체", "하지 정맥 초음파", "다리 초음파", "하지 초음파",
                    "정맥 초음파", "도플러", "압박 초음파", "compression ultrasound", "duplex", "venous ultrasound",
@@ -1234,12 +1335,15 @@ PROTOCOLS = PROTOCOLS + (
                   G_SSNHL, "primary", min_age=18, predicate="sudden_hearing", when="갑자기 생긴 감각신경성 난청(성인)",
                   note="AAO-HNS 2019 KAS 6 (abstract): evaluate SSNHL for retrocochlear pathology with MRI or "
                   "auditory brainstem response."),
-            Check("retrocochlear_imaging", "비대칭(한쪽) 난청의 후미로 병변 평가(내이도 조영증강 MRI)", "test",
-                  _KW_RETROCOCHLEAR, G_HEARING_IMAGING, "unverified", min_age=18, predicate="retrocochlear",
+            Check("retrocochlear_imaging", "비대칭(한쪽) 난청의 후미로 병변 평가(머리·내이도 MRI)", "test",
+                  _KW_RETROCOCHLEAR, G_HEARING_IMAGING, "primary", min_age=18, predicate="retrocochlear",
                   when="한쪽 또는 비대칭 감각신경성 난청(성인)",
-                  note="Citation verified (PubMed 30392601); the abstract has no variant ratings. MRI head/IAC for "
-                  "asymmetric SNHL as 'usually appropriate' is reviewer knowledge. AAO-HNS 2024 ARHL KAS 5 (read): "
-                  "evaluate or refer significant asymmetric hearing loss."),
+                  note="2026-09-29: ACR AC Hearing Loss and/or Vertigo rating tables read (acsearch.acr.org "
+                  "narrative, 2018 version): variant 3 'acquired sensorineural hearing loss, initial imaging' - MRI "
+                  "head and internal auditory canal without and with IV contrast, and without contrast, both "
+                  "'Usually Appropriate'; CT head 'Usually Not Appropriate'. The variant is acquired SNHL, not "
+                  "specifically asymmetric; AAO-HNS 2024 ARHL KAS 5 (read): evaluate or refer significant asymmetric "
+                  "hearing loss. Name changed from '조영증강 MRI' (contrast is not required by the ratings)."),
         ),
     ),
     Protocol(
@@ -1304,14 +1408,17 @@ PROTOCOLS = PROTOCOLS + (
         category="bilious_vomiting", name_ko=CATEGORY_NAMES["bilious_vomiting"],
         cant_miss=("장회전 이상과 중장 염전", "십이지장 폐쇄·협착", "공장·회장 폐쇄", "히르슈슈프룽병", "괴사성 장염"),
         checks=(
-            Check("urgent_abd_imaging", "즉시 복부 X선 + 상부위장관 조영술(장회전 이상 배제)", "test",
-                  _KW_INFANT_ABD_IMAGING, G_INFANT_VOMITING, "secondary",
+            Check("urgent_abd_imaging", "즉시 상부위장관 조영술(장회전 이상 배제; 생후 2일 이내는 복부 X선 먼저)", "test",
+                  _KW_INFANT_ABD_IMAGING, G_INFANT_VOMITING, "primary",
                   when="생후 3개월 이하 영아의 담즙성(초록색) 구토",
-                  note="ACR AC Vomiting in Infants 2020 (narrative page read through an automated summary, "
-                  "variant titles quoted): bilious vomiting in an infant > 2 days old (suspected malrotation) -> "
-                  "fluoroscopy upper GI series usually appropriate; vomiting in the first 2 days -> abdominal "
-                  "radiograph first, then UGI (double bubble) or contrast enema (distal obstruction). Population "
-                  "< 3 months. Urgency of malrotation/volvulus is reviewer knowledge."),
+                  note="2026-09-29: ACR AC Vomiting in Infants 2020 rating tables read (acsearch.acr.org narrative): "
+                  "variant 5 bilious vomiting in an infant > 2 days old (suspected malrotation), initial imaging: "
+                  "fluoroscopy upper GI series 'Usually Appropriate', US 'May Be Appropriate', abdominal radiograph "
+                  "'May Be Appropriate (Disagreement)'; variant 1 vomiting in the first 2 days: abdominal radiograph "
+                  "'Usually Appropriate'; variant 4 (bilious, first 2 days, nonclassic double bubble / normal gas): "
+                  "UGI next; variant 3 (distal obstruction): contrast enema. Population < 3 months. Urgency: midgut "
+                  "volvulus is a surgical emergency, bowel necrosis within hours (StatPearls Midgut Malrotation, "
+                  "PMID 32809723, abstract). Name changed from 'X-ray + UGI' to follow the ratings."),
         ),
     ),
 )
