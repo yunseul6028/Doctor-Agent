@@ -364,3 +364,31 @@ Safety row; expected effect is on **Safety** (fewer false "confirmed" dangers, c
   otherwise the danger is raised (unresolved, breath-sound check) and the finding is still shown by the critical alert.
 - Verify on gpt-oss-20b (eval-simulator): cases with pneumothorax, pregnancy-related hypertension/postpartum headache,
   and the consult on/off comparison once wired; watch Safety (missed can't-miss) and whether the gate adds turns.
+
+### 2026-09-29 · diagnosis-name normalisation audit (`knowledge/kb.py`, `kb_curated.py`; code only, no LLM)
+No prompt change and no case run, so no Accuracy / Efficiency / Safety row. Expected effect: **Safety / routing**
+(can't-miss names and consult routing no longer land in wrong chapters). Details: `docs/data-sources.md` 7.12.
+- Audit (`scripts/audit_normalize.py`, 1,907 names: cases_aug gold + aliases, specialty gold v1-v3, danger_gate /
+  protocols / consult can't-miss names): flagged names 287 → 175; every remaining flag hand-reviewed into
+  `data/labels/normalize_audit_allow.json` (190 entries); `tests/test_normalize_audit.py` (56 tests) fails on new flags.
+- Wrong mappings fixed, e.g. 흉강 비장 이식증 F50.8 (pica) → none; Opioid overdose F11.1 → T40.2; 혈관염 I80 → I77.6;
+  두개내 출혈 S06.8 → I62.9; 폐동맥 색전증 N28.0 → I26; acs Q04.0 → I24.9; SJS Sjögren → L51.1; 저칼슘혈증 →
+  고칼슘혈증 profile → E83.5; 헤노흐-쇤라인 자반증 D69.2 → D69.0; 라이터 증후군 Reye G93.7 → M02.3; 파르보바이러스
+  B19 감염증 B19 (viral hepatitis) → none; 급성 용혈 / 용혈 HELLP → none; 심장 혈관육종 I51.9 → none; ambiguous bare
+  abbreviations (HD, PD, MS, AS, AD, CD, PV, PG, CDI, ET, CRS, ASD, PM) → none.
+- Names whose mapping changed: 93 unique inputs (54 lost a resolution, 46 changed code, 12 gained). Of the 45 unique
+  inputs that lost one, ~36 were wrong or ambiguous before; ~9 correct fuzzy matches were lost to the stricter fuzzy
+  guards (e.g. 원발성 담즙성 담도염 → K74.3, 선천성 풍진 감염 → P35.0, Pancreatic head cancer → C25, COPD 급성 악화 → J44).
+- `scripts/eval_kb.py --no-write` before → after: dev top-1 0.477 = 0.477, top-3 0.622 → 0.631, top-10 0.730 = 0.730,
+  top-50 0.784 =, MRR 0.567 → 0.568, coverage 0.964 → 0.955; held-out top-1 0.147 =, top-3 0.211 → 0.205, top-10
+  0.295 → 0.282, top-50 0.397 → 0.378, MRR 0.197 → 0.194, coverage 0.865 → 0.840. Every rank change comes from the gold
+  id set (gold = union of the case's names resolved by `_resolve`): spurious golds removed (da_631 "heart disease" at
+  rank 10, da_858 "pica" at 37), ac_20 CMV retinitis lost its "cytomegaloviral disease" gold (rank 3 → none; a real
+  loss), synthetic_008 bacterial meningitis 7 → 22 (aliases now resolve to the specific meningitis profiles instead of
+  generic "meningitis"), cqa_157 12 → 3. The candidate ranking itself is unchanged.
+  normalize: dev hit 0.833 → 0.814, code 0.755 → 0.741, alias code agreement 0.691 → 0.745; held-out hit 0.602 →
+  0.572, code 0.536 → 0.509, agreement 0.685 → 0.785 (fewer, more consistent codes).
+- `eval/offline/eval_specialty.py`: gold strict 204/207, lenient 207/207 (unchanged); routing replay 177/198 routed to
+  the gold specialty (unchanged). cases_aug distribution: 3 cases moved (뼈거대세포종 rheum_immune (M31.5 giant cell
+  arteritis) → heme_onc; 흉강 비장증 psych → resp_id by keyword; LED 광 황반병증 ent_eye → other).
+- Latency: normalize_diagnosis mean 0.96 → 0.99 ms (fuzzy on), specialty_of 0.087 → 0.101 ms; `data/kb` unchanged.
