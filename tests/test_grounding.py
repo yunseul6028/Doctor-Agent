@@ -1,5 +1,4 @@
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -11,6 +10,7 @@ from doctor_agent.agent import grounding as g  # noqa: E402
 from doctor_agent.agent.ledger import DdxLedger, FindingsLedger  # noqa: E402
 from doctor_agent.agent.state import CaseState, Turn  # noqa: E402
 from doctor_agent.env.interface import Action, ActionType  # noqa: E402
+from perf import assert_fast
 
 INITIAL = "64세 남성. 주호소: 1시간 전 갑자기 시작된 가슴 통증"
 QA = [
@@ -362,6 +362,7 @@ def test_parse_cache_lives_on_the_case_state():
 
 
 # --- performance ------------------------------------------------------------------------------------------------
+@pytest.mark.perf
 def test_performance_40_turn_case():
     rows = (QA * 3)[:40]
     state = make_state(rows)
@@ -372,10 +373,8 @@ def test_performance_40_turn_case():
     state.ddx_ledger.update([{"dx": f"dx{i}", "p": 0.1, "for": ["찢어지는 흉통", "반발통", "WBC 14200"],
                               "against": ["발열 없음", "기침 없음"]} for i in range(5)])
     g.apply(state)  # warm up (regex compile caches)
-    batches = []
-    for _ in range(5):  # best batch: robust to other processes loading the machine
-        t = time.perf_counter()
+
+    def batch():
         for _ in range(5):
             g.apply(state)
-        batches.append((time.perf_counter() - t) / 5 * 1000)
-    assert min(batches) <= 5.0, batches
+    assert_fast(batch, 0.005, per=5, what="grounding.apply() on a 40-turn case")  # strict budget: <= 5 ms per call

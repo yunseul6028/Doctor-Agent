@@ -22,6 +22,8 @@ Checks (see docs/submission-checklist.md for the item numbers):
   7  UTF-8 for every shipped text file (including gzipped KB files)
   8  smoke run of run.py from a clean extracted copy of the ZIP (isolated interpreter, scrubbed environment)
   +  reproducibility of LLM-derived artifacts in data/labels (WARN only; not shipped)
+  +  offline eval scripts (eval/offline/*.py, not shipped): no machine-specific absolute paths, parse, main guard,
+     `--help` exits 0 (WARN only here; tests/test_package.py makes them hard failures)
 """
 from __future__ import annotations
 
@@ -541,6 +543,46 @@ def check_repro(root: Path) -> list[Finding]:
     return out
 
 
+# --------------------------------------------------------------------- offline eval scripts (eval/offline, WARN)
+OFFLINE_GLOB = "eval/offline/*.py"
+# Machine-specific absolute paths: the scripts must resolve everything from the repo root (Path(__file__)).
+ABS_PATH = re.compile(r"(?<![\w.])(/Users/|/home/|/private/|/tmp/)|\b[A-Za-z]:\\{1,2}Users\\")
+
+
+def offline_script_problems(root: Path = ROOT, run_help: bool = False, timeout: float = 120) -> list[str]:
+    """Problems in the offline eval scripts: absolute paths, syntax errors, no `__main__` guard (importing would run
+    the whole evaluation), and with run_help=True a failing `python -I <script> --help` from outside the repo."""
+    problems = []
+    for f in sorted(root.glob(OFFLINE_GLOB)):
+        rel = _rel(f, root)
+        text = f.read_text(encoding="utf-8")
+        for n, line in enumerate(text.splitlines(), 1):
+            if m := ABS_PATH.search(line):
+                problems.append(f"{rel}:{n}: absolute path {m.group(0)!r} (resolve from the repo root instead)")
+        try:
+            tree = ast.parse(text, filename=rel)
+        except SyntaxError as e:
+            problems.append(f"{rel}: syntax error: {e}")
+            continue
+        guarded = any(isinstance(n, ast.If) and "__main__" in ast.unparse(n.test) for n in tree.body)
+        if not guarded:
+            problems.append(f"{rel}: no `if __name__ == \"__main__\":` guard (import runs the evaluation)")
+        elif run_help:
+            with tempfile.TemporaryDirectory(prefix="nova_offline_") as tmp:
+                try:
+                    p = subprocess.run([sys.executable, "-I", str(f), "--help"], cwd=tmp, capture_output=True,
+                                       text=True, timeout=timeout, env=_clean_env())
+                    if p.returncode != 0:
+                        problems.append(f"{rel}: --help exited {p.returncode}: {p.stderr.strip()[-300:]}")
+                except subprocess.TimeoutExpired:
+                    problems.append(f"{rel}: --help timed out after {timeout:.0f}s")
+    return problems
+
+
+def check_offline(root: Path) -> list[Finding]:
+    return [Finding("WARN", "offline", msg) for msg in offline_script_problems(root)]
+
+
 # --------------------------------------------------------------------------------------------- build + smoke run
 def build_zip(files: list[Path], root: Path, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -644,6 +686,7 @@ def run_checks(root: Path = ROOT, files: list[Path] | None = None) -> list[Findi
     findings += check_rules(root)
     findings += check_ledger(files, root, reqs)
     findings += check_repro(root)
+    findings += check_offline(root)
     return findings
 
 

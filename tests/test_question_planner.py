@@ -1,6 +1,3 @@
-import statistics
-import time
-
 import pytest
 
 from doctor_agent.agent import question_planner as qp
@@ -8,6 +5,7 @@ from doctor_agent.agent.state import CaseState, Turn
 from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.knowledge import kb, kb_tests
 from doctor_agent.safety import preconditions
+from perf import assert_fast
 
 pytestmark = pytest.mark.skipif(not kb.available(), reason="data/kb not built")
 
@@ -102,13 +100,9 @@ def test_deterministic_and_does_not_mutate_state():
     assert (len(s.turns), s.ddx_ledger.as_list(), s.findings.as_list()) == before
 
 
+@pytest.mark.perf
 def test_latency_under_30ms():
     s = _state(CHEST, turns=[("ASK", "통증 양상", "가슴을 짓누르는 듯하고 왼팔로 퍼져요. 식은땀이 났어요."),
                              ("TEST", "심전도", "동리듬, ST 변화 없음")])
     qp.suggest(s)  # warm-up (lazy imports)
-    times = []
-    for _ in range(5):
-        t = time.perf_counter()
-        qp.suggest(s)
-        times.append((time.perf_counter() - t) * 1000)
-    assert statistics.median(times) < 30
+    assert_fast(lambda: qp.suggest(s), 0.030, what="question_planner.suggest()")  # strict budget: < 30 ms

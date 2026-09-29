@@ -1,7 +1,6 @@
 """Orphanet phenotype frequencies (Orphadata, CC BY 4.0) and the HIRA prevalence prior (KOGL type 1) in the KB."""
 import gzip
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -10,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from doctor_agent.knowledge import kb  # noqa: E402
+from perf import assert_fast
 
 pytestmark = pytest.mark.skipif(not kb.available(), reason="data/kb not built (python scripts/build_kb.py)")
 
@@ -162,9 +162,8 @@ def test_decisive_test_result_still_wins_for_rare_disease():
 
 # --- size / latency -----------------------------------------------------------------------------------
 
+@pytest.mark.perf
 def test_kb_size_and_load_time():
     total = sum(p.stat().st_size for p in (ROOT / "data/kb").iterdir() if p.is_file())
     assert total < 20e6, total
-    t0 = time.perf_counter()
-    kb.KnowledgeBase()
-    assert time.perf_counter() - t0 < 5.0
+    assert_fast(kb.KnowledgeBase, 5.0, tries=3, what="KnowledgeBase() load")  # strict budget: < 5 s (~1 s idle)

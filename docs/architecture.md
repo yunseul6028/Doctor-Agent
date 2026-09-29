@@ -132,8 +132,9 @@ learned later (triggers, predicates).
   McIsaac — each with citation/DOI. `Rule.applies_to` = (category or rule keyword)
   AND `requires_any` AND NOT `excludes_any` AND duration below `chronic_cutoff` AND age ≥ `min_age`;
   `Rule.applicability` states which population sentence of the original abstract each condition comes from.
-- Coverage on the 267 `data/cases_aug` cases (initial info only): 198 match a category, 173 have ≥ 1 applicable
-  non-treatment check, 53 have an applicable rule.
+- Coverage on the 267 `data/cases_aug` cases (initial info only; recounted 2026-09-29 with `detect_categories`,
+  `pending_checks` minus treatment checks, `rules_for`): 201 match a category, 176 have ≥ 1 applicable
+  non-treatment check, 60 have an applicable rule (09-27: 198 / 173 / 53, before the normalisation layer).
 
 ### Diagnostic / classification criteria (`knowledge/diagnostic_criteria.py`, 2026-09-27)
 

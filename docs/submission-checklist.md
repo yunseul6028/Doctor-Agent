@@ -34,6 +34,7 @@ dev build, not for a real submission; **WARN** = review, never blocks.
 | 8 | Self-contained smoke run: ZIP extracted to a clean temp dir, `python -I run.py --env local --llm dummy --cases data/sample_cases` with a scrubbed environment (no `DOCTOR_*`/`LLM_*`/`AGENT_*`, no `PYTHONPATH`), 300 s timeout; import probe of every `doctor_agent` module + every requirement | `8-smoke` | subprocess |
 | 8 | Submission mode is the `run.py` default (`--dev` turns it off); `--llm` defaults to `openai`; time-budget knob `AGENT_CASE_TIME_BUDGET_S` exists | `8-submission-mode`, `8-time-budget` | static |
 | – | Reproducibility of LLM-derived artifacts (`data/labels/*meta*.json` has model + date + prompt; every converted/augmented case file has a record) | `repro` (WARN) | cross-reference (not shipped) |
+| – | Offline eval scripts (`eval/offline/*.py`, not shipped): no machine-specific absolute paths (`/Users/`, `/home/`, `/tmp/`, `C:\Users\`), parse, `__main__` guard | `offline` (WARN) | text + AST scan; `tests/test_package.py` also runs `python -I <script> --help` from a temp dir and **fails** on any problem |
 
 Reviewed cross-case allowlist (`CROSS_CASE_ALLOWLIST` in `package.py`; anything new must be reviewed and added there):
 

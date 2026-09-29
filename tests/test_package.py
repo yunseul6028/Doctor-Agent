@@ -262,3 +262,26 @@ def test_smoke_test_catches_a_broken_zip(tmp_path):
     reqs, _ = pkg.parse_requirements(ROOT / "requirements.txt")
     fs, _ = pkg.smoke_test(out, ROOT / "data/sample_cases/synthetic_001.json", reqs, timeout=120)
     assert any(f.level == "ERROR" for f in fs)
+
+
+# --- offline eval scripts (eval/offline/*.py; dev-only, never shipped) -------------------------------------------
+
+def test_offline_script_check_flags_absolute_paths_and_missing_guard(tmp_path):
+    d = tmp_path / "eval/offline"
+    d.mkdir(parents=True)
+    (d / "eval_bad.py").write_text('CASES = "/Users/someone/repo/data/cases_aug"\nprint(CASES)\n', encoding="utf-8")
+    (d / "eval_ok.py").write_text('import sys\nfrom pathlib import Path\nROOT = Path(__file__).resolve().parents[2]\n'
+                                  'def main():\n    return 0\n\nif __name__ == "__main__":\n    sys.exit(main())\n',
+                                  encoding="utf-8")
+    problems = pkg.offline_script_problems(tmp_path, run_help=True, timeout=60)
+    assert any("eval_bad.py:1: absolute path" in p for p in problems), problems
+    assert any("eval_bad.py: no `if __name__" in p for p in problems), problems
+    assert not any("eval_ok.py" in p for p in problems), problems
+    assert {f.level for f in pkg.check_offline(tmp_path)} == {"WARN"}
+
+
+def test_offline_scripts_have_no_absolute_paths_and_help_runs():
+    """Every eval/offline script resolves paths from the repo root and `python -I <script> --help` (run from a temp
+    dir, no PYTHONPATH) exits 0 without running the evaluation."""
+    assert list(ROOT.glob(pkg.OFFLINE_GLOB))
+    assert pkg.offline_script_problems(ROOT, run_help=True) == []
