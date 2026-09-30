@@ -534,3 +534,31 @@ Korean "N 미만" range is no longer read as normal) and **Accuracy** (no false 
   says="normal" -> absent regardless of the value, and compares a unitless value with a unit-bearing range as printed
   ("D-dimer 1.2 (정상 <500 ng/mL)" -> absent); kb_tests false positives exposed by the value display:
   `anion_gap_high` from "vWF:Ag 95%", `tsat_high` in a haemodynamics report.
+
+### 2026-09-30 · danger gate over-firing (`safety/danger_gate.py`; offline, no LLM)
+No case run, so no Accuracy / Efficiency / Safety row. Expected effect: **Efficiency** (fewer forced rule-out turns)
+with **Safety** kept (no high-value true catch lost). Measured with `eval/offline/eval_danger_gate.py` on the 267
+`data/cases_aug` cases (code result interpreter on): "full reveal" = every history/exam/test entry given as a turn,
+then `gate(state, gold)`; "initial-only" = forced steps when the gold diagnosis is proposed with only the initial info
+(upper bound, replayed through the case-file environment, ≤ 3 per case).
+- Gold diagnosis blocked with everything revealed: 28 → 12 (without the interpreter 28 → 13). Forced steps: full
+  reveal 33 → 15, initial-only 144 → 122. Raised from the initial info: acute heart failure 17 → 1 (gold 0), tension
+  pneumothorax 17 → 13 (gold 2, true catches 1 → 1); all other raise counts unchanged. True catches (raised danger =
+  gold) unchanged for every danger; mesenteric ischaemia ac_43 went from wrongly *ruled out* to confirmed (reader fix).
+- Changes: acute heart failure live from dyspnoea only with a clue (Wang 2005 JAMA; negation read by both readers);
+  echo normal rules HF out. Tension PTX not live for dyspnoea of ≥ 2 weeks alone (SpO2 < 94, SBP < 90, trauma, stated
+  pneumothorax still make it live). Sepsis ruled out by qSOFA 0 + all routine SOFA systems normal (Sepsis-3) as an
+  alternative to lactate. Ectopic not live after stated menopause / hysterectomy. Ischaemic stroke moot once an
+  intracranial haemorrhage is confirmed. Reader fixes: a TEST response headed by a result label counts as that result
+  ("초음파" → "질식 초음파: ..."); explicit normal statements are negated only by a negation right after them ("호흡음
+  명료함, 수포음 없음" was read as not normal); "이상 호흡음 없음" is not absent breath sounds; 명료/청명 breath sounds are
+  normal; bilateral leg oedema and "한쪽 다리" weakness are not Wells DVT signs; "케토산증" spelling maps to DKA.
+- Remaining 12 blocks, kept on purpose: sepsis with qSOFA ≥ 1, low platelets / high creatinine or a missing SOFA lab
+  (5; one lactate request each), ACS with pneumothorax < 3 h from onset (2; serial troponin), meningitis with altered
+  mental status or fever + headache (2; LP), PE with Wells > 4 from leg oedema of unstated side (1), AAA in a 62-year-old
+  with flank pain (1), heart failure with crackles (1). Each costs one turn when the test is not in the case.
+- Overfitting risk: the same 267 cases were used to design the gate and to measure the fix. Changes were chosen as
+  general rules (clinical cues, reader bugs), no case-specific patterns. A true acute heart failure presenting as bare
+  dyspnoea is now gated only after a clue appears or the model flags it 위험 in the ledger.
+- Verify on gpt-oss-20b (eval-simulator): dyspnoea cases (HF and non-HF), febrile infection cases (turn count, lactate
+  requests), early-pregnancy / postmenopausal abdominal pain; compare turns and Safety with the previous commit.

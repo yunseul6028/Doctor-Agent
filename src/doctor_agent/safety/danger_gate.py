@@ -24,6 +24,11 @@ citations below were checked against PubMed E-utilities on 2026-09-27 (esummary)
 in RuleOut.note. RuleOut.verification uses the protocols.py scale: "primary" = the rule-out statement was read in
 the source text (abstract or full text); "secondary" = confirmed via secondary summaries; "unverified" = reviewer
 knowledge / our operationalisation. Numeric cut-offs marked "ours" are conservative operationalisations.
+
+2026-09-30 over-firing pass (measured with eval/offline/eval_danger_gate.py): RuleOut.applies cues for acute heart
+failure (C_DYSPNEA_HF) and tension pneumothorax, menopause/hysterectomy for ectopic pregnancy, RuleOut.moot, a SOFA
+(C_SEPSIS3) alternative sepsis rule-out, echo for heart failure, and reader fixes (response-label matching, short
+negation window for explicit normal statements, bilateral oedema not a DVT sign). New abstracts read via PubMed efetch.
 """
 from __future__ import annotations
 
@@ -121,9 +126,23 @@ C_ANAPHYLAXIS_CRITERIA = Citation(
     verified=True, short_author="NIAID/FAAN 아나필락시스 기준",
 )
 
+# 2026-09-30 (bibliographic data and abstracts checked via PubMed E-utilities efetch/esummary)
+C_DYSPNEA_HF = Citation(
+    "Wang CS, FitzGerald JM, Schulzer M, Mak E, Ayas NT.",
+    "Does this dyspneic patient in the emergency department have congestive heart failure?",
+    "JAMA", 2005, "294(15):1944-1956", doi="10.1001/jama.294.15.1944", pmid="16234501", verified=True,
+    short_author="Wang(JAMA 합리적 진찰)",
+)
+C_SEPSIS3 = Citation(
+    "Singer M, Deutschman CS, Seymour CW, et al.",
+    "The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3)",
+    "JAMA", 2016, "315(8):801-810", doi="10.1001/jama.2016.0287", pmid="26903338", verified=True,
+    short_author="Sepsis-3",
+)
+
 NEW_CITATIONS: tuple[Citation, ...] = (
     C_ADVISED, C_CT_6H_SAH, C_MENINGITIS_EXAM, C_HYPERGLYCEMIC_CRISES, C_PERFORATED_ULCER, C_ESC_HF, C_SCROTAL,
-    C_ANAPHYLAXIS_CRITERIA,
+    C_ANAPHYLAXIS_CRITERIA, C_DYSPNEA_HF, C_SEPSIS3,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -141,6 +160,8 @@ def _norm(text: str) -> str:
     # "보이지 않음", "관찰되지 않음", "동반되지 않음" → "없음" so the verb stem is not read as an affirmation
     t = re.sub(r"(보이|관찰되|확인되|시사되|동반되|나타나|발견되|들리|청진되|촉지되|만져지|있)지\s*않", "없", t)
     t = re.sub(r"(관찰|확인|발견)\s*(안\s*됨|안\s*되)", "없", t)
+    # "이상 호흡음 없음" (no adventitious sounds) is not "호흡음 없음" (absent breath sounds)
+    t = re.sub(r"(비정상|이상|부가|부잡)\s*호흡음", "부가음", t)
     return t.replace("비정상", "이상함")  # keep "정상" inside "비정상" from reading as normal
 
 
@@ -185,6 +206,19 @@ def _affirmed_at(t: str, idx: int, kw: str, near: bool = True) -> bool:
         if 0 <= p < n and _first(tail[p:p + len(a) + 8], _NEG_AFTER) is None:
             return True
     return False
+
+
+_NORMAL_NEG_WINDOW = 8
+
+
+def _normal_at(t: str, m: re.Match) -> bool:
+    """An explicit normal statement ("호흡음 명료", "자궁 내 임신낭") is affirmed unless a negation follows right after it
+    ("자궁 내 임신낭 없음", "명료하지 않음") or an English negation precedes it. A negation later in the sentence belongs
+    to another finding ("호흡음 명료함, 수포음이나 천명음 없음"), so the window is short (2026-09-30 reader fix)."""
+    s = max(t.rfind(c, 0, m.start()) for c in ".?!\n;") + 1
+    if any(n in t[max(s, m.start() - 30):m.start()] for n in _NEG_BEFORE):
+        return False
+    return _first(t[m.end():m.end() + _NORMAL_NEG_WINDOW], _NEG_AFTER) is None
 
 
 def polarity(text: str, kw: str) -> str | None:
@@ -286,6 +320,9 @@ class _Ctx:
         self.rr = self._latest(_RE_RR, int, "rr")
         self.spo2 = self._latest(_RE_SPO2, int, "spo2")
         self.temp = self._latest_temp()
+        # lowest mean arterial pressure over every blood-pressure reading in the case (conservative for SOFA)
+        maps = [(int(m.group(1)) + 2 * int(m.group(2))) / 3 for t in self.turns for m in _RE_SBP.finditer(t.text)]
+        self.map_min = min(maps) if maps else None
         self.onset_h = self._onset_hours()
         # result interpreter (see CRITICAL_RESULT_DANGER): confirming findings, and findings that only raise a danger
         self.critical, self.critical_raised = _critical_results(state)
@@ -352,6 +389,14 @@ class _Ctx:
     def affirmed(self, kws: tuple[str, ...]) -> bool:
         return contains_affirmed(self.facts, kws)
 
+    def cue(self, kws: tuple[str, ...]) -> bool:
+        """A raise cue: affirmed by the normalisation layer AND by this module's own negation reading (both readers
+        must agree, e.g. "부속음(수포음, 천명음)은 청진되지 않음" is negated by the latter only). Used only to decide
+        whether a chief-complaint danger is live, never for a rule-out."""
+        low = str(self.facts)
+        return any(k in low and contains_affirmed(self.facts, (k,))
+                   and any(_affirmed_at(low, m.start(), k) for m in re.finditer(re.escape(k), low)) for k in kws)
+
     def denied(self, kws: tuple[str, ...]) -> bool:
         return any(k in self.facts and polarity(self.facts, k) == "neg" for k in kws)
 
@@ -402,7 +447,14 @@ class Probe:
     any_turn: bool = False  # qualitative probe read from every EXAM/TEST response (e.g. mental status)
 
     def matches(self, t: _Turn) -> bool:
-        return t.type in ("ASK", "EXAM", "TEST") and any(k in t.content for k in self.action_kw)
+        """The doctor asked for this probe (action text), or a result response is headed by this probe's result
+        family label ("초음파" requested, response "질식 초음파: 자궁 내 임신낭 없음, ...")."""
+        if t.type not in ("ASK", "EXAM", "TEST"):
+            return False
+        if any(k in t.content for k in self.action_kw):
+            return True
+        return bool(self.family) and t.type == "TEST" and any(lab in t.text[:_HEAD_CHARS]
+                                                              for lab in FAMILY_LABELS[self.family])
 
     def read(self, c: _Ctx) -> _Outcome:
         out = _Outcome()
@@ -450,8 +502,7 @@ class Probe:
             return "abnormal", pos
         if any(k in seg for k in self.target):
             return "normal", ()
-        if self.normal_re and any(_affirmed_at(seg, m.start(), m.group(0), near=False)
-                                  for m in re.finditer(self.normal_re, seg)):
+        if self.normal_re and any(_normal_at(seg, m) for m in re.finditer(self.normal_re, seg)):
             return "normal", ()
         if not hit:  # any_turn probes: only explicit statements count
             return None, ()
@@ -483,6 +534,7 @@ FAMILY_LABELS: dict[str, tuple[str, ...]] = {
     "coronary": ("관상동맥 조영", "관상동맥조영", "coronary angiogra", "심도자"),
 }
 _ALL_LABELS = [(f, lab) for f, labs in FAMILY_LABELS.items() for lab in labs]
+_HEAD_CHARS = 16  # a family label within the first characters of a TEST response names the result
 
 
 def _segment(t: _Turn, family: str) -> str | None:
@@ -602,6 +654,34 @@ def _bohb_judge(v: float, unit: str, lt: bool, c: _Ctx) -> str | None:
     return "normal" if lt or v < 1.5 else "abnormal" if v >= 3.0 else None
 
 
+# SOFA component = 0 limits (Sepsis-3 SOFA table, Singer 2016): platelets >= 150 x10^3/uL, bilirubin < 1.2 mg/dL,
+# creatinine < 1.2 mg/dL. Values from CSF, urine and pleural/ascitic fluid are skipped.
+_NON_BLOOD = ("뇌척수액", "csf", "소변", "요검사", "urin", "흉수", "복수", "천자")
+
+
+def _platelet_judge(v: float, unit: str, lt: bool, c: _Ctx) -> str | None:
+    n = v * 1000 if v < 2000 else v  # "245 x10^3/uL", "110 x 10^9/L" -> per uL
+    return "normal" if n >= 150_000 else "abnormal"
+
+
+def _creatinine_judge(v: float, unit: str, lt: bool, c: _Ctx) -> str | None:
+    mg = v / 88.4 if unit in ("umol/l", "μmol/l") or (not unit and v > 20) else v
+    return "normal" if lt or mg < 1.2 else "abnormal"
+
+
+def _bilirubin_judge(v: float, unit: str, lt: bool, c: _Ctx) -> str | None:
+    mg = v / 17.1 if unit in ("umol/l", "μmol/l") or (not unit and v > 20) else v
+    return "normal" if lt or mg < 1.2 else "abnormal"
+
+
+def _blood_only(reader: Reader) -> Reader:
+    def read(t: _Turn, c: _Ctx):
+        if any(k in t.content for k in _NON_BLOOD) or any(k in t.text[:_HEAD_CHARS] for k in _NON_BLOOD):
+            return []
+        return reader(t, c)
+    return read
+
+
 def _anc_reader(t: _Turn, c: _Ctx):
     """Absolute neutrophil count per uL: explicit ANC, or WBC x neutrophil %. >= 1000 normal, < 500 abnormal."""
     if any(lab in t.content for lab in FAMILY_LABELS["csf"]) or any(lab in t.text[:20] for lab in ("뇌척수액", "csf")):
@@ -683,6 +763,37 @@ def _hcg_reader(t: _Turn, c: _Ctx):
     return out
 
 
+_KW_ECHO = ("심초음파", "심장 초음파", "심장초음파", "echocardiog", "경흉부 초음파")
+_RE_EF = re.compile(r"(구혈률|구출률|박출률|ejection fraction|lvef|\bef\b)[^0-9%.]{0,14}(\d{2})(?:\s*[-~–]\s*(\d{2}))?\s*%")
+_ECHO_ABNORMAL = (
+    "구혈률 감소", "구출률 감소", "박출률 감소", "수축 기능 저하", "수축기능 저하", "수축 기능 감소", "기능 저하", "기능장애",
+    "기능 장애", "운동 저하", "운동저하", "무운동", "벽운동 장애", "벽운동 이상", "벽 운동 이상", "hypokines", "akines",
+    "심근병증", "cardiomyopathy", "이완기 기능", "이완 기능", "diastolic dysfunction", "충만압", "filling pressure",
+    "심실 비대", "좌심실 비대", "lvh", "좌심방 확대", "좌심방 확장", "심실 확장", "dilat", "역류", "협착", "regurg",
+    "stenosis", "심낭 삼출", "심장막 삼출", "심낭삼출", "pericardial effusion", "폐동맥 고혈압", "폐동맥 수축기 압력",
+    "pulmonary hypertension", "덩이", "종괴", "mass", "증식물", "vegetation", "혈전", "thromb", "결손", "단락", "shunt",
+    "평탄화", "비후")
+_ECHO_NORMAL = ("정상", "보존", "유지", "normal", "preserved")
+
+
+def _echo_reader(t: _Turn, c: _Ctx):
+    """Echocardiogram read for heart failure: abnormal when LVEF < 50% or any structural/functional abnormality word is
+    affirmed; normal when it states a normal / preserved study (or LVEF >= 50%) with none of those. Our
+    operationalisation (see RULE_OUT '급성 심부전' note)."""
+    if t.type != "TEST" or not (any(k in t.content for k in _KW_ECHO) or any(k in t.text[:_HEAD_CHARS] for k in _KW_ECHO)):
+        return []
+    seg = ReadText(t.text)
+    efs = [min(int(m.group(2)), int(m.group(3) or m.group(2))) for m in _RE_EF.finditer(t.text)]
+    snip = t.text[:90]
+    if any(v < 50 for v in efs):
+        return [("abnormal", snip, "", float(min(efs)))]
+    if any(k in seg and polarity(seg, k) == "pos" for k in _ECHO_ABNORMAL):
+        return [("abnormal", snip, "", None)]
+    if efs or any(k in seg for k in _ECHO_NORMAL):
+        return [("normal", snip, "", float(min(efs)) if efs else None)]
+    return []
+
+
 def _ketone_reader(t: _Turn, c: _Ctx):
     out = []
     for val, unit, lt, snip, end in _values(t.text, r"(베타\s*-?\s*하이드록시부티\w*|b-?hydroxybutyrate|bhb|bohb)",
@@ -741,7 +852,7 @@ PROBES: dict[str, Probe] = {p.id: p for p in (
           ("청진", "호흡음", "폐음", "auscult", "흉부 진찰", "폐 진찰", "흉부 검진", "lung exam", "chest exam", "기관 위치"),
           target=("호흡음 감소", "호흡음이 감소", "호흡음 소실", "호흡음이 소실", "호흡음이 들리지", "호흡음 없", "absent breath",
                   "decreased breath", "diminished breath", "기관 편위", "기관이 한쪽", "tracheal deviation"),
-          normal_re=r"(호흡음|폐음)[^.]{0,15}(정상|대칭|양호|깨끗|clear|equal)|양측\s*(호흡음|폐음)[^.]{0,6}(동일|대칭)"
+          normal_re=r"(호흡음|폐음)[^.]{0,15}(정상|대칭|양호|깨끗|명료|청명|clear|equal)|양측\s*(호흡음|폐음)[^.]{0,6}(동일|대칭)"
                     r"|clear to auscultation|equal breath", generic_normal=False),
     Probe("ct_head", ActionType.TEST, "비조영 뇌 CT", FAMILY_LABELS["ct_head"], "ct_head",
           target=("지주막하", "subarachnoid", "sah", "출혈", "hemorrhage", "haemorrhage", "혈종", "hematoma"),
@@ -774,6 +885,19 @@ PROBES: dict[str, Probe] = {p.id: p for p in (
     Probe("lactate", ActionType.TEST, "혈중 젖산", ("젖산", "락테이트", "lactate", "lactic"),
           reader=_numeric_reader(r"(젖산|lactate|lactic acid)(?!\s*(탈수소|수소|dehydrogenase|\)?\s*탈수소))",
                                  r"mmol/l|mg/dl", _lactate_judge)),
+    Probe("platelets", ActionType.TEST, "일반혈액검사(혈소판 수)", ("일반혈액", "혈구", "cbc", "혈소판", "platelet"),
+          reader=_blood_only(_numeric_reader(r"(혈소판(?:\s*수)?|platelets?|\bplt\b)",
+                                             r"[x×]\s*10\s*\^?\s*[39⁹³]\s*/\s*[ul]+|/ul|/mm3|/mm³|mcl|k/ul",
+                                             _platelet_judge))),
+    Probe("creatinine", ActionType.TEST, "혈청 크레아티닌", ("크레아티닌", "creatinine", "신기능", "신장 기능", "전해질",
+                                                         "생화학", "chemistry", "bmp"),
+          reader=_blood_only(_numeric_reader(r"(크레아티닌|creatinine|\bcr\b)(?!\s*(청소율|clearance))",
+                                             r"mg/dl|umol/l", _creatinine_judge))),
+    Probe("bilirubin", ActionType.TEST, "총빌리루빈", ("빌리루빈", "bilirubin", "간기능", "간 기능", "lft"),
+          reader=_blood_only(_numeric_reader(
+              r"(?<!직접 )(?<!간접 )(?<!직접)(?<!간접)(?<!direct )(총\s*빌리루빈|빌리루빈|t-?bil\w*|total bilirubin|bilirubin)",
+              r"mg/dl|umol/l", _bilirubin_judge))),
+    Probe("echo", ActionType.TEST, "경흉부 심초음파", _KW_ECHO, reader=_echo_reader),
     Probe("anc", ActionType.TEST, "일반혈액검사(백혈구 감별계산, 절대 호중구 수)",
           ("일반혈액", "혈구", "cbc", "백혈구", "호중구", "complete blood count", "neutrophil"), reader=_anc_reader),
     Probe("hcg", ActionType.TEST, "소변 또는 혈청 β-hCG 임신 검사", FAMILY_LABELS["hcg"] + ("임신반응",),
@@ -812,7 +936,7 @@ PROBES: dict[str, Probe] = {p.id: p for p in (
            "auscult"),
           target=("천명", "stridor", "쌕쌕", "wheez", "혀 부종", "혀가 붓", "인두 부종", "후두 부종", "구인두 부종",
                   "목젖 부종", "쉰 목소리", "hoarse", "호흡음 감소", "호흡 곤란", "호흡곤란"),
-          normal_re=r"(호흡음|폐음)[^.]{0,15}(정상|깨끗|clear)|기도\s*(는|가)?\s*(개방|유지|patent)|clear to auscultation",
+          normal_re=r"(호흡음|폐음)[^.]{0,15}(정상|깨끗|명료|청명|clear)|기도\s*(는|가)?\s*(개방|유지|patent)|clear to auscultation",
           generic_normal=False),
     Probe("bnp", ActionType.TEST, "BNP 또는 NT-proBNP", ("bnp", "나트륨이뇨"),
           reader=lambda t, c: _numeric_reader(r"nt-?\s*pro\s*-?bnp", r"pg/ml", _ntbnp_judge)(t, c)
@@ -844,8 +968,26 @@ PROBES: dict[str, Probe] = {p.id: p for p in (
 # Composite clinical readings (Wells, PERC, ADD-RS, meningitis triad, qSOFA)
 # --------------------------------------------------------------------------------------------
 
-_DVT_SIGNS = ("다리가 붓", "다리 부종", "종아리 압통", "종아리가 붓", "종아리 부종", "하지 부종", "한쪽 다리", "calf swelling",
-              "leg swelling", "심부정맥혈전", "dvt")
+_DVT_SIGNS = ("다리가 붓", "다리가 부었", "다리가 부어", "다리 부종", "종아리 압통", "종아리가 붓", "종아리가 부", "종아리 부종",
+              "하지 부종", "calf swelling", "leg swelling", "심부정맥혈전", "dvt")
+# "한쪽 다리" alone (e.g. "한쪽 다리에 힘이 빠져요") is not a DVT sign; unilateral swelling is caught per sentence
+_DVT_SPECIFIC = ("종아리 압통", "심부정맥혈전", "dvt", "calf tenderness")
+_BILATERAL = ("양측", "양쪽", "양하지", "양 하지", "양다리", "양 다리", "두 다리", "양하구", "bilateral", "both legs")
+
+
+def _dvt_signs(c: "_Ctx") -> bool:
+    """Wells 'clinical signs of DVT' / PERC 'unilateral leg swelling': a DVT-specific finding, or leg swelling in a
+    sentence that does not call it bilateral. Explicitly bilateral oedema ("양측 하지 부종") is not a DVT sign (it points to
+    heart, kidney or liver disease); 2026-09-30, reader fix, criteria per C_WELLS_PE / C_PERC."""
+    if c.affirmed(_DVT_SPECIFIC):
+        return True
+    for sent in re.split(r"[.?!\n;]", str(c.facts)):
+        if any(k in sent for k in _DVT_SIGNS) and not any(b in sent for b in _BILATERAL) \
+                and contains_affirmed(sent, _DVT_SIGNS):
+            return True
+    return False
+
+
 _IMMOBILE = ("수술", "침상", "부동", "깁스", "석고 붕대", "immobil", "surgery", "bedridden", "bed rest")
 _PRIOR_VTE = ("혈전 병력", "혈전증 병력", "폐색전증 병력", "폐색전증을 앓", "혈전이 생긴 적", "혈전증을 앓", "previous dvt",
               "prior dvt", "history of dvt", "history of pe", "previous pe")
@@ -859,7 +1001,7 @@ def wells_partial(c: _Ctx) -> float:
     """Wells PE score from the case text, without 'PE is the most likely diagnosis' (3 points; not knowable from
     text, and the gate runs when another diagnosis is proposed). > 4 = 'PE likely' (two-level Wells, C_WELLS_PE)."""
     s = 0.0
-    s += 3 if c.affirmed(_DVT_SIGNS) else 0
+    s += 3 if _dvt_signs(c) else 0
     s += 1.5 if c.hr is not None and c.hr > 100 else 0
     s += 1.5 if c.affirmed(_IMMOBILE) else 0
     s += 1.5 if c.affirmed(_PRIOR_VTE) else 0
@@ -874,7 +1016,7 @@ def perc_negative(c: _Ctx) -> bool:
     denied leg swelling or recent surgery (evidence the history was taken)."""
     if c.age is None or c.age >= 50 or c.hr is None or c.hr >= 100 or c.spo2 is None or c.spo2 < 95:
         return False
-    if any(c.affirmed(k) for k in (_HEMOPTYSIS, _ESTROGEN, _PRIOR_VTE, _DVT_SIGNS, _IMMOBILE, _TRAUMA)):
+    if _dvt_signs(c) or any(c.affirmed(k) for k in (_HEMOPTYSIS, _ESTROGEN, _PRIOR_VTE, _IMMOBILE, _TRAUMA)):
         return False
     return c.denied(_DVT_SIGNS + _IMMOBILE)
 
@@ -966,6 +1108,9 @@ class RuleOut:
     note: str = ""
     check_ids: tuple[str, ...] = ()  # protocols.py checks whose applicability makes this CC danger live
     applies: Callable[[_Ctx], bool] | None = None  # custom applicability for CC-derived dangers
+    # evidence that the rule-out no longer matters (the question it answers is settled by another confirmed finding);
+    # an unresolved danger with moot evidence is not demanded and not reported as open
+    moot: Finder | None = None
 
 
 def _all(*finders: Finder) -> Finder:
@@ -1055,6 +1200,25 @@ def _applies_checks(check_ids: tuple[str, ...], c: _Ctx) -> bool:
     return any(ch.id in check_ids and ch.applies(text, cc=c.cc) for p in protocols_for(c.cc) for ch in p.checks)
 
 
+_RE_NO_PREGNANCY = re.compile(
+    r"(폐경|완경)\s*(이|은)?\s*(된|됐|되었|되어|했|한 지|후|이후)|(폐경|완경)\s*(상태|여성)|폐경기 이후|postmenopaus"
+    r"|post-menopaus|menopause at"
+    r"|자궁\s*(적출|절제)|hysterectom")
+
+
+def _no_pregnancy_possible(c: _Ctx) -> bool:
+    """Stated menopause ("3년 전에 폐경됐어요") or hysterectomy: pregnancy (and so ectopic pregnancy) is not the question.
+    Negated statements ("폐경은 아직 안 됐어요") do not count (the completed-form patterns above need the word right after,
+    and each match must be affirmed)."""
+    for m in _RE_NO_PREGNANCY.finditer(c.facts):
+        word = m.group(0)
+        if "아직" in c.facts[max(0, m.start() - 12):m.start()]:
+            continue
+        if polarity(c.facts[max(0, m.start() - 20):m.end() + 12], word) != "neg":
+            return True
+    return False
+
+
 def _gestation_12w(c: _Ctx) -> bool:
     """A stated gestation of >= 12 weeks: the pregnancy is established (ectopic is no longer the question)."""
     return any(int(m.group(1)) >= 12 for m in re.finditer(r"(?:임신|재태)\s*(\d+)\s*주", c.facts))
@@ -1066,10 +1230,52 @@ _FOCAL = ("편마비", "반신", "한쪽 팔", "한쪽 다리", "한쪽 팔다�
           "focal", "weakness")
 
 
+def _intracranial_bleed(c: _Ctx) -> list[str] | None:
+    """Brain imaging showed intracranial haemorrhage (the gate's own reading or a critical result): the deficit has a
+    confirmed haemorrhagic cause and reperfusion therapy is contraindicated, so the ischaemic-stroke rule-out (DWI-MRI)
+    is not demanded (G_STROKE: imaging before reperfusion is to exclude haemorrhage; 2026-09-30, ours)."""
+    for name in ("뇌출혈", "지주막하 출혈"):
+        if ev := c.critical.get(name):
+            return ev
+        if (ev := RULE_OUT[name].confirm(c)) is not None:
+            return ev
+    return None
+
+
 def _ptx_applies(c: _Ctx) -> bool:
-    return c.affirmed(("숨이 차", "숨차", "숨쉬기", "숨을 쉬", "호흡곤란", "호흡 곤란", "dyspnea", "short of breath", "기흉",
-                       "pneumothorax")) or c.affirmed(_TRAUMA) or (c.spo2 is not None and c.spo2 < 94) \
-        or (c.sbp is not None and c.sbp < 90)
+    """Trauma, a stated pneumothorax, SpO2 < 94% or SBP < 90 always; dyspnoea only when the chief complaint is not
+    long-standing (>= 2 weeks, clinical_rules.duration_level): tension pneumothorax is an acute, rapidly progressive
+    process (2026-09-30, reviewer knowledge; our operationalisation)."""
+    if c.affirmed(("기흉", "pneumothorax")) or c.affirmed(_TRAUMA) or (c.spo2 is not None and c.spo2 < 94) \
+            or (c.sbp is not None and c.sbp < 90):
+        return True
+    return not c.chronic(1) and c.affirmed(("숨이 차", "숨차", "숨쉬기", "숨을 쉬", "호흡곤란", "호흡 곤란", "dyspnea",
+                                            "short of breath"))
+
+
+# Heart-failure clues for the dyspnoea chief complaint (C_DYSPNEA_HF); read negation-aware from the environment text.
+_HF_CUES = (
+    # history
+    "심부전", "heart failure", "심근병증", "cardiomyopathy", "구혈률 감소", "구출률 감소", "박출률 감소", "심근경색",
+    "myocardial infarction", "판막 치환", "판막치환", "인공 판막", "인공판막", "기좌호흡", "좌위호흡", "orthopnea",
+    "누우면 숨", "누우면 더 숨", "누워 있으면 숨", "누우면 답답", "베개를 여러", "앉아서 자", "발작성 야간", "자다가 숨이",
+    "자다가 깨", "paroxysmal nocturnal", "pnd",
+    # examination
+    "s3", "제3심음", "제3 심음", "gallop", "갤럽", "경정맥 확장", "경정맥 팽대", "경정맥압 상승", "경정맥압이 상승",
+    "jvd", "jugular venous distension", "간경정맥", "hepatojugular", "abdominojugular", "수포음", "crackle", "rale",
+    "악설음", "하지 부종", "다리 부종", "다리가 붓", "발목 부종", "발목이 붓", "함요 부종", "함몰 부종", "오목부종",
+    "오목 부종", "pitting", "leg edema", "peripheral edema", "ankle swelling",
+    # imaging / ECG
+    "폐부종", "폐 부종", "pulmonary edema", "폐울혈", "폐 울혈", "정맥 울혈", "혈관 울혈", "pulmonary congestion",
+    "vascular congestion", "kerley", "커얼리", "심비대", "심장 비대", "심장비대", "cardiomegaly", "심흉곽비 증가",
+    "심장 음영 확대", "확대된 심장 음영", "양측 흉수", "양측 늑막 삼출", "bilateral pleural effusion", "심방세동",
+    "atrial fibrillation")
+
+
+def _hf_cues(c: _Ctx) -> bool:
+    """A heart-failure clue in the chief complaint or the environment's responses, or an elevated natriuretic
+    peptide, or an abnormal echocardiogram (low LVEF, structural or functional abnormality)."""
+    return c.cue(_HF_CUES) or c.probe("bnp").result == "abnormal" or c.probe("echo").result == "abnormal"
 
 
 def _perforation_applies(c: _Ctx) -> bool:
@@ -1095,11 +1301,35 @@ def _dka_out(c: _Ctx):
     return None
 
 
+def _no_organ_dysfunction(c: _Ctx) -> list[str] | None:
+    """Every SOFA organ system that routine data can show is at 0 (Sepsis-3: sepsis = infection with an acute SOFA
+    rise >= 2): MAP >= 70, mental status explicitly normal, RR < 22 with SpO2 >= 95% when measured, platelets
+    >= 150,000/uL, creatinine < 1.2 and bilirubin < 1.2 mg/dL. All of them must be measured and read as normal."""
+    if c.map_min is None or c.map_min < 70 or c.rr is None or c.rr >= 22:
+        return None
+    if c.spo2 is not None and c.spo2 < 95:
+        return None
+    mental = _mental_normal(c)
+    if mental is None:
+        return None
+    out = [f"평균 동맥압 {c.map_min:.0f} mmHg, 호흡수 {c.rr}" + (f", 산소포화도 {c.spo2}%" if c.spo2 else "")]
+    for pid in ("platelets", "creatinine", "bilirubin"):
+        o = c.probe(pid)
+        if o.result != "normal":
+            return None
+        out += o.spans[:1]
+    return out + mental[:1]
+
+
 def _sepsis_out(c: _Ctx):
     q = _qsofa(c)
-    lac = _is("lactate", "normal")(c)
-    if q == 0 and lac is not None and (c.sbp or 0) > 100:
-        return [f"수축기 혈압 {c.sbp}, 호흡수 {c.rr}, 의식 변화 없음(qSOFA 0)"] + lac
+    if q != 0 or (c.sbp or 0) <= 100:
+        return None
+    base = [f"수축기 혈압 {c.sbp}, 호흡수 {c.rr}, 의식 변화 없음(qSOFA 0)"]
+    if (lac := _is("lactate", "normal")(c)) is not None:
+        return base + lac
+    if (sofa := _no_organ_dysfunction(c)) is not None:
+        return base + ["장기 기능 이상 없음(SOFA 항목 모두 정상)"] + sofa
     return None
 
 
@@ -1180,7 +1410,9 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
              "pneumothorax as rule-out evidence is our operationalisation. Live when dyspnea, trauma, SpO2 < 94% or "
              "SBP < 90. 2026-09-29: a pneumothorax on imaging confirms only with tension words in the report "
              "(mediastinal/tracheal shift, 긴장성, tension; negation-aware) or SBP < 90; otherwise the danger stays "
-             "unresolved and only normal breath sounds rule it out (CRITICAL_RESULT_REQUIRES, _ptx_out)."),
+             "unresolved and only normal breath sounds rule it out (CRITICAL_RESULT_REQUIRES, _ptx_out). 2026-09-30: dyspnoea "
+             "of >= 2 weeks alone no longer makes it live (acute process; SpO2/SBP/trauma/stated pneumothorax still "
+             "do)."),
     RuleOut(
         "아나필락시스", ("anaphylaxis", "아나필락시스 쇼크", "anaphylactic shock"), 1,
         "수축기 혈압 ≥ 90, 산소포화도 ≥ 94%, 기도·호흡 평가 정상(천명·협착음·인두/후두 부종 없음)",
@@ -1279,14 +1511,20 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
              "normal (reviewer knowledge). CT-before-LP indications from IDSA 2004 (secondary)."),
     RuleOut(
         "패혈증", ("패혈성 쇼크", "sepsis", "septic shock", "균혈증"), 2,
-        "측정한 활력징후로 qSOFA 0(수축기 혈압 > 100, 호흡수 < 22, 의식 정상) + 젖산 < 2 mmol/L",
+        "측정한 활력징후로 qSOFA 0(수축기 혈압 > 100, 호흡수 < 22, 의식 정상) + 젖산 < 2 mmol/L, 또는 qSOFA 0 + "
+        "SOFA 장기 항목 모두 정상(평균 동맥압 ≥ 70, 의식 명료, 혈소판 ≥ 15만, 크레아티닌·빌리루빈 < 1.2 mg/dL)",
         rule_out=_sepsis_out, confirm=_sepsis_confirm,
         steps=(Step("vitals", when=lambda c: c.sbp is None or c.rr is None, reason="혈압·호흡수·의식"),
                Step("lactate", reason="조직 저관류(젖산) 확인")),
-        citations=(G_SEPSIS,), verification="unverified", check_ids=("blood_culture",),
+        citations=(G_SEPSIS, C_SEPSIS3), verification="secondary", check_ids=("blood_culture",),
         note="SSC 2021 recommends against qSOFA alone for screening and suggests measuring lactate (read, see "
-             "protocols.py). Requiring qSOFA 0 AND lactate < 2 for rule-out is our operationalisation. Confirm: "
-             "lactate >= 4 or qSOFA >= 2 with fever (ours)."),
+             "protocols.py). Requiring qSOFA 0 AND lactate < 2 for rule-out is our operationalisation. 2026-09-30: "
+             "Sepsis-3 (Singer 2016, abstract read via PubMed efetch): sepsis = infection with organ dysfunction, an "
+             "acute SOFA rise >= 2. So qSOFA 0 plus every routinely measured SOFA system at 0 (MAP >= 70, explicitly "
+             "normal mental status, platelets >= 150k, creatinine and bilirubin < 1.2 mg/dL; RR < 22 and SpO2 >= 95% "
+             "when measured as the respiratory proxy) also rules out, without lactate. SOFA cut-offs are the SOFA "
+             "table (secondary); SpO2 as a PaO2/FiO2 proxy is ours. Confirm: lactate >= 4 or qSOFA >= 2 with fever "
+             "(ours)."),
     RuleOut(
         "자궁외 임신", ("임신(자궁외 임신 포함)", "이소성 임신", "난관 임신", "ectopic pregnancy", "자궁 외 임신"), 2,
         "β-hCG 음성, 또는 초음파에서 자궁 내 임신 확인",
@@ -1298,9 +1536,12 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
                Step("pelvic_us", when=lambda c: c.probe("hcg").result in ("abnormal", "done"),
                     reason="hCG 양성: 자궁 내 임신 확인")),
         citations=(G_ECTOPIC, G_EARLY_PREGNANCY), verification="unverified", check_ids=("pregnancy_test", "pelvic_us"),
-        applies=lambda c: _applies_checks(("pregnancy_test", "pelvic_us"), c) and not _gestation_12w(c),
+        applies=lambda c: _applies_checks(("pregnancy_test", "pelvic_us"), c) and not _gestation_12w(c)
+        and not _no_pregnancy_possible(c),
         note="ACOG PB 193 / ACEP 2017 (verified citations; text not re-read): hCG + transvaginal US. Heterotopic "
-             "pregnancy (IVF) is not handled."),
+             "pregnancy (IVF) is not handled. 2026-09-30: not live from the chief complaint once menopause or a "
+             "hysterectomy is stated anywhere in the case (protocols' predicate reads the chief complaint only); the "
+             "guidelines' population is women of reproductive age (reviewer knowledge)."),
     RuleOut(
         "장간막 허혈", ("급성 장간막 허혈", "mesenteric ischemia", "acute mesenteric ischemia", "장간막 동맥 폐색"), 2,
         "CT 혈관조영에서 장간막 혈관 개통·장 허혈 소견 없음(젖산·D-dimer로는 배제 불가)",
@@ -1339,9 +1580,11 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
         steps=(Step("ct_head", reason="출혈 먼저 배제"), Step("mri_dwi", reason="급성 경색 확인(확산강조영상)")),
         citations=(G_STROKE,), verification="unverified", check_ids=("brain_imaging",),
         applies=lambda c: _applies_checks(("brain_imaging",), c) and c.affirmed(_FOCAL),
+        moot=lambda c: _intracranial_bleed(c),
         note="Live from the chief complaint only with a focal deficit (non-focal altered mental status: CT for "
              "hemorrhage, not a DWI-MRI demand; ours). Reviewer knowledge: early CT is insensitive for ischemia; DWI-MRI is the rule-out test (small/posterior "
-             "strokes can still be DWI-negative)."),
+             "strokes can still be DWI-negative). 2026-09-30: not demanded once intracranial haemorrhage is confirmed "
+             "(moot=_intracranial_bleed): the deficit has a haemorrhagic cause and reperfusion is contraindicated."),
     RuleOut(
         "저혈당", ("hypoglycemia", "hypoglycaemia", "저혈당증"), 2,
         "혈당 ≥ 70 mg/dL",
@@ -1353,7 +1596,8 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
         note="AHA/ASA 2019: glucose is the only lab required before IV alteplase (see protocols.py). 70 / 54 mg/dL are "
              "the usual level-1/level-2 hypoglycaemia thresholds (reviewer knowledge)."),
     RuleOut(
-        "당뇨병성 케톤산증", ("dka", "diabetic ketoacidosis", "케톤산증", "당뇨병 케톤산증"), 2,
+        "당뇨병성 케톤산증", ("dka", "diabetic ketoacidosis", "케톤산증", "당뇨병 케톤산증", "당뇨병성 케토산증", "케토산증",
+                   "당뇨성 케톤산증"), 2,
         "혈청/소변 케톤 음성, 또는 pH ≥ 7.30 + 중탄산 ≥ 18, 또는 혈당 < 200 + 당뇨병·SGLT2 억제제 없음",
         rule_out=_dka_out, confirm=_dka_confirm,
         steps=(Step("glucose", reason="고혈당 확인"), Step("ketone", reason="케톤(베타-하이드록시부티르산)"),
@@ -1381,13 +1625,21 @@ RULE_OUT_TABLE: tuple[RuleOut, ...] = (
     # ---------------- tier 3 ----------------
     RuleOut(
         "급성 심부전", ("심부전", "울혈성 심부전", "heart failure", "acute heart failure", "급성 심부전 악화"), 3,
-        "BNP < 100 pg/mL 또는 NT-proBNP < 300 pg/mL",
-        rule_out=_is("bnp", "normal"), confirm=_all(_is("bnp", "abnormal"), _is("cxr_edema", "abnormal")),
+        "BNP < 100 pg/mL 또는 NT-proBNP < 300 pg/mL, 또는 심초음파 정상(좌심실 구혈률 ≥ 50%, 구조·기능 이상 없음)",
+        rule_out=_any(_is("bnp", "normal"), _is("echo", "normal")),
+        confirm=_all(_is("bnp", "abnormal"), _is("cxr_edema", "abnormal")),
         steps=(Step("bnp", reason="나트륨이뇨펩티드 정상이면 급성 심부전 가능성 낮음"),),
-        citations=(C_ESC_HF, G_HF), verification="unverified", check_ids=("natriuretic_peptide",),
+        citations=(C_ESC_HF, G_HF, C_DYSPNEA_HF), verification="secondary", check_ids=("natriuretic_peptide",),
+        applies=lambda c: _applies_checks(("natriuretic_peptide",), c) and _hf_cues(c),
         note="AHA/ACC/HFSA 2022: natriuretic peptides to support or exclude HF in dyspnea (see protocols.py). The acute "
              "rule-out thresholds (BNP < 100, NT-proBNP < 300 pg/mL) are ESC 2021 per reviewer knowledge (abstract "
-             "has no thresholds)."),
+             "has no thresholds). 2026-09-30: live from the chief complaint only with a heart-failure clue (_HF_CUES). "
+             "Wang 2005 JAMA (abstract read via PubMed efetch): prior HF (LR+ 5.8), PND (2.6), S3 (11), pulmonary "
+             "venous congestion (12) and atrial fibrillation (3.8) raise the probability; the other clues (orthopnea, "
+             "JVD, rales, oedema, cardiomegaly, interstitial/alveolar oedema, effusions) are from the article's tables "
+             "per reviewer knowledge (secondary). Dyspnoea without any clue is not gated (the DDx ledger can still flag "
+             "it). A normal echocardiogram (LVEF >= 50%, no structural/functional abnormality, _echo_reader) as an "
+             "alternative rule-out is our operationalisation of ESC 2021 (echo is the key test once HF is suspected)."),
     RuleOut(
         "마미 증후군", ("cauda equina syndrome", "마미총 증후군"), 3,
         "요추 MRI 정상, 또는 배뇨·배변 장애와 안장 감각 저하 부정 + 하지 신경학적 진찰 정상",
@@ -1549,7 +1801,8 @@ def _working_dx(state) -> str | None:
     return str(ddx[0].get("dx", "")) if ddx and isinstance(ddx[0], dict) else None
 
 
-def _dangers(state, c: _Ctx, exclude: str | None) -> list[dict]:
+def _found(state, c: _Ctx) -> dict[str, dict]:
+    """Dangers on the checked list (before rule-out filtering): {name: {"source", "p"}}."""
     found: dict[str, dict] = {}
     for name in cant_miss_for(c.cc):
         r = lookup(name)
@@ -1570,13 +1823,24 @@ def _dangers(state, c: _Ctx, exclude: str | None) -> list[dict]:
     for name in list(c.critical) + list(c.critical_raised):
         if name in RULE_OUT and name not in found:
             found[name] = {"source": "critical_result", "p": 0.0}
+    return found
+
+
+def raised_dangers(state) -> dict[str, str]:
+    """{danger name: source} for every can't-miss diagnosis on the checked list, ruled out or not (offline
+    measurement: eval/offline/eval_danger_gate.py)."""
+    return {k: v["source"] for k, v in _found(state, _Ctx(state)).items()}
+
+
+def _dangers(state, c: _Ctx, exclude: str | None) -> list[dict]:
+    found = _found(state, c)
     excluded = lookup(exclude) if exclude else None
     out = []
     for order, r in enumerate(RULE_OUT_TABLE):
         if r.name not in found or (excluded is not None and excluded.name == r.name):
             continue
         st, ev = _status(r, c)
-        if st == "ruled_out":
+        if st == "ruled_out" or (st == "unresolved" and r.moot is not None and r.moot(c) is not None):
             continue
         info = found[r.name]
         out.append({"dx": r.name, "tier": r.tier, "status": st, "evidence": ev, "source": info["source"],

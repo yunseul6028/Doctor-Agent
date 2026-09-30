@@ -260,6 +260,13 @@ guard), `eval/compare.py`, `eval/viewer.py` (viewer + share page), `eval/play.py
 Order inside `Policy.next_action` for each proposed action:
 1. parse → normalize type → merge ledgers → **grounding** (`agent/grounding.apply`: findings / DDx evidence never said by the environment are marked unverified; unverified findings are excluded from renaming/criteria evidence) → dedupe.
 2. DIAGNOSE only: protocol safety pushback (once) → **can't-miss gate** (`safety/danger_gate.gate`: forces the next rule-out action for an unresolved can't-miss diagnosis, ≤ `max_gate_turns`=3 per case, never when ≤2 turns remain; a confirmed *other* danger only yields a one-time hint) → pre-diagnosis review (with diagnostic criteria).
+   Which dangers are checked (2026-09-30): chief-complaint dangers must pass `RuleOut.applies` (acute heart failure
+   only with a heart-failure clue — history, exam, CXR, AF, raised BNP or abnormal echo; tension pneumothorax not for
+   dyspnoea of ≥ 2 weeks alone; ectopic pregnancy not after stated menopause / hysterectomy); DDx-ledger 위험 entries
+   and critical results are always checked. `RuleOut.moot` drops an unresolved danger whose question is settled
+   (ischaemic stroke once intracranial haemorrhage is confirmed). Sepsis also rules out on qSOFA 0 + every routine SOFA
+   system normal (no lactate needed); heart failure also on a normal echo. `raised_dangers(state)` lists the checked
+   set for offline measurement (`eval/offline/eval_danger_gate.py`).
 3. TEST/EXAM (incl. gate/review follow-ups): **pre-test preconditions** (`safety/preconditions.check`: block → swap in the prerequisite, e.g. brain CT before LP, β-hCG before abdominal CT; block without alternative → ask the model for another action; warn → annotate the reason).
 All three are guarded (exceptions are logged, never raised), recorded in `result["safety_log"]` (shown per turn in the viewer), and switchable for ablations: `AGENT_USE_GROUNDING`, `AGENT_USE_DANGER_GATE`, `AGENT_USE_PRECONDITIONS` (experiment condition `v6-no-safety`).
 
