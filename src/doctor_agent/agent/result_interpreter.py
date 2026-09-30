@@ -347,6 +347,11 @@ _FLOW_LOST = re.compile(r"^\s?(?:가|는|이|도)?\s?(?:소실|감소|저하|없
 _FLOW_KEPT = re.compile(r"^\s?(?:가|는|이|도)?\s?(?:정상|유지|보존|증가|양호|대칭|(?:is )?(?:normal|preserved|increased|symmetric))")
 _FLOW_LOST_BEFORE = re.compile(r"(?:absent|no|decreased|diminished|무)\s?$")
 _IMP_RX = [(re.compile(p), c) for p, c in _IMPRESSIONS]
+# perforation words and the organs whose perforation means free intraperitoneal air (see _Reader._free_air_ok)
+_PERFORATION = re.compile(r"천공|perforat")
+_GUT_REGIONS = {"stomach", "bowel", "appendix", "abdomen"}
+_GUT_WORDS = re.compile(r"위장|소화관|소화성|십이지장|위궤양|(?<![가-힣])위\s?천공|장관|충수|복강|복막|복부|viscus|duoden|gastr"
+                        r"|bowel|intestin|colon|abdom|peritone|peptic")
 
 # history-type concepts the lexicon gives for report words, re-mapped in imaging / ECG context
 _HX_REMAP_SPAN = [
@@ -661,24 +666,21 @@ _PENDING = re.compile(r"대기\s?중|결과\s?(?:대기|미정|안\s?나)|검사
                       r"|in progress|awaiting")
 _VALUE_TAIL = re.compile(r"[^\d<>≤≥,]{0,14}?[<>≤≥]?=?\s*\d[\d,.]*\s*(?:%|[a-zμµ/.³^]+)?")
 _REF_PAREN = re.compile(r"\s*\([^()]*\)")
-_WORD_PAREN = re.compile(r"\s*\(([^()\d]{1,20})\)")  # "(경미한 상승)": a direction word, no reference numbers
 
 
 def _kb_value(cid: str, masked: str, pol: str):
     """The value kb_tests read for a numeric finding: (polarity, value as printed, unit, direction, (start, end)) or
     None. The polarity is kb_tests' own: it compares the value with a printed reference range in that range's unit and
     knows which findings are absolute cut-offs ("ESR 38 (정상 <20)" is above the range, not ESR > 50), so no number is
-    re-read here. One gap is bridged with kb_tests' own rule for a word-only range ("(정상 범위 초과)" -> above the range
-    for a finding that is not a cut-off): a direction-word parenthesis without a reference keyword ("CEA 6.5 ng/mL
-    (경미한 상승)"), which kb_tests does not take for a range."""
+    re-read here (kb_tests also reads a direction-word parenthesis after the value: "CEA 6.5 ng/mL (경미한 상승)")."""
     f, pat = _kb_finding(cid)
     if f is None or f.mode not in ("hi", "lo"):
         return None
-    m = pat.search(masked)
-    if not m:
-        return None
     try:
         from doctor_agent.knowledge import kb_tests
+        m = kb_tests.analyte_match(f, masked, masked, pat)  # its own name, or a short alias in context ("AG 25")
+        if not m:
+            return None
         num = kb_tests._number(masked[m.end():m.end() + 45], f)  # read-only helper: the number kb_tests reads
     except Exception:  # noqa: BLE001
         return None
@@ -693,12 +695,6 @@ def _kb_value(cid: str, masked: str, pol: str):
     unit = unit.rstrip("/.^")
     end = vm.end() if vm else m.end()
     ref = _REF_PAREN.match(masked, end)
-    word = _WORD_PAREN.match(masked, end)
-    if pol == "absent" and word and not (f.cutoff or f.need_value) and not kb_tests._REFPAREN.match(word.group().strip()) \
-            and not kb_tests._REF_NORMAL_NEG.search(word.group(1)):
-        says_high, says_low = kb_tests._REF_HIGH.search(word.group(1)), kb_tests._REF_LOW.search(word.group(1))
-        if (says_high and not says_low and f.mode == "hi") or (says_low and not says_high and f.mode == "lo"):
-            pol = "present"
     direction = ("high" if f.mode == "hi" else "low") if pol == "present" else "normal" if pol == "absent" else ""
     return pol, raw, unit, direction, (m.start(), ref.end() if ref else end)
 
@@ -859,6 +855,8 @@ class _Reader:
                 continue
             if imaging or self.kind == "other":
                 cid = self._remap(cid, sent[s:e], sent, parts, s, e, regions)
+            if cid == "IMG:free_air" and not self._free_air_ok(sent, parts, s, e, regions):
+                continue  # "전방 승모판 천공": a perforated valve, not free air (left to the unmapped reader)
             if f.hypothetical and pol == "present":
                 pol = "uncertain"
             out.append(Item(_kind_of(cid, self.kind), cid, _short_label(cid), pol, span=sent[s:e], value=f.value,
@@ -906,11 +904,23 @@ class _Reader:
             return mapping.get(reg, cid)
         return cid
 
+    def _free_air_ok(self, sent: str, parts, s: int, e: int, regions) -> bool:
+        """A perforation word ("천공", "perforation") stands for free intraperitoneal air only when the perforated organ
+        is a hollow abdominal one: the organ the word refers to (its region word, else the test's region) is the
+        stomach / bowel / appendix / abdomen, or no organ is named and the sentence speaks of the gut. Air words
+        ("유리 공기", "free air") always are."""
+        if not _PERFORATION.search(sent[s:e]):
+            return True
+        reg = _region_at(sent, _part_of(parts, s), s, e, self.region, regions)
+        return reg in _GUT_REGIONS or (reg == "" and bool(_GUT_WORDS.search(sent)))
+
     def _descriptors(self, sent: str, masked: str, parts, regions, taken: list[tuple[int, int]]) -> list[Item]:
         out: list[Item] = []
         cands: list[tuple[int, int, str, bool, str]] = []  # start, end, concept, fixed, source
         for rx, cid in _IMP_RX:
             for m in rx.finditer(masked):
+                if cid == "IMG:free_air" and not self._free_air_ok(sent, parts, m.start(), m.end(), regions):
+                    continue
                 cands.append((m.start(), m.end(), cid, False, "impression"))
         for name, rx, mapping, quals, fixed in _DESC_RX:
             for m in rx.finditer(masked):

@@ -42,6 +42,7 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 | `safety/protocols.py` | Chief-complaint safety protocols (can't-miss diagnoses + minimum checks with citations; `cant_miss_for`, `pending_checks`). |
 | `knowledge/clinical_rules.py` | 24 decision rules, category detection from the chief complaint, duration/age parsing, negation handling. |
 | `knowledge/kb.py`, `kb_curated.py`, `kb_tests.py` | Knowledge base runtime (stdlib only, CPU), our matching tables, curated test-result → disease links. |
+| `knowledge/refrange.py` | The one reader of printed reference ranges ("(정상 0.4-4.0)", "(정상 40 미만)", "(ULN 60)", "(정상치 500)", "(경미한 상승)") shared by `nlp/findings.py` (`ref_direction`) and `kb_tests.py`: `read(body) -> Ref`, `direction(ref, value, side)`, `unit_gap`. Stdlib only. |
 
 ## Per-case flow
 
@@ -379,8 +380,9 @@ text on the 1,420 exam/test texts in `data/cases_*`).
   `IMG:ctpa_pe` / `IMG:doppler_dvt`); SYM/QUAL and non-imaging SIGN concepts dropped from imaging reports ("반점상 경화"
   is not a rash). Polarity: the nlp cue rules (`assess_spans`), then per comma part hedges → uncertain, "배제할 수 없음 /
   cannot be excluded" → uncertain, "배제됨 / was excluded" → absent, English list negation ("No A, B, or C"), "A without
-  B" keeps A. Lab values next to a printed range are re-checked against that range (kb_tests missed "D-dimer 750 ng/mL
-  (<500)"). Pending parts are skipped.
+  B" keeps A. Lab polarity next to a printed range is kb_tests' own (the range is read by `knowledge/refrange.py`, the
+  same reader as `nlp.findings.ref_direction`); a perforation word is free air only for a gut organ. Pending parts
+  are skipped.
 - Critical: urgent imaging/ECG concepts (pneumothorax, free air, dissection, ICH/SAH/SDH, mass effect, PE, DVT,
   tamponade, torsion, empty uterus, STEMI, long QT, ...; our selection after the ACR communication parameter) read as
   present/uncertain, or values beyond adult critical limits (K ≥6.0/<2.8, Na <120/>160, glucose <50/>450, Hb <7,

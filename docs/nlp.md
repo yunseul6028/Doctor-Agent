@@ -101,7 +101,8 @@ is not `agent/ledger.Finding`.
    hypotension, 90–99 uncertain; ≥140/90 elevated), SpO2 (<92 / 92–94 uncertain / ≥95; not a saturation named after a
    vessel or chamber: 폐동맥/우심방/혼합정맥혈 포화도),
    17 core labs (WBC, Hb, PLT, Na, K, glucose, Cr, BUN, AST/ALT, bilirubin, albumin, CRP, ESR, HCO3, INR, eosinophils)
-   with ×10³ / 만 scaling and reference ranges in parentheses; urinalysis items. An abnormal value names one side only.
+   with ×10³ / 만 scaling and reference ranges in parentheses (read by `knowledge/refrange.py`, shared with kb_tests);
+   urinalysis items. An abnormal value names one side only.
    For exam/test/claim text `knowledge/kb_tests.detect()` adds its result concepts (reused, not ported).
 9b. Merging (per concept, subject and clause): a measured value merges into the mention and decides its polarity;
     two readings of the same polarity become one finding (`extra_spans`); opposite explicit readings stay apart
@@ -182,6 +183,27 @@ over the 267 case files (categories, must-checks, red flags, rule-out status, pr
 changed, both judged right — da_122 (syncope in the chief complaint is no longer negated by a list in the next
 sentence → syncope red flags) and da_14 (the ECG's "동성빈맥 (123회/분)" is now read, Wells rises to 5.5, so a normal
 D-dimer alone no longer rules out PE).
+
+### Fixes 2026-09-30 (reference ranges and look-alike analytes; general rules, no per-case patterns)
+
+One reference-range reader, `knowledge/refrange.py`, now serves `ref_direction` here and `knowledge/kb_tests.py` (they
+had two partial copies). It reads ranges; comparators and their words in Korean and English ("(정상 40 미만)",
+"(참고치 40 이하)", "(500미만)", "(정상 12 이상)", "(60 초과)", "(less than / up to / above / at least N)", "≤ / ≥"; strict
+limits count the limit itself as outside); labelled limits ("정상 상한 60", "상한치: 45", "ULN", "정상 하한", "LLN"); a bare
+labelled number ("(정상치 500)") as a limit on the analyte's own abnormal side (no reading when a lab has both sides);
+direction words ("(경미한 상승)", "(mildly elevated)", "(감소)", "(H)", "(상승 없음)" = normal). A parenthesis holding a number
+it cannot place as a limit says nothing: "(정상 40 미만)" was read as "normal" from the word 정상, "(1394 nmol/L)" as an
+"L" (low) flag, "(정상 상한의 5배)" as normal. A range two orders of magnitude from the value ("WBC 3,200 (정상 4.0-10.0)")
+that disagrees with the default threshold is not trusted (the threshold decides). kb_tests: a bare limit is the upper
+limit of a high finding ("D-dimer 750 (정상치 500)" was absent), a unitless value against a unit-bearing range is left
+unread when the two readings disagree across a unit gap ("d-dimer 1.2 (정상 <500 ng/mL)" was absent), a direction-word
+parenthesis after a value is a reference (the `result_interpreter` bridge for it is removed; identical output over all
+7,637 swept texts), a non-keyword parenthesis after a value is a reference only when it holds nothing but a limit.
+Short aliases need context: "AG" is an anion gap only among electrolytes / blood gases ("vWF:Ag 95%" was a high anion
+gap), a bare "포화도" is a transferrin saturation only in an iron panel (a catheterisation "폐동맥 포화도 66%" was
+`tsat_high`) and then not an SpO2 ("철 200, TIBC 250, 포화도 80%" was hypoxaemia). kb_tests value findings carry their
+side as direction ("ferritin_low" present = "low", was "high"). Tests: `tests/test_refrange.py`. Gold metrics
+unchanged (findings gold .945 F1; result-interpreter gold 1.00 / 1.00).
 
 ## Known gaps
 

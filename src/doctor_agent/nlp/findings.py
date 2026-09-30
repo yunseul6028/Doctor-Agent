@@ -33,6 +33,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field, replace
 
+from doctor_agent.knowledge import refrange
 from doctor_agent.nlp.lexicon import LEXICON, Concept, Lexicon, Mention, compact, normalize
 
 SOURCES = ("patient", "exam", "test", "claim")
@@ -280,6 +281,10 @@ _SPO2 = re.compile(r"(?:산소\s?포화도|(?<![a-z])spo2|sao2|o2\s?sat\w*|포�
 _SAT_SITE = re.compile(r"(?:폐동맥|우심방|우심실|좌심방|좌심실|상대정맥|하대정맥|대정맥|정맥혈?|혼합\s?정맥혈?|대동맥|동맥관|중심\s?정맥"
                        r"|트랜스페린|철|transferrin|iron|svo2|scvo2|mixed venous|venous)\s?(?:의|내|에서)?\s?$")
 
+# an iron panel: a bare "포화도" in it is the transferrin saturation (the same context as knowledge/kb_tests' _IRON_CTX)
+_IRON_CTX = re.compile(r"(?<![가-힣])철(?:분|\s?결합|\s?결핍)?(?![가-힣])|혈청\s?철|iron|(?<![a-z])fe(?![a-z])|페리틴|ferritin"
+                       r"|tibc|uibc|트랜스페린|transferrin")
+
 # labs read here (kb_tests covers the rest): key, analyte regex, high concept, high threshold, low concept, low threshold
 _LABS: list[tuple[str, str, str | None, float | None, str | None, float | None]] = [
     ("wbc", r"(?<![a-z])wbc(?![a-z])|백혈구(?!\s?(?:에스테라제|원주|뇨|에스터))(?:\s?수치|\s?수)?", "LAB:wbc_high", 11000, "LAB:wbc_low", 4000),
@@ -303,10 +308,7 @@ _LABS: list[tuple[str, str, str | None, float | None, str | None, float | None]]
 _LAB_RX = [(k, re.compile(p), hi, th, lo, tl) for k, p, hi, th, lo, tl in _LABS]
 _VALUE = re.compile(r"[^\d<>≤≥\n,;]{0,14}?([<>≤≥]=?\s*)?(\d+(?:\.\d+)?)\s*(만|천)?\s*((?:x|×)\s?10\s?\^?\s?[0-9³]|k)?\s*"
                     r"(%|[a-zμ/.³^0-9]+(?:/[a-zμ.0-9]+)?)?")
-_REF = re.compile(r"^\s*\(([^()]*?)\)")
-_RANGE = re.compile(r"(\d+(?:\.\d+)?)\s*[-~]\s*(\d+(?:\.\d+)?)")
-_UPPER = re.compile(r"[<≤]\s*=?\s*(\d+(?:\.\d+)?)")
-_LOWER = re.compile(r"[>≥]\s*=?\s*(\d+(?:\.\d+)?)")
+_REF = re.compile(r"^\s*\(([^()]*?)\)")  # a parenthesis right after a value; read by knowledge/refrange.py
 _QUAL_NORMAL = re.compile(r"^[^\d,;]{0,10}?(?:정상|음성|normal|negative|wnl|이상\s?없|범위\s?내)")
 _URINE_CTX = re.compile(r"소변|요검사|요\s?분석|urinalysis|u/a|요침사|hpf|비중|요\s?배양")
 _URINE_ITEMS = [
@@ -452,28 +454,28 @@ def _num_close(a: float, b: float) -> bool:
     return big >= 1000 and abs(small * 1000 - big) <= 0.004 * big
 
 
-def _ref_direction(after: str, v: float) -> tuple[str, str]:
-    """Direction from a reference range in parentheses right after a value: ("high"|"low"|"normal", ref text)."""
+def _unit_doubt(raw: float, after: str) -> bool:
+    """Is the printed range two orders of magnitude away from the value (another unit: "WBC 3,200 (정상 4.0-10.0)")?
+    Then a reading that disagrees with the default threshold is not trusted."""
+    m = _REF.match(after)
+    if not m:
+        return False
+    r = refrange.read(m.group(1))
+    bounds = [b for b in (r.lo, r.hi, r.limit) if b]
+    return bool(bounds) and all(refrange.unit_gap(raw, b) for b in bounds)
+
+
+def _ref_direction(after: str, v: float, side: str = "") -> tuple[str, str]:
+    """Direction from a reference range in parentheses right after a value: ("high"|"low"|"normal", ref text), or
+    ("", "") when there is none or it says nothing. The parenthesis is read by knowledge/refrange.py (the reader
+    kb_tests uses): ranges, comparators and their words ("(정상 40 미만)", "(정상 12 이상)", "(up to 40)", "(ULN 60)")
+    and direction words ("(경미한 상승)"). side ("high" | "low" | ""): the analyte's only abnormal side, which a bare
+    limit ("(정상치 500)") and an "abnormal" word need; "" when both sides are possible."""
     m = _REF.match(after)
     if not m:
         return "", ""
-    body = m.group(1)
-    r = _RANGE.search(body)
-    if r:
-        lo, hi = float(r.group(1)), float(r.group(2))
-        return ("high" if v > hi else "low" if v < lo else "normal"), m.group(0)
-    u, lw = _UPPER.search(body), _LOWER.search(body)
-    if u:
-        return ("high" if v >= float(u.group(1)) else "normal"), m.group(0)
-    if lw:
-        return ("low" if v <= float(lw.group(1)) else "normal"), m.group(0)
-    if re.search(r"정상|normal|범위\s?내|within", body):
-        return "normal", m.group(0)
-    if re.search(r"높|상승|high|↑|\bh\b", body):
-        return "high", m.group(0)
-    if re.search(r"낮|저하|low|↓|\bl\b", body):
-        return "low", m.group(0)
-    return "", ""
+    d = refrange.direction(refrange.read(m.group(1)), v, side)
+    return (d, m.group(0)) if d else ("", "")
 
 
 # ------------------------------------------------------------------------------------------------ parser
@@ -780,6 +782,8 @@ class _Parser:
                 continue
             if _SAT_SITE.search(sent[max(0, coff + m.start() - 14):coff + m.start()]):
                 continue  # "폐동맥 포화도 66%" (catheterisation), "혼합정맥혈 산소포화도": not the arterial SpO2
+            if m.group().startswith("포화도") and _IRON_CTX.search(sent):
+                continue  # "철 200, TIBC 250, 포화도 80%": a transferrin saturation (knowledge/kb_tests reads it)
             pol = "present" if v < 92 else "absent" if v >= 95 else "uncertain"
             out.append(self._mk("SIGN:hypoxemia", m.group().strip(), coff + m.start(), pol, v, "%",
                                 "low" if v < 95 else "normal", "value", clause))
@@ -825,14 +829,18 @@ class _Parser:
                 else:
                     th_eff = th
                 cmp_ = (vm.group(1) or "").strip()
-                direction, ref = _ref_direction(after[vm.end():], float(vm.group(2)))
-                if not direction:
-                    if hi is not None and th_eff is not None and v > th_eff and not cmp_.startswith(("<", "≤")):
-                        direction = "high"
-                    elif lo is not None and tl is not None and v < tl and not cmp_.startswith((">", "≥")):
-                        direction = "low"
-                    else:
-                        direction = "normal"
+                if hi is not None and th_eff is not None and v > th_eff and not cmp_.startswith(("<", "≤")):
+                    default = "high"
+                elif lo is not None and tl is not None and v < tl and not cmp_.startswith((">", "≥")):
+                    default = "low"
+                else:
+                    default = "normal"
+                raw = float(vm.group(2))
+                side = "high" if hi and not lo else "low" if lo and not hi else ""
+                direction, ref = _ref_direction(after[vm.end():], raw, side)
+                if direction and direction != default and _unit_doubt(raw, after[vm.end():]):
+                    direction, ref = "", ""  # "WBC 3,200 (정상 4.0-10.0)": the range is in another unit
+                direction = direction or default
                 span = ctext[m.start():m.end() + vm.end() + len(ref)].strip()
                 for cid, want in ((hi, "high"), (lo, "low")):
                     # an abnormal value names one side only ("WBC 14,200" is leukocytosis, not "no leukopenia")
@@ -876,8 +884,9 @@ class _Parser:
                 cids = self.lex.by_kb("TF:" + fid)
                 if not cids:
                     continue
+                up = ("low" if kb_tests.BY_ID[fid].mode == "lo" else "high") if fid in kb_tests.BY_ID else "high"
                 f = self._mk(cids[0], ctext.strip()[:60], off + c.start, "present" if pol > 0 else "absent", None, "",
-                             ("high" if pol > 0 else "normal") if by_value else "", "kb_tests" + ("-value" if by_value else ""),
+                             (up if pol > 0 else "normal") if by_value else "", "kb_tests" + ("-value" if by_value else ""),
                              ctext.strip())
                 f.confidence = 0.85
                 out.append(f)
