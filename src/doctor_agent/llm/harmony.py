@@ -32,6 +32,3 @@ def split_harmony(text: str | None) -> tuple[str, str]:
         return text[idx + len("assistantfinal"):].strip(), _STRIPPED_PREFIX.sub("", text[:idx]).strip()
     return text.strip(), ""
 
-
-def clean_content(text: str | None) -> str:
-    return split_harmony(text)[0]

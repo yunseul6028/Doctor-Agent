@@ -4,8 +4,7 @@ import logging
 import math
 import threading
 import time
-from dataclasses import dataclass
-from typing import Callable, Iterable
+from typing import Callable
 
 from doctor_agent.agent import prompts
 from doctor_agent.agent.parser import ACTION_SCHEMA
@@ -65,44 +64,6 @@ def _is_action_prompt(messages: list[dict]) -> bool:
 def _is_main_prompt(messages: list[dict]) -> bool:
     """Step / final (SYSTEM) or review (REVIEW_SYSTEM) prompt; anything else is a sub-agent call."""
     return bool(messages) and messages[0].get("content") in (prompts.SYSTEM, prompts.REVIEW_SYSTEM)
-
-
-# ---------------------------------------------------------------------------------------------- time model
-@dataclass(frozen=True)
-class Throughput:
-    """Serving-speed ASSUMPTIONS for gpt-oss-20b on the evaluation server (nothing here is measured or sourced: the
-    server, GPU, batching and prefix caching are unknown until the participant guide). The defaults are deliberately
-    slow so that a budget planned with them has headroom; replace them with numbers measured on API day
-    (GuardedLLM.stats()["latency_main_s"] + the prompt token counts of scripts/token_budget.py).
-
-    prefill_tps: prompt tokens processed per second (no prefix-cache credit: the system prompt is re-counted per call)
-    decode_tps: generated tokens per second for one request
-    overhead_s: fixed cost per call (HTTP, queueing, scheduling)
-    reasoning_tokens: hidden analysis-channel tokens per call at reasoning effort "low", on top of the visible JSON"""
-    prefill_tps: float = 1000.0
-    decode_tps: float = 20.0
-    overhead_s: float = 1.0
-    reasoning_tokens: int = 300
-
-
-CONSERVATIVE = Throughput()
-# a second, faster ASSUMPTION for the what-if tables (also unmeasured)
-MODERATE = Throughput(prefill_tps=4000.0, decode_tps=60.0, overhead_s=0.5, reasoning_tokens=300)
-
-
-def estimate_call_s(prompt_tokens: float, output_tokens: float, tp: Throughput = CONSERVATIVE,
-                    reasoning_tokens: float | None = None) -> float:
-    """Predicted wall time of one call: overhead + prompt / prefill_tps + (output + reasoning) / decode_tps."""
-    reasoning = tp.reasoning_tokens if reasoning_tokens is None else reasoning_tokens
-    return (tp.overhead_s + max(0.0, prompt_tokens) / max(1e-9, tp.prefill_tps)
-            + (max(0.0, output_tokens) + max(0.0, reasoning)) / max(1e-9, tp.decode_tps))
-
-
-def estimate_case_s(calls: Iterable[tuple[float, float]], tp: Throughput = CONSERVATIVE) -> float:
-    """Predicted wall time of one case = sum over its sequential calls of estimate_call_s(prompt, output). The agent
-    makes its calls one after another (sub-agents included), so the times add up; CPU work between calls is ignored
-    (measured separately by tests/perf.py)."""
-    return sum(estimate_call_s(p, o, tp) for p, o in calls)
 
 
 def _call_with_watchdog(fn: Callable[[], str], timeout: float) -> str:

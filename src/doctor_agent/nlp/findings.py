@@ -371,16 +371,6 @@ def _first_cue(tail: str) -> tuple[str, str]:
     return "", ""
 
 
-def _is_bare(text: str, spans: list[tuple[int, int]], offset: int) -> bool:
-    """A comma part made only of concept mentions and fillers ("기침이나 가래", "특이 발진") takes the next part's predicate."""
-    chars = list(text)
-    for s, e in spans:
-        for i in range(max(0, s - offset), min(len(chars), e - offset)):
-            chars[i] = " "
-    rest = _BARE_FILLER.sub(" ", "".join(chars))
-    return len(re.sub(r"[^가-힣a-z0-9]", "", rest)) <= 1 and not _CUE.search(text)
-
-
 _PAREN_TXT = re.compile(r"\([^()]*\)")
 _COORD = re.compile(r"^\s*(?:이나|거나|나|과|와|이랑|랑|하고)(?=\s)|(?:^|\s)(?:및|또는|혹은|그리고|and|or)(?=\s)")
 # words that make a list item a complete finding of its own: a severity or a qualifier ("경미한 압통", "비특이적 ST분절

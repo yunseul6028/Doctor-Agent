@@ -36,7 +36,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
-from doctor_agent.agent.parser import _THOUGHT_RE, _json_objects
+from doctor_agent.agent.parser import as_list, find_json
 from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult
 from doctor_agent.agent.subagents.consult_sources import (
     C_ACR_APPENDICITIS_CHILD,
@@ -102,7 +102,6 @@ from doctor_agent.agent.subagents.consult_sources import (
 from doctor_agent.agent.text import same_dx, similarity
 from doctor_agent.knowledge.clinical_rules import Citation, contains_affirmed, rules_for
 from doctor_agent.knowledge.diagnostic_criteria import C_AKI, criteria_for
-from doctor_agent.llm.harmony import split_harmony
 from doctor_agent.nlp.findings import _PEDS_HR, _PEDS_RR, _peds_row
 from doctor_agent.safety import protocols as _protocols
 from doctor_agent.safety.danger_gate import C_HYPERGLYCEMIC_CRISES, C_SCROTAL
@@ -1001,84 +1000,22 @@ ACTION_TYPES = ("ASK", "EXAM", "TEST")
 _TYPE_ALIASES = {"ASK": "ASK", "문진": "ASK", "질문": "ASK", "병력": "ASK", "HISTORY": "ASK",
                  "EXAM": "EXAM", "진찰": "EXAM", "신체진찰": "EXAM", "신체 진찰": "EXAM", "PHYSICAL": "EXAM",
                  "TEST": "TEST", "검사": "TEST", "LAB": "TEST", "IMAGING": "TEST"}
-_FENCE = re.compile(r"```(?:json)?", re.I)
 MAX_ITEMS = 3
 
 
-def _close_json(frag: str) -> str | None:
-    """Close a truncated JSON fragment (open string, arrays, objects). None if brackets are mismatched."""
-    stack, in_str, esc = [], False, False
-    for i, ch in enumerate(frag):
-        if in_str:
-            if esc:
-                esc = False
-            elif ch == "\\":
-                esc = True
-            elif ch == '"':
-                in_str = False
-            continue
-        if ch == '"':
-            in_str = True
-        elif ch in "{[":
-            stack.append("}" if ch == "{" else "]")
-        elif ch in "}]":
-            if not stack or stack[-1] != ch:
-                return None
-            stack.pop()
-            if not stack:
-                return frag[: i + 1]
-    return frag + ('"' if in_str else "") + "".join(reversed(stack))
-
-
-def _repair(text: str, keys: frozenset[str]) -> dict | None:
-    """Best effort for output cut off mid-JSON (max tokens): close it, cutting back to earlier commas if needed."""
-    start = text.find("{")
-    while start != -1:
-        s = text[start:]
-        cuts = [len(s)] + [i for i in range(len(s) - 1, 0, -1) if s[i] == ","][:40]
-        for cut in cuts:
-            closed = _close_json(s[:cut].rstrip().rstrip(","))
-            if closed is None:
-                continue
-            try:
-                obj = json.loads(closed)
-            except (json.JSONDecodeError, ValueError):
-                continue
-            if isinstance(obj, dict) and keys & set(obj):
-                return obj
-        start = text.find("{", start + 1)
-    return None
-
-
 def extract_json(text: str | None, keys: frozenset[str]) -> dict | None:
-    """The last JSON object with at least one of `keys` at top level; harmony leftovers, reasoning tags, code fences
-    and surrounding prose are ignored; a truncated object is closed as a last resort. Never raises."""
+    """The last JSON object with at least one of `keys` at top level (parser.find_json: harmony leftovers, reasoning
+    tags, code fences and surrounding prose are ignored; a truncated object is closed as a last resort). Never raises."""
     try:
-        raw = text or ""
-        final, analysis = split_harmony(raw)
-        cands = [_FENCE.sub("", _THOUGHT_RE.sub("", final)), final] + ([analysis] if analysis else []) + [raw]
-        for c in cands:
-            objs = [o for o in _json_objects(c) if keys & set(o)]
-            if objs:
-                return objs[-1]
-        for c in cands[:2]:
-            if (obj := _repair(c, keys)) is not None:
-                return obj
+        return find_json(text, lambda o: bool(keys & set(o)), strip_fences=True, repair=True)
     except Exception:  # noqa: BLE001 - parser must never raise
         return None
-    return None
 
 
 def _s(x, n: int) -> str:
     if isinstance(x, (dict, list)):
         return ""
     return _cap(str(x if x is not None else "").replace("\n", " "), n)
-
-
-def as_list(x) -> list:
-    if x is None or x == "":
-        return []
-    return list(x) if isinstance(x, (list, tuple)) else [x]
 
 
 def norm_named(items, known: list[str] | None = None, n: int = MAX_ITEMS) -> list[dict]:

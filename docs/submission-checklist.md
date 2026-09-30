@@ -73,8 +73,8 @@ Reviewed cross-case allowlist (`CROSS_CASE_ALLOWLIST` in `package.py`; anything 
 - Non-blocking hygiene: `KnowledgeBase.tpost` is a `defaultdict` read with `self.tpost[tid]`, so a lookup of a missing
   (curated, static) finding id inserts an empty list into the singleton. Keys come from the fixed `kb_tests` table, not
   from case text, so nothing case-specific leaks; switching to `.get(tid, ())` would make it strictly read-only.
-  `data/lexicon/seed.tsv` (177 KB, build input for `scripts/build_lexicon.py`) ships but is not read at runtime;
-  dropping it from `INCLUDE` would trim the ZIP (size is far under the limit, so no action needed).
+  `data/lexicon/seed.tsv` (177 KB, build input for `scripts/build_lexicon.py`, not read at runtime) is no longer shipped
+  (2026-09-30: `INCLUDE` lists `data/lexicon/concepts.json` and `kb_links.json` only).
 
 ## Submission history
 | Date | ZIP | Commit | Local score | Official score |

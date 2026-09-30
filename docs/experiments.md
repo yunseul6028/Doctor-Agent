@@ -274,7 +274,7 @@ Reading: sub-agents add at most 3 calls per case (the cap), +2–3 calls in the 
 27–28 s (moderate) per case. The main loop is ≥ 90% of the predicted time in every scenario. Main-prompt
 growth from the injected hints (≤ 600 chars per step, one step each) is included in the "on" rows.
 
-**Time model** (`agent/runtime.py`: `Throughput`, `estimate_call_s`, `estimate_case_s`):
+**Time model** (`scripts/token_budget.py`: `Throughput`, `estimate_call_s`, `estimate_case_s`; in `agent/runtime.py` until 2026-09-30):
 `t_call = overhead_s + prompt_tokens / prefill_tps + (visible_output_tokens + reasoning_tokens) / decode_tps`, and a
 case is the sum over its calls (the agent calls sequentially; CPU time between calls is not included — ~0.1 s per
 step with KB on in a cProfile of this replay). **All parameters are assumptions**, not measurements or published numbers: the

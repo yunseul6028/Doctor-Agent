@@ -40,6 +40,18 @@ sys.path.insert(0, str(ROOT / "src"))
 from doctor_agent.nlp import findings as nlpf  # noqa: E402
 from doctor_agent.nlp.lexicon import LEXICON, compact, normalize  # noqa: E402
 
+
+def _ground_qa(claim, qa: list[tuple[str, str]], negative: bool) -> tuple[bool, float, str]:
+    """Old grounding against the answers of (question, answer) pairs read with their question (a yes/no answer
+    resolves the question's findings). Offline comparison only; moved here from agent/grounding.py on 2026-09-30 (the
+    agent reads ASK answers with their question inside the case evidence itself)."""
+    from doctor_agent.agent import grounding
+    if not qa:
+        return False, 0.0, ""
+    ev = grounding.Evidence.build("\n".join(re.sub(r"\s*\n\s*", "; ", a or "") for _q, a in qa),
+                                  ["patient"] * len(qa), [q or "" for q, _a in qa])
+    return grounding._ground(claim, ev, negative)
+
 CASES = ROOT / "data" / "cases_aug"
 LABELS = ROOT / "data" / "labels"
 CANDIDATES = LABELS / "findings_gold_candidates.jsonl"
@@ -441,11 +453,9 @@ def evaluate() -> dict:
             ctx = r.get("context")
             evidence_text = text
             if ctx and ctx.get("question"):  # old grounding reads Q/A pairs; give it the pair
-                ok_old_r = grounding._ground_qa(grounding._parse_claim(right), [(ctx["question"], text)],
-                                                gp == "absent", grounding.Evidence.build(text))[0] \
+                ok_old_r = _ground_qa(grounding._parse_claim(right), [(ctx["question"], text)], gp == "absent")[0] \
                     or grounding.is_grounded(right, evidence_text)[0]
-                ok_old_w = grounding._ground_qa(grounding._parse_claim(wrong), [(ctx["question"], text)],
-                                                gp != "absent", grounding.Evidence.build(text))[0] \
+                ok_old_w = _ground_qa(grounding._parse_claim(wrong), [(ctx["question"], text)], gp != "absent")[0] \
                     or grounding.is_grounded(wrong, evidence_text)[0]
             else:
                 ok_old_r = grounding.is_grounded(right, evidence_text)[0]

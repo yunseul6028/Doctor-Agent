@@ -37,11 +37,11 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 | `agent/subagents/` | Specialist sub-agents (same fixed LLM, other role): `base.py` contract, `runner.py` one never-raising call, `orchestrator.py` triggers/caps/logs; content modules `consult.py`, `advocate.py` (+ `knowledge/specialty.py`). See "Specialist sub-agents". |
 | `agent/kb_hints.py` | KB → short hints (candidates, discriminators, diagnosis normalisation). Fail-safe: any KB error = no hint. |
 | `agent/runtime.py` | `CaseBudget` (wall clock), `GuardedLLM` (failure cap, watchdog, deadlines, gpt-oss options, prompt-size stats). |
+| `agent/parser.py` | `find_json` (the one JSON extractor: harmony split, reasoning-tag strip, optional code-fence strip and truncation repair) used by the step/final action, the review and every sub-agent reader; `parse_action`, `as_list`. |
 | `llm/client.py`, `llm/harmony.py` | `OpenAICompatClient` (retries, 429 wait, billing detection, length retry, structured output), `DummyLLM`; harmony-format cleanup. |
-| `safety/protocols.py` | Chief-complaint safety protocols (can't-miss diagnoses + minimum checks with citations). `safety/rules.py` is a backward-compatible wrapper (`red_flags_for`). |
+| `safety/protocols.py` | Chief-complaint safety protocols (can't-miss diagnoses + minimum checks with citations; `cant_miss_for`, `pending_checks`). |
 | `knowledge/clinical_rules.py` | 24 decision rules, category detection from the chief complaint, duration/age parsing, negation handling. |
 | `knowledge/kb.py`, `kb_curated.py`, `kb_tests.py` | Knowledge base runtime (stdlib only, CPU), our matching tables, curated test-result → disease links. |
-| `knowledge/retriever.py` | Generic `BM25Retriever`, not used by the agent (kb.py has its own weighted BM25). |
 
 ## Per-case flow
 
@@ -191,8 +191,8 @@ KB hints (`agent/kb_hints.py`, per case `seen` set, each ≤ 400 chars):
   (used in the review view and in the result record).
 
 Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-turn hint; CPU, ≈3 ms/call warm, p95 6 ms):
-- `suggest(state, k=3, include_safety=True) -> list[Suggestion]`; `Suggestion(type "ASK"|"EXAM"|"TEST", content_ko,
-  targets[dx], expected_value, cost_tier ask|exam|lab|imaging|invasive, source, citation, safety, features, note)`.
+- `suggest(state, k=3) -> list[Suggestion]`; `Suggestion(type "ASK"|"EXAM"|"TEST", content_ko, targets[dx],
+  expected_value, cost_tier ask|exam|lab|imaging|invasive, source, features)`.
 - Hypotheses = top 4 live DDx-ledger entries (else `state.ddx`, else KB candidates) resolved to KB profiles + an "other"
   hypothesis (p 0.2); can't-miss ("위험") entries ×1.5. P(feature|dx) from profile symptoms/risks (Orphanet frequency
   class or source consensus) and curated test results (link weight 3/2/1 → 0.9/0.65/0.35), with a small leak.
@@ -200,10 +200,10 @@ Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-tu
   of one test (e.g. ECG: STEMI / pericarditis pattern) form one action (`TEST_RULES`: result → request wording).
 - Excluded: already done (`state.asked`, earlier TEST/EXAM naming the test), features already known from the case text
   or findings ledger (nlp concepts → KB terms, `kb_tests.detect`), questions about a hypothesis itself, and TEST/EXAM
-  that `preconditions.check` blocks (warn → `note`). Pending protocol checks are appended with `source="protocol:<id>"`,
-  `safety=True`; a ranked action that completes one is also marked.
-- `render_for_prompt(suggestions) -> str`: "추천 다음 행동 (참고): 1) [검사] 심전도 (감별: …) …" ≤ 300 chars, protocol
-  items left out (the protocol hint already shows them).
+  that `preconditions.check` blocks. Pending protocol checks are not suggested (the protocols hint of the step prompt
+  shows them; the planner's former safety rows and per-test citations were computed but never shown and were removed
+  2026-09-30).
+- `render_for_prompt(suggestions) -> str`: "추천 다음 행동 (참고): 1) [검사] 심전도 (감별: …) …" ≤ 300 chars.
 - Offline check (cases_aug, 267 cases, no LLM, DDx seeded from KB candidates ± gold dx): see the planner commit message.
 
 ## Runtime (competition robustness)
@@ -222,8 +222,8 @@ Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-tu
   `min_call_s` = 5 s → top DDx). Exploratory calls get a deadline that leaves the reserve untouched; every call also has
   a watchdog thread; the OpenAI SDK's own retries are off (ours are deadline-aware). `GuardedLLM` records every call's
   latency on the budget clock (main vs sub-agent); sub-agent calls get a pre-call time check (see "Time budget for
-  sub-agent calls"). `runtime.estimate_call_s(prompt, output, Throughput)` predicts a call's wall time from token counts
-  under stated (unmeasured) throughput assumptions.
+  sub-agent calls"). Offline, `scripts/token_budget.py:estimate_call_s(prompt, output, Throughput)` predicts a call's
+  wall time from token counts under stated (unmeasured) throughput assumptions (not part of the submission).
 - **gpt-oss responses** (`llm/client.py`, `llm/harmony.py`): content preferred; harmony markers
   (`<|channel|>analysis/final<|message|>…`, `analysis…assistantfinal…`) stripped; reasoning read from
   `reasoning_content`/`reasoning`; if an action prompt's content has no JSON the reasoning is appended as
@@ -302,8 +302,9 @@ never raises, nothing kept between calls or cases).
   (1/rank in `kb.candidates`), `turns_used` (turns / target_turns). Missing features use neutral values.
 - Rule: ≤1 turn left → diagnose; actionable unresolved danger with >2 turns left and gate budget left → must_continue;
   score ≥ θ_high (0.85) → diagnose; < θ_low (0.65) → continue; in between → diagnose from `target_turns` on.
-- Parameters: defaults in code (`DEFAULT_PARAMS`); `AGENT_CONFIDENCE_PARAMS=<json>` overrides (dev). `calibrate(paths)`
-  (`scripts/calibrate_confidence.py [--write] eval/results/run_*.json`) rebuilds states at every decision
+- Parameters: defaults in code (`DEFAULT_PARAMS`); `AGENT_CONFIDENCE_PARAMS=<json>` overrides (dev). The offline
+  calibration `scripts/calibrate_confidence.py [--write] eval/results/run_*.json` (`calibrate(paths)`, not shipped;
+  moved out of `agent/confidence.py` 2026-09-30) rebuilds states at every decision
   point of saved runs (`state_from_result`), fits a class-balanced logistic regression (Newton, L2 towards the hand-set
   prior, sign-constrained, `turns_used` fixed), picks θ_high on a coarse grid at matched replay accuracy, and writes
   `data/labels/confidence_params.json` (dev only, not shipped).
@@ -546,7 +547,8 @@ With the defaults (degrade at 0.6, reserve 45 s) the latency check only binds be
 takes longer than (0.4 × budget − 45) / 3, e.g. > 25 s at a 300 s budget, > 65 s at 600 s. Skips are logged once per
 (sub-agent, reason) with the numbers (`"time": {"left_s", "est_call_s", "factor"}`); `result["runtime"]` carries
 `latency_main_s` / `latency_sub_s`. Time model and per-case totals: `docs/experiments.md` "Sub-agent token and time
-budget"; the estimator is `runtime.estimate_call_s` / `estimate_case_s` with `runtime.Throughput` assumptions.
+budget"; the estimator is `scripts/token_budget.py` `estimate_call_s` / `estimate_case_s` with `Throughput`
+assumptions (offline only).
 
 ### Logs and result
 - `safety_log` entries with `layer="subagent"`: `kind="call"` (`name`, `trigger`, `ok`, `elapsed_s`, `hint`, `ddx_add`,
@@ -597,9 +599,9 @@ alternatives → `ddx_add` (the proposed dx itself dropped), refuting_test → `
 `red_flags`, `raw["verdict"]` normalised (keep/reconsider → 유지/재검토, "" if missing). The user message adds the
 chief-complaint can't-miss list (`protocols.cant_miss_for`).
 
-**Parsing (both)**: `extract_json` = harmony split (`llm/harmony.py`) + reasoning-tag strip + code-fence strip, last
-top-level object having a schema key (`parser._json_objects`), then a truncated-JSON repair (close strings/brackets,
-cut back to earlier commas). Actions: type normalised (lowercase, Korean 문진/진찰/검사), anything else (DIAGNOSE,
+**Parsing (both)**: `extract_json` = `parser.find_json(strip_fences=True, repair=True)`: harmony split
+(`llm/harmony.py`) + reasoning-tag strip + code-fence strip, last top-level object having a schema key, then a
+truncated-JSON repair (close strings/brackets, cut back to earlier commas). Actions: type normalised (lowercase, Korean 문진/진찰/검사), anything else (DIAGNOSE,
 PLAN, empty content) dropped, near-duplicates dropped, ≤ 3. `ddx_add` deduplicated with `same_dx` and against
 `known_ddx`. `hint_ko` restates only what the JSON said (header + non-empty lines), capped at `max_chars` (600 =
 `SubagentCall.max_chars_out`). `ok=False` with an empty hint when no object is found or it has no usable content.
@@ -673,7 +675,7 @@ API (every function catches all errors):
   (`safety.protocols.PREDICATES["current_pregnancy"]` on initial info + responses) → peds_obgyn when the top-1 candidate
   is age/pregnancy-relevant or the relevant share ≥ `CONTEXT_SHARE` 0.3 (relevant = maps to peds_obgyn; child: KCD P/Q,
   pediatric-named KB profile or `PEDIATRIC_DX`; pregnancy: KCD O or a pregnancy word). Otherwise argmax over the six.
-  Suggested caller gate: `MIN_TURNS` 3 and share ≥ `MIN_SHARE` 0.6.
+  Caller gate (orchestrator): `AgentConfig.consult_min_turns` (5) and share ≥ `consult_min_share` (0.6).
 - `resources(specialty, state) -> {specialty, criteria, rules, protocols, kb_candidates}` ({} on error / unknown id),
   bounded by `MAX_ITEMS` (3/4/3/4): criteria = `diagnostic_criteria.CRITERIA` sets tagged for the specialty
   (`CRITERIA_SPECIALTY`) or naming a current candidate, candidate-named first; the first such set is evaluated
@@ -683,7 +685,7 @@ API (every function catches all errors):
   on the chief complaint with can't-miss list, pending checks (`pending_checks`) and `in_specialty`
   (`CATEGORY_SPECIALTY`); kb_candidates = the ledger's own candidates in the specialty, then `kb.candidates()` (last 8
   positive / 4 negative findings, sex/age) filtered to the specialty, each with 3 typical findings and 2 decisive tests.
-  `render_resources(res, max_chars=700)` → Korean block "[… 분과 참고 자료: 확진 근거가 아니라 감별·검사 계획용]".
+  The consult / advocate prompt renders the slice with `consult.render_resources` ("[참고 자료]" block, ≤ 900 chars).
 - `warm()`: load the KB and build its lazy indexes once at start-up (normalize/fuzzy bigram indexes, sex table,
   prevalence), so the first case does not pay ~1–2 s.
 - The slice tables must cover every criteria id, rule id and protocol category (`tests/test_specialty.py` fails when

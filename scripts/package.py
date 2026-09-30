@@ -43,7 +43,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-INCLUDE = ["run.py", "requirements.txt", "src", "eval/__init__.py", "eval/simulator.py", "data/kb", "data/lexicon"]
+# data/lexicon: only the built files the agent reads (seed.tsv is the build input of scripts/build_lexicon.py)
+INCLUDE = ["run.py", "requirements.txt", "src", "eval/__init__.py", "eval/simulator.py", "data/kb",
+           "data/lexicon/concepts.json", "data/lexicon/kb_links.json"]
 MAX_BYTES = 50 * 1024 * 1024
 SMOKE_TIMEOUT_S = 300
 

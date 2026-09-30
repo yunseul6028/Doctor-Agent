@@ -11,6 +11,7 @@ from typing import Callable
 
 from doctor_agent.agent import prompts
 from doctor_agent.agent.ledger import LLM_RADIOLOGY_SOURCE, Finding
+from doctor_agent.agent.parser import find_json
 from doctor_agent.agent.subagents import runner
 from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult, failed
 from doctor_agent.agent.text import similarity
@@ -363,7 +364,7 @@ def _rad_items(raw: dict) -> list[dict]:
 
 
 def parse_radiology(text: str) -> SubagentResult:
-    obj = runner.last_object(text, ("items", "summary"))
+    obj = find_json(text, lambda o: "items" in o or "summary" in o) or {}
     if not obj or not isinstance(obj.get("items", []), list):
         return failed("radiology", "no radiology JSON in the answer")
     summary = " ".join(str(obj.get("summary") or "").split())

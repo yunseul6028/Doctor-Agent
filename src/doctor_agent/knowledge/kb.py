@@ -797,10 +797,6 @@ class KnowledgeBase:
             self._sex = out
         return self._sex
 
-    def _match(self, text: str) -> dict[str, str]:
-        """tid → matched label for one finding text (no negation handling)."""
-        return {t: lab for t, (lab, _span) in self._match_spans(text).items()}
-
     def _match_spans(self, text: str) -> dict[str, tuple[str, tuple]]:
         """tid → (matched label, span), whatever the polarity. Spans (offsets in nlp.normalize(text)) let candidates()
         treat terms matched on the same words as one concept ("안절부절못함" → restlessness, agitation, psychomotor
@@ -927,10 +923,6 @@ class KnowledgeBase:
         for tid in [t for t in hits if t in self.stop]:
             del hits[tid]
         return hits
-
-    def _groups(self, text: str) -> list[list[str]]:
-        """Matched terms of one finding grouped into concepts (terms whose matched spans overlap)."""
-        return self._group_hits(self._match_spans(text))
 
     def _group_hits(self, hits: dict[str, tuple]) -> list[list[str]]:
         items = sorted(((span, t) for t, (_lab, span) in hits.items() if t in self.post),

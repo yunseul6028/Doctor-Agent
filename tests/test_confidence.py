@@ -1,10 +1,15 @@
 """Code-computed confidence and stop rule (agent/confidence.py). No LLM calls."""
 import json
+import sys
+from pathlib import Path
 
 from doctor_agent.agent import confidence as C
 from doctor_agent.agent.state import CaseState, Turn
 from doctor_agent.config import AgentConfig
 from doctor_agent.env.interface import Action, ActionType
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+import calibrate_confidence as CC  # noqa: E402  (offline calibration, not shipped)
 
 
 def _state(turns, ddx, initial="28세 남성. 주호소: 어제부터 시작된 복통") -> CaseState:
@@ -97,18 +102,18 @@ def test_no_state_kept_between_calls():
 def test_fit_logistic_separates_and_respects_signs():
     xs = [[1.0, m] + [0.0] * (len(C.FEATURES) - 1) for m in (0.0, 0.1, 0.2, 0.7, 0.8, 0.9)]
     ys = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
-    w = C.fit_logistic(xs, ys, l2=0.1)
+    w = CC.fit_logistic(xs, ys, l2=0.1)
     assert w[1] > 0
-    wc = C.fit_constrained(xs, ys, l2=0.1)
+    wc = CC.fit_constrained(xs, ys, l2=0.1)
     for i, k in enumerate(C.FEATURES, 1):
-        assert wc[i] * C.SIGNS.get(k, 1) >= 0
-    assert wc[C.FEATURES.index("turns_used") + 1] == C.HAND_SET.weights["turns_used"]
+        assert wc[i] * CC.SIGNS.get(k, 1) >= 0
+    assert wc[C.FEATURES.index("turns_used") + 1] == CC.HAND_SET.weights["turns_used"]
 
 
 def test_auc():
-    assert C.auc([0.9, 0.8, 0.2], [1, 1, 0]) == 1.0
-    assert C.auc([0.5, 0.5], [1, 0]) == 0.5
-    assert C.auc([0.5], [1]) is None
+    assert CC.auc([0.9, 0.8, 0.2], [1, 1, 0]) == 1.0
+    assert CC.auc([0.5, 0.5], [1, 0]) == 0.5
+    assert CC.auc([0.5], [1]) is None
 
 
 def _result_file(tmp_path, name, cases):
@@ -131,17 +136,17 @@ def _case(i, correct: bool):
 def test_state_from_result_and_calibrate(tmp_path):
     p1 = _result_file(tmp_path, "run_a.json", [_case(i, i % 3 != 0) for i in range(6)])
     p2 = _result_file(tmp_path, "run_b.json", [_case(i, i % 2 == 0) for i in range(6)])
-    st = C.state_from_result(_case(0, True), 2)
+    st = CC.state_from_result(_case(0, True), 2)
     assert st.turn_count == 2 and st.ddx_ledger.entries[0].dx == "급성 충수염"
-    smp = C.samples([p1, p2])
+    smp = CC.samples([p1, p2])
     assert sum(s["final"] for s in smp) == 12
-    rep = C.calibrate([p1, p2])
+    rep = CC.calibrate([p1, p2])
     assert rep["auc_fitted_final_insample"] is not None and rep["auc_fitted_final_insample"] > 0.5
     out = tmp_path / "params.json"
     out.write_text(json.dumps(rep, ensure_ascii=False), encoding="utf-8")
     loaded = C.load_params(out)
     assert loaded.source == "calibrate" and set(loaded.weights) == set(C.FEATURES)
-    assert C.THETA_GRID[0] <= loaded.theta_high <= C.THETA_GRID[-1]
+    assert CC.THETA_GRID[0] <= loaded.theta_high <= CC.THETA_GRID[-1]
 
 
 def test_load_params_falls_back(tmp_path, monkeypatch):

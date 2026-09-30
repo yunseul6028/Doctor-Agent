@@ -180,7 +180,7 @@ def main():
             for i, case in enumerate(cases):
                 s, revealed = build_state(case, n, variant)
                 t = time.perf_counter()
-                sug = qp.suggest(s, k=3, include_safety=False)
+                sug = qp.suggest(s, k=3)
                 lat.append((time.perf_counter() - t) * 1000)
                 acts = [(x.type, x.content_ko, x.features) for x in sug]
                 if variant == "kb+gold" and n == 2 and len(examples) < 6 and i % 40 == 0:

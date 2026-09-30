@@ -13,7 +13,8 @@ from doctor_agent.agent.policy import MAX_REVIEWS, Policy
 from doctor_agent.agent.runtime import CaseBudget, GuardedLLM
 from doctor_agent.agent.state import CaseState, Turn
 from doctor_agent.agent.subagents import runner
-from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult
+from doctor_agent.agent.parser import as_list, find_json
+from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult, failed
 from doctor_agent.config import Config
 from doctor_agent.env.interface import Action, ActionType
 
@@ -41,6 +42,22 @@ RADIOLOGY_OK = json.dumps({"items": [
     {"finding": "흉막 삼출", "status": "없음", "site": "", "value": "", "critical": False},  # code read it as uncertain
     {"finding": "긴장성 기흉", "status": "있음", "site": "", "value": "", "critical": True}],
     "normal": False, "unavailable": False, "summary": "우측 하엽 경결, 소량 흉수 의심"}, ensure_ascii=False)
+
+
+_GENERIC_KEYS = ("hint_ko", "hint", "summary", "ddx_add", "suggested_actions", "red_flags")
+
+
+def _generic(name):
+    """Generic parser of the fake content modules: hint_ko | hint | summary, ddx_add, suggested_actions, red_flags from
+    the last JSON object that has one of them (the runner itself has no default parser)."""
+    def parse(text):
+        obj = find_json(text, lambda o: any(k in o for k in _GENERIC_KEYS))
+        if not obj:
+            return failed(name, "no JSON object in the answer")
+        hint = obj.get("hint_ko") or obj.get("hint") or obj.get("summary") or ""
+        return SubagentResult(name, True, " ".join(str(hint).split())[:2000], as_list(obj.get("ddx_add")),
+                              as_list(obj.get("suggested_actions")), as_list(obj.get("red_flags")), obj)
+    return parse
 
 
 class Router:
@@ -97,7 +114,7 @@ def _consult_mod(calls, route=("cardio", 0.7, ["흉통"]), boom=None):
     def parse(text):
         if boom == "parse":
             raise TypeError("parse bug")
-        return runner.parse_generic("consult", text)
+        return _generic("consult")(text)
 
     mod.build_consult, mod.parse_consult = build, parse
     return spec, mod
@@ -112,7 +129,7 @@ def _advocate_mod(calls):
                                          {"role": "user", "content": f"{state.initial_info} / {proposed}"}], None)
 
     mod.build_advocate = build
-    mod.parse_advocate = lambda text: runner.parse_generic("advocate", text)
+    mod.parse_advocate = _generic("advocate")
     return mod
 
 
@@ -166,24 +183,28 @@ def _sub(st, kind=None):
 
 def test_runner_parses_caps_and_sanitises():
     call = SubagentCall("consult:cardio", [{"role": "system", "content": CONSULT_SYS}], None, max_chars_out=10)
-    res = runner.run(Router(), call)
+    res = runner.run(Router(), call, parse=_generic(call.name))
     assert res.ok and res.name == "consult:cardio" and len(res.hint_ko) <= 10 and res.hint_ko.endswith("…")
     assert res.ddx_add == [{"name": "급성 심근경색", "why": "흉통"}] and res.red_flags == ["흉통"]
     assert res.suggested_actions == [{"type": "TEST", "content": "트로포닌", "why": "배제"}]
     # harmony-leaked / reasoning-wrapped JSON is still found
     wrapped = "<analysis>생각 중 {\"x\": 1}</analysis>" + CONSULT_OK
-    assert runner.run(Router(consult=wrapped), call).ok
+    assert runner.run(Router(consult=wrapped), call, parse=_generic(call.name)).ok
 
 
 @pytest.mark.parametrize("answer", ["", "JSON 아님", "{\"type\": \"ASK\", \"content\": \"x\"}", "{broken"])
 def test_runner_bad_json_is_not_ok(answer):
-    res = runner.run(Router(consult=answer), SubagentCall("consult:x", [{"role": "system", "content": CONSULT_SYS}], None))
+    res = runner.run(Router(consult=answer), SubagentCall("consult:x", [{"role": "system", "content": CONSULT_SYS}], None),
+                     parse=_generic("consult:x"))
     assert not res.ok and res.raw.get("error") and res.hint_ko == ""
 
 
 def test_runner_never_raises():
     call = SubagentCall("consult:x", [{"role": "system", "content": CONSULT_SYS}], None)
-    assert not runner.run(Router(raise_for={"consult"}), call).ok
+    assert not runner.run(Router(raise_for={"consult"}), call, parse=_generic(call.name)).ok
+    # no parser: not ok, and the LLM is not called
+    llm = Router()
+    assert runner.run(llm, call).raw["error"] == "no parser" and llm.log == []
 
     def bad_parse(text):
         raise ValueError("bug")
@@ -191,7 +212,7 @@ def test_runner_never_raises():
     assert not runner.run(Router(), call, parse=lambda t: "not a result").ok
     # deadline already passed: no call at all
     llm = Router()
-    assert not runner.run(llm, call, deadline=5.0, clock=lambda: 10.0).ok and llm.log == []
+    assert not runner.run(llm, call, deadline=5.0, clock=lambda: 10.0, parse=_generic(call.name)).ok and llm.log == []
 
 
 def test_runner_passes_gpt_oss_options_through_guarded_llm():
@@ -199,12 +220,12 @@ def test_runner_passes_gpt_oss_options_through_guarded_llm():
     cfg = Config()
     guard = GuardedLLM(inner, cfg, CaseBudget(0, 0.6, 45))
     call = SubagentCall("advocate", [{"role": "system", "content": ADVOCATE_SYS}], {"type": "object"})
-    assert runner.run(guard, call, reasoning_effort="low").ok
+    assert runner.run(guard, call, reasoning_effort="low", parse=_generic(call.name)).ok
     _, _, opts = inner.log[-1]
     assert opts["json_schema"] == {"type": "object"} and opts["expect_json"] and opts["reasoning_effort"] == "low"
     assert guard.subagent_calls == 1 and guard.stats()["subagent_calls"] == 1
     cfg.llm.reasoning_effort = "none"  # never sent when the deployment disables it
-    runner.run(guard, call, reasoning_effort="low")
+    runner.run(guard, call, reasoning_effort="low", parse=_generic(call.name))
     assert inner.log[-1][2].get("reasoning_effort") is None
 
 
@@ -394,6 +415,22 @@ def test_advocate_before_review_goes_into_review_view(mods, monkeypatch):
     st.turns.append(Turn(Action(ActionType.ASK, "추가 질문입니다"), "네"))
     pol.next_action(st)
     assert llm.kinds().count("advocate") == 1
+
+
+def test_confidence_assessed_once_for_pushback_check_and_advocate(mods, monkeypatch):
+    mods(route=(None, 0.0, []))
+    calls = []
+
+    def counting(state, proposed_dx=None, cfg=None, params=None):
+        calls.append(proposed_dx)
+        return Assessment(0.3, {}, "continue", [], proposed_dx or "")
+    monkeypatch.setattr(confidence, "assess", counting)
+    llm, st = Router(step=DX), _state(n_turns=4)
+    st.safety_pushback = True
+    Policy(llm, _cfg(use_confidence=True)).next_action(st)
+    assert llm.kinds() == ["step", "advocate", "review"]
+    assert calls == ["A"]  # the confidence check logged it and the advocate trigger reused it
+    assert [e["score"] for e in st.safety_log if e.get("layer") == "confidence"] == [0.3]
 
 
 def test_advocate_not_called_when_confident_or_no_review(mods, monkeypatch):

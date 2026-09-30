@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from doctor_agent.agent.state import CaseState, Turn
+from doctor_agent.agent.subagents import consult
 from doctor_agent.env.interface import Action, ActionType
 from doctor_agent.knowledge import clinical_rules, diagnostic_criteria, kb
 from doctor_agent.knowledge import specialty as sp
@@ -281,9 +282,9 @@ def test_resources_cardio_chest_pain():
     assert rules.get("heart", {}).get("applies") is True  # HEART applies to an adult chest-pain complaint
     assert any(p["category"] == "chest_pain" and p["in_specialty"] for p in res["protocols"])
     assert any("심근경색" in c["name"] for c in res["kb_candidates"])
-    text = sp.render_resources(res)
-    assert 0 < len(text) <= 700 and text.startswith("[심장·혈관 분과 참고 자료")
-    assert len(sp.render_resources(res, max_chars=200)) <= 200
+    # the consult prompt renders the slice with consult.render_resources (bounded by RESOURCES_MAX)
+    text = consult.render_resources(res)
+    assert text.startswith("[참고 자료]\n- specialty: cardio") and len(text) <= consult.RESOURCES_MAX + 20
 
 
 def test_resources_rheum_criteria_evaluated_for_candidate():
@@ -302,7 +303,7 @@ def test_resources_renal_uro_aki():
     res = sp.resources("renal_uro", s)
     assert res["criteria"] and res["criteria"][0]["id"] == "kdigo_aki_2012" and "band" in res["criteria"][0]
     assert any(p["category"] == "edema" and p["in_specialty"] for p in res["protocols"])
-    assert sp.render_resources(res).startswith("[신장·비뇨 분과 참고 자료")
+    assert consult.render_resources(res).startswith("[참고 자료]\n- specialty: renal_uro")
 
 
 def test_resources_heme_onc_fatigue():
@@ -311,7 +312,7 @@ def test_resources_heme_onc_fatigue():
     res = sp.resources("heme_onc", s)
     assert any(p["category"] == "fatigue" and p["in_specialty"] for p in res["protocols"])
     assert any("백혈병" in c["name"] for c in res["kb_candidates"])
-    assert sp.render_resources(res).startswith("[혈액·종양 분과 참고 자료")
+    assert consult.render_resources(res).startswith("[참고 자료]\n- specialty: heme_onc")
 
 
 def test_resources_endo_metab_dka():
@@ -319,7 +320,7 @@ def test_resources_endo_metab_dka():
                pos=["복통", "구토", "다뇨"], responses=["혈당 480 mg/dL, pH 7.12, HCO3 9, 요케톤 3+입니다."])
     res = sp.resources("endo_metab", s)
     assert res["criteria"] and res["criteria"][0]["id"] == "dka_hhs_2024" and "band" in res["criteria"][0]
-    assert sp.render_resources(res).startswith("[내분비·대사 분과 참고 자료")
+    assert consult.render_resources(res).startswith("[참고 자료]\n- specialty: endo_metab")
     res = sp.resources("endo_metab", _state("50세 여성. 주호소: 한 달째 심한 피로", ddx=[("갑상선 기능 저하증", 0.6),
                                                                               ("철결핍성 빈혈", 0.4)]))
     assert any(p["category"] == "fatigue" and p["in_specialty"] for p in res["protocols"])
@@ -333,15 +334,14 @@ def test_resources_psych():
     s = _state("35세 남성. 주호소: 최근 우울하고 이상한 행동을 해요", ddx=[("주요 우울장애", 0.7), ("조현병", 0.3)])
     res = sp.resources("psych", s)
     assert any(p["category"] == "psychiatric" and p["in_specialty"] for p in res["protocols"])
-    assert sp.render_resources(res).startswith("[정신 분과 참고 자료")
+    assert consult.render_resources(res).startswith("[참고 자료]\n- specialty: psych")
 
 
 def test_resources_bad_inputs():
     assert sp.resources("dermatology", _state()) == {}
     assert sp.resources("cardio", None) in ({}, sp.resources("cardio", None))
     assert isinstance(sp.resources("cardio", object()), dict)
-    assert sp.render_resources({}) == "" and sp.render_resources(None) == ""
-    assert sp.render_resources({"specialty": "cardio", "criteria": [{"bad": 1}]}) == ""
+    assert consult.render_resources({}) == "" and consult.render_resources(None) == ""
 
 
 @pytest.mark.perf

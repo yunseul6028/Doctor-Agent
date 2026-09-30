@@ -9,7 +9,7 @@ API
                                      the ten: derm, ent_eye, msk_ortho, tox_trauma, symptom, other)
     route(state)                  -> (specialty | None, share, [Korean reasons])
     resources(specialty, state)   -> {"criteria", "rules", "protocols", "kb_candidates"} (each bounded; {} on error)
-    render_resources(res, max_chars=700) -> short Korean text for a consult prompt
+    (the consult prompt renders the slice with agent/subagents/consult.render_resources)
 
 How a name is mapped (specialty_detail)
     1. OVERRIDES: a short curated regex list for names whose ICD chapter misleads (candidal endocarditis is B37 but a
@@ -55,7 +55,8 @@ route(state) — the exact rule
                → peds_obgyn with share = relevant mass share, when the top-1 candidate is relevant or that share
                >= CONTEXT_SHARE (0.3). Otherwise the organ routing below applies (reason says why).
     Organ routing: best = argmax share over the ten (ties: fixed SPECIALTIES order); None when nothing maps.
-    The caller decides when to consult (suggested: MIN_TURNS = 3 and share >= MIN_SHARE = 0.6).
+    The caller decides when to consult: the orchestrator's gate is config.AgentConfig.consult_min_turns and
+    consult_min_share (AGENT_CONSULT_MIN_TURNS / AGENT_CONSULT_MIN_SHARE).
 
 Stdlib only, CPU only, no network, deterministic. Per-case: nothing is stored between calls except the KB's own
 read-only indexes (knowledge/kb.py). Every public function catches all errors. Call warm() once at start-up so that
@@ -72,8 +73,6 @@ SPECIALTY_KO: dict[str, str] = {"cardio": "심장·혈관", "resp_id": "호흡�
                                 "heme_onc": "혈액·종양", "renal_uro": "신장·비뇨", "endo_metab": "내분비·대사",
                                 "psych": "정신"}
 TOP_K = 5
-MIN_TURNS = 3        # suggested caller gate: consult only after this many turns ...
-MIN_SHARE = 0.6      # ... and when the routed specialty holds at least this share of the top-DDx mass
 CONTEXT_SHARE = 0.3  # child/pregnant override: relevant mass share needed when the top-1 candidate is not relevant
 # KB fuzzy name matching (char-bigram Dice) costs 40-100 ms on long English names: at runtime it runs only for short
 # Korean names (FUZZY_MAX_KEY compact characters, ~1 ms). FUZZY = True turns it on for every name (offline A/B).
@@ -675,41 +674,3 @@ def resources(specialty: str, state) -> dict:
                 "kb_candidates": _kb_candidates(specialty, state, dx_names)}
     except Exception:
         return {}
-
-
-def render_resources(res: dict, max_chars: int = 700) -> str:
-    """Short Korean text for a consult prompt (<= max_chars; "" when empty). Never raises."""
-    try:
-        if not res:
-            return ""
-        sp = res.get("specialty", "")
-        lines = [f"[{SPECIALTY_KO.get(sp, sp)} 분과 참고 자료: 확진 근거가 아니라 감별·검사 계획용]"]
-        for c in res.get("criteria", []):
-            band = f" 현재 판정: {c['band']}" if c.get("band") else ""
-            lines.append(f"- 진단 기준 {c['name']} ({c['cite']}): {c['summary']}{band}")
-        for r in res.get("rules", []):
-            lines.append(f"- 결정 규칙 {r['name']} ({r['cite']}): {r['purpose']}" + ("" if r["applies"] else " [주호소상 비해당]"))
-        for p in res.get("protocols", []):
-            s = f"- 안전 프로토콜 {p['name']}: 배제할 위험 질환 {', '.join(p['cant_miss'])}"
-            if p.get("pending"):
-                s += f"; 아직 안 한 확인 {', '.join(p['pending'])}"
-            lines.append(s)
-        for c in res.get("kb_candidates", []):
-            s = f"- 후보 {c['name']}" + (f" ({c['code']})" if c.get("code") else "") + f" [{c['why']}]"
-            if c.get("key_findings"):
-                s += f" 전형: {', '.join(c['key_findings'])}"
-            if c.get("key_tests"):
-                s += f" / 결정적 검사: {', '.join(c['key_tests'])}"
-            lines.append(s)
-        if len(lines) == 1:
-            return ""
-        out = ""
-        for line in lines:
-            if len(line) > max_chars // 2:
-                line = line[: max_chars // 2 - 1] + "…"
-            if len(out) + len(line) + 1 > max_chars:
-                break
-            out += ("\n" if out else "") + line
-        return out
-    except Exception:
-        return ""

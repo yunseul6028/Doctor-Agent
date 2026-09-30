@@ -1803,15 +1803,6 @@ def _focus_text(text: str, focus: tuple[str, ...]) -> str:
     return "\n".join(out)
 
 
-def subtype_decision(dx_name: str, findings_text: str) -> tuple[Criteria, CriteriaResult] | None:
-    """First criteria set (directly matching dx_name) whose findings explicitly select a diagnosis/subtype."""
-    for c in criteria_for(dx_name, related=False):
-        r = evaluate(c.id, findings_text)
-        if r.decision:
-            return c, r
-    return None
-
-
 def decision_matches(c: Criteria, decision: str, name: str) -> bool:
     """True if `name` names the diagnosis/subtype `decision` of criteria set `c`."""
     if not decision:
