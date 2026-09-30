@@ -514,3 +514,23 @@ of young flank pain without an aortopathy clue — unchanged from before, now ju
 - Verify on gpt-oss-20b (eval-simulator): abdominal/flank-pain cases < 50 y with and without Marfan/EDS clues (AAA check
   fires only with the clue), febrile murmur cases (IE blood cultures), infant bilious vomiting, HHS cases with HCO3
   15-17; compare Safety (missed must-checks) and turns with the previous commit.
+
+### 2026-09-30 · result interpreter: kb_tests lab polarity trusted (`agent/result_interpreter.py`; code only, no LLM)
+No case run, so no Accuracy / Efficiency / Safety row; expected effect is on **Safety** (a lab value above its printed
+Korean "N 미만" range is no longer read as normal) and **Accuracy** (no false "ESR > 50" / "AST > 1000" readings).
+- Removed `_ref_check` (re-read value vs printed range via `nlp.findings.ref_direction` and overrode kb_tests'
+  polarity, ignoring `Finding.cutoff`) and `_KB_FALSE_TAIL` (no longer changed any reading after kb_tests 89181ce).
+  The value / unit is now taken with kb_tests' own number reader for display only (none for ranges "0-5", titres
+  "1:160", grades "3+", or a number glued to another name "C3"); direction follows the finding's side ("low" for
+  `*_low`, was "high"). One bridge kept, using kb_tests' own word-range rule: a direction-word parenthesis without a
+  reference keyword ("CEA 6.5 ng/mL (경미한 상승)") makes a non-cut-off finding present.
+- Sweep of 7,586 distinct result texts (data/cases_*, data/sample_cases, non-dummy eval/results runs), before -> after:
+  11 texts change (concept, polarity), all `LAB:esr_very_high` present -> absent for ESR 22-48 with a printed range
+  (fixes; `LAB:esr_high` stays present); 0 regressions. 1,102 value/unit-only display changes, 0 critical-flag changes.
+- Gold (`eval/offline/eval_result_interp.py`): dev P/R 1.00/1.00 (116), fresh 1.00/1.00 (66), unchanged.
+- Found, not fixed here (other owners): `nlp.findings.ref_direction` reads "(정상 500 미만)" / "(정상 12 이상)" as
+  "normal" (only `<`/`>`/ranges parse), so lexicon labs (ESR, CRP, Hb, AST...) with that phrasing read absent (0
+  occurrences in the current case texts); kb_tests reads a bare-number range "(정상치 500)" / "(정상 상한 60)" as
+  says="normal" -> absent regardless of the value, and compares a unitless value with a unit-bearing range as printed
+  ("D-dimer 1.2 (정상 <500 ng/mL)" -> absent); kb_tests false positives exposed by the value display:
+  `anion_gap_high` from "vWF:Ag 95%", `tsat_high` in a haemodynamics report.

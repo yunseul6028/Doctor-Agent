@@ -26,7 +26,8 @@ How a text is read
    resolved); "resolved / 이전 대비 소실" makes the finding absent;
 4. findings: (a) nlp.findings.parse (lexicon mentions, measured vitals and labs with the age-aware / reference-range
    logic, knowledge/kb_tests result concepts); kb_tests imaging / ECG readings are re-anchored on their own pattern
-   span; (b) organ-dependent report words ("경화", "출혈", "종괴", "확장", "비후", "혈전", ...) mapped with the organ named
+   span; kb_tests lab readings keep kb_tests' polarity (printed range in its unit, cut-offs) and get their value for
+   display (_kb_value); (b) organ-dependent report words ("경화", "출혈", "종괴", "확장", "비후", "혈전", ...) mapped with the organ named
    next to them or, failing that, the organ of the test name (_DESCRIPTORS; "출혈" on a brain CT = IMG:ct_ich);
    (c) disease-level impression words in an imaging report ("급성 충수염 의심") mapped to the imaging concept that
    carries them; (d) history-type concepts re-mapped in imaging context (HX:prior_vte "폐색전증" -> IMG:ctpa_pe);
@@ -547,21 +548,27 @@ def _supports(cid: str) -> tuple[tuple[str, str, int], ...]:
     return tuple((dx, _DX_KO.get(dx, dx), w) for dx, w in ranked)
 
 
-def _kb_pattern(cid: str):
-    """(compiled pattern, fixed) of the kb_tests finding behind a lexicon concept, or (None, False)."""
+def _kb_finding(cid: str):
+    """(kb_tests Finding, compiled pattern) behind a lexicon concept, or (None, None)."""
     c = LEXICON.concept(cid)
     if not c:
-        return None, False
+        return None, None
     try:
         from doctor_agent.knowledge import kb_tests
     except Exception:  # noqa: BLE001
-        return None, False
+        return None, None
     for k in c.kb:
         if k.startswith("TF:"):
             for f, pat, _not_if in kb_tests._COMPILED:  # read-only static table
                 if f.id == k[3:]:
-                    return pat, f.fixed
-    return None, False
+                    return f, pat
+    return None, None
+
+
+def _kb_pattern(cid: str):
+    """(compiled pattern, fixed) of the kb_tests finding behind a lexicon concept, or (None, False)."""
+    f, pat = _kb_finding(cid)
+    return (pat, f.fixed) if f is not None else (None, False)
 
 
 def _part_of(parts: list[tuple[int, int]], pos: int) -> tuple[int, int]:
@@ -608,8 +615,6 @@ def _site(sent: str, part: tuple[int, int], s: int, e: int) -> str:
     return after.group() if after else ""
 
 
-# kb_tests keyword matches that are cut short inside a longer word
-_KB_FALSE_TAIL = {"IMG:echo_rv_strain": re.compile(r"기(?:\s?허탈|\s?말|\s?기능)")}
 # English negation scope: "No A or B" negates both (the nlp layer allows 25 characters; reports run longer:
 # "without sonographic evidence of acute cholecystitis"); "A without B" / "A with no B" does not negate A
 _EN_PRE_NEG = re.compile(r"(?<![a-z])(?:no|without|negative for|free of|absence of|no evidence of)(?![a-z])"
@@ -654,31 +659,48 @@ def _english_scope(pol: str, masked: str, part: tuple[int, int], s: int, e: int)
 
 _PENDING = re.compile(r"대기\s?중|결과\s?(?:대기|미정|안\s?나)|검사\s?중|진행\s?중|(?<![a-z])pending(?![a-z])|not yet (?:available|resulted)"
                       r"|in progress|awaiting")
-_LAB_NUM = re.compile(r"[^\d(,;]{0,14}?(\d+(?:\.\d+)?)\s*([a-zμ/%.0-9]*)")
+_VALUE_TAIL = re.compile(r"[^\d<>≤≥,]{0,14}?[<>≤≥]?=?\s*\d[\d,.]*\s*(?:%|[a-zμµ/.³^]+)?")
+_REF_PAREN = re.compile(r"\s*\([^()]*\)")
+_WORD_PAREN = re.compile(r"\s*\(([^()\d]{1,20})\)")  # "(경미한 상승)": a direction word, no reference numbers
 
 
-def _ref_check(cid: str, masked: str):
-    """kb_tests reads some analytes against unit-scaled thresholds and can miss a value above the reference range
-    printed next to it ("D-dimer 750 ng/mL (정상: <500 ng/mL)"). Re-read value vs its own printed range:
-    (polarity, value, unit, direction, (start, end)) or None."""
-    side = "high" if cid.endswith("_high") else "low" if cid.endswith("_low") else ""
-    if not side:
+def _kb_value(cid: str, masked: str, pol: str):
+    """The value kb_tests read for a numeric finding: (polarity, value as printed, unit, direction, (start, end)) or
+    None. The polarity is kb_tests' own: it compares the value with a printed reference range in that range's unit and
+    knows which findings are absolute cut-offs ("ESR 38 (정상 <20)" is above the range, not ESR > 50), so no number is
+    re-read here. One gap is bridged with kb_tests' own rule for a word-only range ("(정상 범위 초과)" -> above the range
+    for a finding that is not a cut-off): a direction-word parenthesis without a reference keyword ("CEA 6.5 ng/mL
+    (경미한 상승)"), which kb_tests does not take for a range."""
+    f, pat = _kb_finding(cid)
+    if f is None or f.mode not in ("hi", "lo"):
         return None
-    pat, _fixed = _kb_pattern(cid)
-    m = pat.search(masked) if pat else None
+    m = pat.search(masked)
     if not m:
         return None
-    vm = _LAB_NUM.match(masked, m.end())
-    if not vm:
+    try:
+        from doctor_agent.knowledge import kb_tests
+        num = kb_tests._number(masked[m.end():m.end() + 45], f)  # read-only helper: the number kb_tests reads
+    except Exception:  # noqa: BLE001
         return None
-    v = float(vm.group(1))
-    direction, ref = F.ref_direction(masked[vm.end():], v)
-    if not direction:
+    if num is None:
         return None
-    pol = "present" if direction == side else "absent" if direction == "normal" else None
-    if pol is None:
-        return None
-    return pol, v, vm.group(2).strip("."), direction, (m.start(), vm.end() + len(ref))
+    _v, _cmp, raw, unit = num
+    vm = _VALUE_TAIL.match(masked, m.end())
+    if vm and re.match(r"\s*(?:[-~–:]\s*\d|\+)", masked[vm.end():]):
+        return None  # a range ("0-5 /HPF"), a titre ("1:160") or a grade ("3+") is not one value: no value shown
+    if not vm or re.search(r"[a-zμ]\d", masked[m.end():vm.end()]):
+        return None  # the number belongs to another name ("IgG 및 C3"): shown without a value
+    unit = unit.rstrip("/.^")
+    end = vm.end() if vm else m.end()
+    ref = _REF_PAREN.match(masked, end)
+    word = _WORD_PAREN.match(masked, end)
+    if pol == "absent" and word and not (f.cutoff or f.need_value) and not kb_tests._REFPAREN.match(word.group().strip()) \
+            and not kb_tests._REF_NORMAL_NEG.search(word.group(1)):
+        says_high, says_low = kb_tests._REF_HIGH.search(word.group(1)), kb_tests._REF_LOW.search(word.group(1))
+        if (says_high and not says_low and f.mode == "hi") or (says_low and not says_high and f.mode == "lo"):
+            pol = "present"
+    direction = ("high" if f.mode == "hi" else "low") if pol == "present" else "normal" if pol == "absent" else ""
+    return pol, raw, unit, direction, (m.start(), ref.end() if ref else end)
 
 
 def _mask(t: str, rx: re.Pattern) -> str:
@@ -812,8 +834,6 @@ class _Reader:
                 if cid.startswith(("IMG:", "ECG:")) and f.cue == "kb_tests":  # keyword reading, not a measured value
                     pat, fixed = _kb_pattern(cid)
                     m = pat.search(masked) if pat else None
-                    if m and cid in _KB_FALSE_TAIL and _KB_FALSE_TAIL[cid].match(masked[m.end():]):
-                        continue  # "우심실 확장기 허탈" is diastolic collapse, not RV dilatation
                     if m:
                         s, e = m.start(), m.end()
                         if fixed:
@@ -822,11 +842,14 @@ class _Reader:
                             a = F.assess_spans(masked, [(s, e)], self.source)[0]
                             pol, cue = (a.polarity, a.cue) if a is not None else (pol, cue)
                 elif cid.startswith("LAB:") and f.cue == "kb_tests-value":
-                    chk = _ref_check(cid, masked)
-                    if chk:
-                        pol, value, unit, direction, (s, e) = chk
+                    # polarity: kb_tests' own (value vs a printed range in its unit, cut-offs); the value is display
+                    got = _kb_value(cid, masked, pol)
+                    if got:
+                        pol, value, unit, direction, (s, e) = got
                         f = F.Finding(**{**f.__dict__, "value": value, "unit": unit, "direction": direction})
-                        cue = "value+ref"
+                        # kb_tests reads whole clauses: a clause with a pending part stays skipped, as before
+                        if any(a <= f.start < b for a, b in pending):
+                            continue
             if any(a <= s < b for a, b in pending):
                 continue
             if imaging and cid in _DROP_IN_IMAGING:
