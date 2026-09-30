@@ -22,7 +22,7 @@ def _state(ddx, initial="45세 남성. 주호소: 2시간 전부터 시작된 �
 
 
 def _ranked(s, k=3):
-    return [x for x in qp.suggest(s, k=k) if not x.source.startswith("protocol:")]
+    return qp.suggest(s, k=k)
 
 
 def test_chest_pain_ranks_decisive_cardiac_tests():
@@ -32,7 +32,7 @@ def test_chest_pain_ranks_decisive_cardiac_tests():
     assert "심전도" in contents and any("트로포닌" in c for c in contents)
     ecg = next(x for x in out if x.content_ko == "심전도")
     assert ecg.type == "TEST" and ecg.cost_tier == "lab" and ecg.expected_value > 0
-    assert "급성 심근경색" in ecg.targets and ecg.citation  # curated link with its guideline
+    assert "급성 심근경색" in ecg.targets and ecg.source == "curated"
     assert all(a.expected_value >= b.expected_value for a, b in zip(out, out[1:]))
 
 
@@ -56,17 +56,12 @@ def test_blocked_tests_are_not_suggested():
             assert preconditions.check(ActionType(x.type), x.content_ko, s)["severity"] != "block"
 
 
-def test_pending_safety_checks_are_marked_and_not_rendered():
+def test_ranked_only_and_rendered():
     out = qp.suggest(_state(CHEST), k=3)
-    safety = [x for x in out if x.source.startswith("protocol:")]
-    assert safety and all(x.safety and x.expected_value == 0 for x in safety)
-    ranked = [x for x in out if not x.source.startswith("protocol:")]
-    assert any(x.safety and x.note for x in ranked)  # the ECG also completes the chest-pain ECG check
+    assert 1 <= len(out) <= 3 and all(x.expected_value > 0 for x in out)  # no zero-value safety rows
     text = qp.render_for_prompt(out)
     assert text.startswith("추천 다음 행동 (참고") and len(text) <= qp.MAX_CHARS
-    assert all(x.content_ko not in text for x in safety if x.content_ko not in {r.content_ko for r in ranked})
     assert "1) [검사]" in text
-    assert qp.suggest(_state(CHEST), k=3, include_safety=False) == ranked
 
 
 def test_render_limits_and_empty():

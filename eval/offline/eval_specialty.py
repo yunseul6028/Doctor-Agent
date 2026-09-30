@@ -11,7 +11,7 @@
    share outside the eight ids by bucket (which specialties to add next).
 3. Routing simulation on past runs (eval/results/run_*.json by default, doctor_model "dummy" skipped): the per-turn
    DDx snapshots are replayed through route(); a consult "fires" at the first snapshot taken after >= MIN_TURNS turns
-   with share >= MIN_SHARE. Reports how often it fires and whether the routed specialty is the gold diagnosis's one.
+   with share >= MIN_SHARE (config.AgentConfig.consult_min_turns / consult_min_share, the runtime gate). Reports how often it fires and whether the routed specialty is the gold diagnosis's one.
    Also times route() and resources() on those states. --gold-from OUT.json scores the routing against the gold
    specialties recorded in another run's --json output (like-for-like before/after when the id set changes).
 Paths are relative to the repo root (this file's grandparent's parent).
@@ -33,7 +33,11 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from doctor_agent.agent.ledger import Finding  # noqa: E402
 from doctor_agent.agent.state import CaseState, Turn  # noqa: E402
 from doctor_agent.env.interface import Action, ActionType  # noqa: E402
+from doctor_agent.config import AgentConfig  # noqa: E402
 from doctor_agent.knowledge import specialty as sp  # noqa: E402
+
+# the orchestrator's routed-consult gate (AGENT_CONSULT_MIN_TURNS / AGENT_CONSULT_MIN_SHARE)
+MIN_TURNS, MIN_SHARE = AgentConfig().consult_min_turns, AgentConfig().consult_min_share
 
 
 def _load(name: str) -> list[dict]:
@@ -199,7 +203,7 @@ def simulate(results_dir: str, verbose: bool, gold_map: dict | None = None) -> d
                 spec, share, why = sp.route(st)
                 t_route.append((time.perf_counter() - t0) * 1000)
                 last = (spec, share)
-                if hit is None and i >= sp.MIN_TURNS and spec and share >= sp.MIN_SHARE:
+                if hit is None and i >= MIN_TURNS and spec and share >= MIN_SHARE:
                     hit = (i, spec, share, why)
                     if len(t_res) < 400:
                         t0 = time.perf_counter()
@@ -243,9 +247,9 @@ def simulate(results_dir: str, verbose: bool, gold_map: dict | None = None) -> d
            "fire_turn_mean": round(statistics.mean(fire_turns), 2) if fire_turns else None,
            "fired_on_wrong_final": wrong_fired, "fired_on_wrong_final_correct_specialty": wrong_fired_ok, "route_time": stats(t_route), "resources_time": stats(t_res),
            "examples_wrong": examples, "gold_by_case": gold_by_case}
-    print(f"[route] trajectories={n_traj} (gold mapped to an id: {gold_in_six})  consult fires (>= {sp.MIN_TURNS} "
+    print(f"[route] trajectories={n_traj} (gold mapped to an id: {gold_in_six})  consult fires (>= {MIN_TURNS} "
           f"turns, share "
-          f">= {sp.MIN_SHARE}): {pct(fired, n_traj)}")
+          f">= {MIN_SHARE}): {pct(fired, n_traj)}")
     print(f"[route] routed == gold specialty: {pct(fired_ok, fired)}; among gold mapped to an id: "
           f"{pct(fired_ok_in_six, fired_gold_in_six)}; final snapshot agreement: {pct(final_ok, final_n)}")
     print(f"[route] fired by specialty: {dict(fired_by)}; mean firing turn {out['fire_turn_mean']}")

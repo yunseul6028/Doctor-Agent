@@ -1,8 +1,8 @@
 """Chief-complaint safety protocols. Content is owned by clinical-strategist.
 
 Per category: can't-miss diagnoses and the minimum safe checks, each with the guideline it comes from.
-Check.keywords are lowercase substrings for matching the doctor's action text (usable as a scorer
-`must_check`: "|".join(keywords)). Check.triggers, when non-empty, make a check conditional: it applies
+Check.keywords are lowercase substrings for matching the doctor's action text ("|".join(keywords) is the
+scorer's `must_check` format). Check.triggers, when non-empty, make a check conditional: it applies
 only if the case text/transcript contains one of them outside a negated clause ("…은 없어요", "…아니에요").
 Check.acute_only drops a check for long-standing chief complaints (duration of the chief complaint only), and
 Check.predicate replaces triggers with a function (e.g. "sepsis": fever with acute systemic-illness signals).
@@ -410,11 +410,6 @@ class Check:
     def done_in(self, action_text: str) -> bool:
         t = (action_text or "").lower()
         return any(k in t for k in self.keywords)
-
-    @property
-    def must_check(self) -> str:
-        """Scorer format: '|'-separated alternatives (eval/scorer.py)."""
-        return "|".join(self.keywords)
 
 
 @dataclass(frozen=True)
@@ -1467,19 +1462,3 @@ def pending_checks(text: str, actions: list[str], context: str = "") -> list[Che
     """Applicable checks not yet matched by any of the doctor's action texts."""
     done = " ".join(actions).lower()
     return [c for c in must_checks_for(text, context) if not c.done_in(done)]
-
-
-def render_for_prompt(text: str, actions: list[str] | None = None) -> str:
-    """Compact Korean text: can't-miss diagnoses + (pending) minimum checks with short citations."""
-    cant = cant_miss_for(text)
-    checks = pending_checks(text, actions or []) if actions is not None else must_checks_for(text)
-    if not cant and not checks:
-        return ""
-    lines = []
-    if cant:
-        lines.append("반드시 배제할 위험 질환: " + ", ".join(cant))
-    if checks:
-        lines.append("최소 안전 확인" + ("(아직 안 함)" if actions is not None else "") + ":")
-        lines += [f"- {c.name} [{c.when}] ({c.citation.short})" if c.when else f"- {c.name} ({c.citation.short})"
-                  for c in checks]
-    return "\n".join(lines)

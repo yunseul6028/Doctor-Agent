@@ -58,8 +58,6 @@ class LLMConfig:
 class AgentConfig:
     max_turns: int = 60          # competition cap
     target_turns: int = 20       # soft target for Efficiency
-    confidence_to_diagnose: float = 0.8
-    ddx_size: int = 5
     # knowledge-base hints (candidates, discriminators, diagnosis normalisation); AGENT_USE_KB=0 turns them off
     use_kb: bool = field(default_factory=lambda: _flag("AGENT_USE_KB", "1"))
     # safety layers (see docs/architecture.md): each can be switched off for ablation experiments

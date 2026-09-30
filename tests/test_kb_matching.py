@@ -106,7 +106,7 @@ def test_sex_filter_drops_other_sex_profiles():
 def test_synonymous_terms_count_once():
     """One finding matching several near-synonym terms (restlessness, agitation, ...) is one concept."""
     k = kb.get_kb()
-    groups = k._groups("통증으로 인한 안절부절못함")
+    groups = k._group_hits(k._match_spans("통증으로 인한 안절부절못함"))
     assert len(groups) == 1 and len(groups[0]) >= 2
 
 
@@ -233,5 +233,5 @@ def test_lexicon_covers_the_retired_curated_synonyms():
             continue
         for s in syns:
             total += 1
-            miss += tid not in k._match(s)
+            miss += tid not in k.match_terms(s, allow_negated=True)
     assert total > 600 and miss <= 10, (miss, total)

@@ -128,7 +128,7 @@ def test_length_finish_retries_once_with_more_tokens_and_low_effort():
     assert out == ACT and len(fake.calls) == 2
     assert fake.calls[0]["max_tokens"] == 1000 and fake.calls[1]["max_tokens"] == 2000
     assert fake.calls[0]["reasoning_effort"] == "medium" and fake.calls[1]["reasoning_effort"] == "low"
-    assert c.call_count == 2 and c.last["length_retry"]
+    assert c.call_count == 2
 
 
 def test_length_retry_only_once_then_reasoning_fallback():
@@ -262,18 +262,6 @@ def test_degraded_policy_skips_review():
     policy.degraded = True
     action = policy.next_action(state)
     assert action.type == ActionType.DIAGNOSE and llm.call_count == 1 and not state.reviews
-
-
-def test_time_model_estimates():
-    from doctor_agent.agent.runtime import CONSERVATIVE, MODERATE, Throughput, estimate_call_s, estimate_case_s
-
-    tp = Throughput(prefill_tps=1000, decode_tps=20, overhead_s=1.0, reasoning_tokens=300)
-    assert estimate_call_s(2000, 100, tp) == pytest.approx(1 + 2 + 400 / 20)
-    assert estimate_call_s(2000, 100, tp, reasoning_tokens=0) == pytest.approx(1 + 2 + 5)
-    assert estimate_case_s([(2000, 100), (1000, 0)], tp) == pytest.approx(23 + (1 + 1 + 15))
-    assert estimate_case_s([], tp) == 0
-    # the default is the slow assumption
-    assert estimate_call_s(3000, 300, CONSERVATIVE) > estimate_call_s(3000, 300, MODERATE)
 
 
 def test_guarded_llm_records_latency_on_the_budget_clock():

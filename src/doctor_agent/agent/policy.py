@@ -3,7 +3,7 @@ import re
 
 from doctor_agent.agent import anchoring, confidence, grounding, kb_hints, prompts, question_planner, result_interpreter
 from doctor_agent.agent.ledger import CODE_SOURCE, Finding
-from doctor_agent.agent.parser import _json_objects, extract_action_json, parse_action
+from doctor_agent.agent.parser import as_list, extract_action_json, find_json, parse_action
 from doctor_agent.agent.state import CaseState
 from doctor_agent.agent.subagents.orchestrator import SubagentManager
 from doctor_agent.config import AgentConfig
@@ -47,6 +47,9 @@ class Policy:
         self._interp_done = 0  # turns already given to the result interpreter
         self.subagents = SubagentManager(llm, cfg)  # specialist sub-agents (per case, only when triggered)
         self._anchoring_fired: dict | None = None  # premature-closure entry shown in this step (advocate trigger)
+        # (proposed dx, Assessment) of the current attempt: the confidence pushback and the pre-review advocate read the
+        # same assessment of one proposal (the state does not change between them); cleared on every attempt
+        self._assessed: tuple | None = None
 
     def next_action(self, state: CaseState) -> Action:
         self.subagents.degraded = self.degraded  # low-time mode: no sub-agent call from here on (radiology included)
@@ -71,6 +74,7 @@ class Policy:
         else:
             hints = hints + advice + sub_hints
         for attempt in range(MAX_ATTEMPTS):  # retries: parse failure, repeated action, safety pushback, review hold
+            self._assessed = None
             raw = self.llm.chat(prompts.build_step_messages(state.view(), state.turn_count, self.cfg.max_turns, hints,
                                                             alert=alert))
             parsed = parse_action(raw)
@@ -196,6 +200,14 @@ class Policy:
         log.warning("advisor %s failed: %s", layer, e)
         state.safety_log.append({"turn": state.turn_count + 1, "layer": layer, "error": f"{type(e).__name__}: {e}"[:200]})
 
+    def _assess(self, state: CaseState, dx: str) -> "confidence.Assessment":
+        """confidence.assess of `dx`, computed once per attempt."""
+        if self._assessed is None or self._assessed[0] != dx:
+            if self._conf_params is None:
+                self._conf_params = confidence.load_params()
+            self._assessed = (dx, confidence.assess(state, dx, self.cfg, self._conf_params))
+        return self._assessed[1]
+
     def _confidence(self, state: CaseState, action: Action) -> str | None:
         """One pushback per case when the code-computed confidence of the proposed diagnosis is below
         cfg.confidence_pushback_below. "must_continue" (an actionable unresolved can't-miss danger) is left to the
@@ -203,9 +215,7 @@ class Policy:
         if not self.cfg.use_confidence or state.confidence_pushback:
             return None
         try:
-            if self._conf_params is None:
-                self._conf_params = confidence.load_params()
-            a = confidence.assess(state, action.content, self.cfg, self._conf_params)
+            a = self._assess(state, action.content)
             push = a.recommendation != "must_continue" and a.score < self.cfg.confidence_pushback_below
             state.safety_log.append({
                 "turn": state.turn_count + 1, "layer": "confidence", "proposed": action.content, "score": a.score,
@@ -307,7 +317,7 @@ class Policy:
             return "", None
         try:
             sugg = question_planner.suggest(state, k=self.cfg.planner_k)
-            shown = [f"{s.type}: {s.content_ko}" for s in sugg if not s.source.startswith("protocol:")]
+            shown = [f"{s.type}: {s.content_ko}" for s in sugg]
             return question_planner.render_for_prompt(sugg), {"turn": state.turn_count + 1, "layer": "planner",
                                                                "suggestions": shown, "msg": "; ".join(shown)}
         except Exception as e:  # noqa: BLE001
@@ -425,9 +435,7 @@ class Policy:
         """Pre-review advocate (once per case, only when the code confidence of the proposal is low): a note for the
         review view, or ""."""
         def score() -> float:
-            if self._conf_params is None:
-                self._conf_params = confidence.load_params()
-            return confidence.assess(state, action.content, self.cfg, self._conf_params).score
+            return self._assess(state, action.content).score
         try:
             self.subagents.degraded = self.degraded
             return self.subagents.advocate_for_review(state, action.content, action.reason, score)
@@ -452,12 +460,13 @@ class Policy:
             view += "\n\n" + note
         raw = self.llm.chat(prompts.build_review_messages(view, action.content, action.reason,
                                                           state.turn_count, self.cfg.max_turns))
-        objs = _json_objects(raw or "")
-        obj = next((o for o in reversed(objs) if "key_findings" in o or "confirmation" in o), objs[-1] if objs else {})
-        key = [(str(k.get("finding", "")).strip(), _explained(k.get("status"))) for k in _as_list(obj.get("key_findings"))
+        # the last object with review fields, else the last object at all (raw text only, as the reviewer answers)
+        obj = (find_json(raw, lambda o: "key_findings" in o or "confirmation" in o, harmony=False)
+               or find_json(raw, harmony=False) or {})
+        key = [(str(k.get("finding", "")).strip(), _explained(k.get("status"))) for k in as_list(obj.get("key_findings"))
                if isinstance(k, dict) and str(k.get("finding", "")).strip()]
-        contra = [str(x).strip() for x in _as_list(obj.get("contradicting")) if _meaningful(x)]
-        danger = [str(x).strip() for x in _as_list(obj.get("unresolved_danger")) if _meaningful(x)]
+        contra = [str(x).strip() for x in as_list(obj.get("contradicting")) if _meaningful(x)]
+        danger = [str(x).strip() for x in as_list(obj.get("unresolved_danger")) if _meaningful(x)]
         confirmation = str(obj.get("confirmation") or "").strip()
         confirmed = _meaningful(confirmation)
         reasons = ([f"설명 안 되는 소견: {f}" for f, ok in key if not ok] + [f"모순 소견: {x}" for x in contra]
@@ -577,10 +586,6 @@ _NOT_EXPLAINED = re.compile(r"안\s*됨|안됨|않|불충분|미설명|no|false|
 _LOCATION = re.compile(r"상행|하행|횡행|S상|구불|맹장부|좌측|우측|양측|좌엽|우엽|상엽|중엽|하엽|전벽|하벽|측벽|후벽|근위부|원위부|기저부|첨부")
 _CAUSE = re.compile(r"에\s*의한|(으)?로\s*인한|에\s*따른|에\s*동반된|의존성|유발성|연관|관련")
 _PARENS = re.compile(r"\([^)]*\)")
-
-
-def _as_list(x: object) -> list:
-    return x if isinstance(x, list) else ([] if x in (None, "") else [x])
 
 
 def _meaningful(x: object) -> bool:

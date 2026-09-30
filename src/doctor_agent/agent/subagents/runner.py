@@ -6,9 +6,8 @@ import logging
 import time
 from typing import Callable
 
-from doctor_agent.agent.parser import _THOUGHT_RE, _json_objects
+from doctor_agent.agent.parser import as_list
 from doctor_agent.agent.subagents.base import SubagentCall, SubagentResult, failed
-from doctor_agent.llm.harmony import split_harmony
 
 log = logging.getLogger("doctor_agent.subagents")
 
@@ -18,36 +17,8 @@ MAX_LIST = 6
 MAX_ITEM_CHARS = 160
 
 
-def last_object(text: str, keys: tuple[str, ...] = ()) -> dict:
-    """The last JSON object in the answer (final channel first, then leaked reasoning); with `keys`, the last object
-    that has at least one of them. {} when there is none."""
-    text = text or ""
-    final, analysis = split_harmony(text)
-    for cand in (_THOUGHT_RE.sub("", final), final, analysis, text):
-        if not cand:
-            continue
-        objs = [o for o in _json_objects(cand) if not keys or any(k in o for k in keys)]
-        if objs:
-            return objs[-1]
-    return {}
-
-
-def _as_list(x: object) -> list:
-    return x if isinstance(x, list) else ([] if x in (None, "") else [x])
-
-
 def _s(x: object, cap: int = MAX_ITEM_CHARS) -> str:
     return " ".join(str(x or "").split())[:cap]
-
-
-def parse_generic(name: str, text: str) -> SubagentResult:
-    """Generic reader: hint_ko | hint | summary, ddx_add, suggested_actions, red_flags from the last JSON object."""
-    obj = last_object(text, ("hint_ko", "hint", "summary", "ddx_add", "suggested_actions", "red_flags"))
-    if not obj:
-        return failed(name, "no JSON object in the answer")
-    hint = obj.get("hint_ko") or obj.get("hint") or obj.get("summary") or ""
-    return SubagentResult(name, True, _s(hint, 2000), _as_list(obj.get("ddx_add")),
-                          _as_list(obj.get("suggested_actions")), _as_list(obj.get("red_flags")), obj)
 
 
 def sanitize(res: object, call: SubagentCall) -> SubagentResult:
@@ -55,7 +26,7 @@ def sanitize(res: object, call: SubagentCall) -> SubagentResult:
     if not isinstance(res, SubagentResult):
         return failed(call.name, f"parser returned {type(res).__name__}")
     ddx = []
-    for d in _as_list(res.ddx_add)[:MAX_LIST]:
+    for d in as_list(res.ddx_add)[:MAX_LIST]:
         if isinstance(d, dict):
             nm = _s(d.get("name") or d.get("dx"), 60)
             if nm:
@@ -63,13 +34,13 @@ def sanitize(res: object, call: SubagentCall) -> SubagentResult:
         elif _s(d, 60):
             ddx.append({"name": _s(d, 60), "why": ""})
     acts = []
-    for a in _as_list(res.suggested_actions)[:MAX_LIST]:
+    for a in as_list(res.suggested_actions)[:MAX_LIST]:
         if not isinstance(a, dict):
             continue
         typ, content = str(a.get("type", "")).strip().upper(), _s(a.get("content"), 80)
         if typ in ACTION_TYPES and content:
             acts.append({"type": typ, "content": content, "why": _s(a.get("why") or a.get("reason"))})
-    flags = [_s(f, 80) for f in _as_list(res.red_flags)[:MAX_LIST] if _s(f, 80)]
+    flags = [_s(f, 80) for f in as_list(res.red_flags)[:MAX_LIST] if _s(f, 80)]
     cap = max(0, int(call.max_chars_out or 0))
     hint = _s(res.hint_ko, 4000)
     if len(hint) > cap:
@@ -81,11 +52,14 @@ def sanitize(res: object, call: SubagentCall) -> SubagentResult:
 def run(llm, call: SubagentCall, deadline: float | None = None, *,
         parse: Callable[[str], SubagentResult] | None = None, clock: Callable[[], float] = time.monotonic,
         reasoning_effort: str | None = "low") -> SubagentResult:
-    """Calls the fixed LLM once for `call` and parses the answer (`parse`, default parse_generic). Never raises.
+    """Calls the fixed LLM once for `call` and parses the answer with the content module's `parse`. Never raises (no
+    parser: ok=False without a call).
 
     With a client that supports options (OpenAICompatClient, GuardedLLM around it): structured output with
     call.json_schema, expect_json (JSON written only in the reasoning is still found), reasoning_effort, deadline (an
     absolute time on `clock`; GuardedLLM also applies the case budget deadline). Plain clients get chat(messages)."""
+    if parse is None:
+        return failed(call.name, "no parser")
     try:
         if deadline is not None and clock() >= deadline - MIN_CALL_S:
             return failed(call.name, "no time left before the deadline")
@@ -110,7 +84,7 @@ def run(llm, call: SubagentCall, deadline: float | None = None, *,
     if not (text or "").strip():
         return failed(call.name, "empty answer")
     try:
-        res = parse(text) if parse is not None else parse_generic(call.name, text)
+        res = parse(text)
     except Exception as e:  # noqa: BLE001 — a content-module parser bug must not stop the case
         log.warning("sub-agent %s parser failed: %s", call.name, e)
         return failed(call.name, f"parser {type(e).__name__}: {e}")

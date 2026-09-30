@@ -19,7 +19,7 @@ hints reach later main prompts. Each case runs per case length (--diagnose-at: 6
 sub-agents off, on (calibrated triggers) and on with the pre-review advocate forced. Reported: every sub-agent prompt
 probed at turns 6/10/20/40/57 (consult for all specialties, advocate, radiology on the longest result and on all
 result texts up to the 3,000-char cap), calls and prompt tokens per case, and the predicted wall time per case from
-agent/runtime.estimate_call_s under the throughput assumptions (runtime.CONSERVATIVE / MODERATE or --prefill-tps,
+estimate_call_s (below) under the throughput assumptions (CONSERVATIVE / MODERATE or --prefill-tps,
 --decode-tps, --overhead-s, --reasoning-tokens).
 
 Tokenizer (dev only, requirements-dev.txt): `tiktoken` encoding `o200k_harmony` (MIT; the BPE file is downloaded once
@@ -39,8 +39,9 @@ import statistics
 import sys
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
@@ -57,6 +58,46 @@ CHECKPOINTS = (1, 5, 10, 20, 40, 60)
 CONTEXT_WINDOW = 131_072
 BUDGETS = (4096, 8192, 16384)
 DEFAULT_DATE = "2026-09-28"  # the template puts today's date in the system message; the digit count is what matters
+
+
+# ---------------------------------------------------------------------------------------------- time model
+# (offline only; moved here from agent/runtime.py on 2026-09-30: the agent never estimates call times)
+@dataclass(frozen=True)
+class Throughput:
+    """Serving-speed ASSUMPTIONS for gpt-oss-20b on the evaluation server (nothing here is measured or sourced: the
+    server, GPU, batching and prefix caching are unknown until the participant guide). The defaults are deliberately
+    slow so that a budget planned with them has headroom; replace them with numbers measured on API day
+    (GuardedLLM.stats()["latency_main_s"] + the prompt token counts of scripts/token_budget.py).
+
+    prefill_tps: prompt tokens processed per second (no prefix-cache credit: the system prompt is re-counted per call)
+    decode_tps: generated tokens per second for one request
+    overhead_s: fixed cost per call (HTTP, queueing, scheduling)
+    reasoning_tokens: hidden analysis-channel tokens per call at reasoning effort "low", on top of the visible JSON"""
+    prefill_tps: float = 1000.0
+    decode_tps: float = 20.0
+    overhead_s: float = 1.0
+    reasoning_tokens: int = 300
+
+
+CONSERVATIVE = Throughput()
+# a second, faster ASSUMPTION for the what-if tables (also unmeasured)
+MODERATE = Throughput(prefill_tps=4000.0, decode_tps=60.0, overhead_s=0.5, reasoning_tokens=300)
+
+
+def estimate_call_s(prompt_tokens: float, output_tokens: float, tp: Throughput = CONSERVATIVE,
+                    reasoning_tokens: float | None = None) -> float:
+    """Predicted wall time of one call: overhead + prompt / prefill_tps + (output + reasoning) / decode_tps."""
+    reasoning = tp.reasoning_tokens if reasoning_tokens is None else reasoning_tokens
+    return (tp.overhead_s + max(0.0, prompt_tokens) / max(1e-9, tp.prefill_tps)
+            + (max(0.0, output_tokens) + max(0.0, reasoning)) / max(1e-9, tp.decode_tps))
+
+
+def estimate_case_s(calls: Iterable[tuple[float, float]], tp: Throughput = CONSERVATIVE) -> float:
+    """Predicted wall time of one case = sum over its sequential calls of estimate_call_s(prompt, output). The agent
+    makes its calls one after another (sub-agents included), so the times add up; CPU work between calls is ignored
+    (measured separately by tests/perf.py)."""
+    return sum(estimate_call_s(p, o, tp) for p, o in calls)
+
 
 # ------------------------------------------------------------------------------------------------ harmony rendering
 
@@ -767,8 +808,7 @@ def summarize_subagents(rows: list[dict]) -> dict:
 
 def case_totals(rows: list[dict], tp=None) -> list[dict]:
     """Per case (real calls only, probes excluded): calls by kind (step includes retries), prompt / output tokens and
-    the predicted wall time (agent/runtime.estimate_call_s with throughput assumption `tp`)."""
-    from doctor_agent.agent.runtime import CONSERVATIVE, estimate_call_s
+    the predicted wall time (estimate_call_s with throughput assumption `tp`)."""
 
     tp = tp or CONSERVATIVE
     out: dict = {}
@@ -857,7 +897,6 @@ def measure_subagents(cases: list[dict], count: Callable[[str], int], *, effort:
     """Runs every scenario on every case (jobs > 1: cases in parallel processes, each builds its own counter from
     counter_spec). Returns {"prompts": summarize_subagents of the probe scenario, "scenarios": {label: {throughput
     name: summarize_totals}}}. Cases are replayed independently, so the result does not depend on `jobs`."""
-    from doctor_agent.agent.runtime import CONSERVATIVE
 
     tps = tps or {"conservative": CONSERVATIVE}
     base = cfg or AgentConfig()
@@ -989,7 +1028,7 @@ def main(argv: list[str] | None = None) -> int:
                          "low-confidence scripted doctor) instead of the main-prompt report")
     ap.add_argument("--diagnose-at", default="60,20,10",
                     help="sub-agent mode: case lengths (turn the scripted doctor starts to DIAGNOSE; 60 = never)")
-    ap.add_argument("--prefill-tps", type=float, help="time model: prompt tokens/s (default: runtime.CONSERVATIVE)")
+    ap.add_argument("--prefill-tps", type=float, help="time model: prompt tokens/s (default: CONSERVATIVE)")
     ap.add_argument("--decode-tps", type=float, help="time model: output tokens/s")
     ap.add_argument("--overhead-s", type=float, help="time model: fixed seconds per call")
     ap.add_argument("--reasoning-tokens", type=int, help="time model: hidden reasoning tokens per call")
@@ -1008,7 +1047,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.subagents:
         from dataclasses import replace
 
-        from doctor_agent.agent.runtime import CONSERVATIVE, MODERATE, Throughput
 
         over = {k: v for k, v in (("prefill_tps", args.prefill_tps), ("decode_tps", args.decode_tps),
                                   ("overhead_s", args.overhead_s), ("reasoning_tokens", args.reasoning_tokens))

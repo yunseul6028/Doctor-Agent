@@ -256,7 +256,7 @@ def test_focused_doctor_fires_consult_and_diagnose_at_ends_the_case():
 
 
 def test_case_totals_and_subagent_summary():
-    from doctor_agent.agent.runtime import Throughput, estimate_call_s
+    from token_budget import Throughput, estimate_call_s
 
     cfg = AgentConfig(max_turns=20)
     tp = Throughput(prefill_tps=1000, decode_tps=10, overhead_s=1, reasoning_tokens=0)
@@ -354,3 +354,15 @@ def test_estimate_with_measured_default_curve(tmp_path):
     turns = ex.DEFAULTS["patient_calls_per_case"]
     assert est["basis"]["prompt_tokens_per_call"] == round(ex.measured_prompt_tokens_per_call(turns, ex.MEASURED_STEP_TOKENS))
     assert "measured" in ex.format_estimate(est, ["v6"])
+
+
+def test_time_model_estimates():
+    from token_budget import CONSERVATIVE, MODERATE, Throughput, estimate_call_s, estimate_case_s
+
+    tp = Throughput(prefill_tps=1000, decode_tps=20, overhead_s=1.0, reasoning_tokens=300)
+    assert estimate_call_s(2000, 100, tp) == pytest.approx(1 + 2 + 400 / 20)
+    assert estimate_call_s(2000, 100, tp, reasoning_tokens=0) == pytest.approx(1 + 2 + 5)
+    assert estimate_case_s([(2000, 100), (1000, 0)], tp) == pytest.approx(23 + (1 + 1 + 15))
+    assert estimate_case_s([], tp) == 0
+    # the default is the slow assumption
+    assert estimate_call_s(3000, 300, CONSERVATIVE) > estimate_call_s(3000, 300, MODERATE)

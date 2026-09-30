@@ -101,7 +101,6 @@ class OpenAICompatClient:
         self.client = client
         self.clock, self.sleep = clock, sleep
         self.call_count = 0  # successful completions
-        self.last: dict = {}  # metadata of the last call (finish_reason, reasoning chars, retries) for logging
 
     def _structured_on(self) -> bool:
         return self.cfg.structured_output in ("json_schema", "guided_json") and \
@@ -159,8 +158,6 @@ class OpenAICompatClient:
                 continue
             self.call_count += 1
             text, reasoning, finish = extract_text(resp, expect_json)
-            self.last = {"finish_reason": finish, "reasoning_chars": len(reasoning), "content_chars": len(text),
-                         "max_tokens": max_tokens, "effort": effort, "length_retry": length_retried}
             answer = text.split("<analysis>", 1)[0]  # the final-channel part only (not the reasoning fallback)
             needs_more = not answer.strip() or (expect_json and "{" not in answer)
             if finish == "length" and needs_more and not length_retried:

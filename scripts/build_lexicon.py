@@ -9,7 +9,7 @@ counted in meta.conflicts). Every form/regex keeps its provenance tags.
     casefreq        data/lexicon/casefreq.tsv (short generic expressions added after a frequency review of
                     data/cases_aug history answers; scripts/label_findings.py --freq lists the uncovered n-grams)
     curated         knowledge/kb_curated.py SYNONYMS + REGEX (finding -> KB term tables)
-    grounding       agent/grounding.py _GROUPS (synonym groups of the grounding checker)
+    grounding       _GROUPS below (the legacy synonym groups of agent/grounding.py, moved here 2026-09-30)
     kb_tests        knowledge/kb_tests.py FINDINGS (test/lab/imaging result concepts -> LAB:/IMG:/ECG: ids, KB TF: ids)
     clinical_rules  knowledge/clinical_rules.py CATEGORY_KEYWORDS and keyword tuples (protocol category links)
     protocols       safety/protocols.py _TRIG_* / _KW_* tuples (trigger links)
@@ -284,9 +284,100 @@ def merge_curated(b: Builder) -> None:
             b.unmapped.setdefault("curated", []).append("re:" + en)
 
 
+# --- legacy synonym groups of the grounding checker (agent/grounding.py until 2026-09-30) ---------------------------
+# The checker reads the lexicon now (these forms carry provenance "grounding"); the table is kept here only as a
+# build input of merge_grounding.
+_PAIN = r"(?:아프|아파|아픈|아팠|통증|쑤시|쓰리|쓰려|결리|pain)"
+_GROUPS: list[tuple[str, list[str], dict]] = [
+    ("fever", ["발열", "고열", "미열", "열감", "열이", "열은", "열도", "열나", "열난", "열날", "fever", "febrile", "pyrexia",
+               r"claim:(?<![가-힣])열(?![가-힣])"], {"measure": "temp", "cc": True}),
+    ("chills", ["오한", "으슬", "chills", "rigor"], {}),
+    ("dyspnea", ["호흡곤란", "숨참", "숨이차", "숨차", "숨이가쁘", "숨가쁘", "숨가쁨", "숨쉬기가힘", "숨쉬기힘", "숨이막",
+                 "dyspnea", "shortness of breath", "sob", "re:숨이? ?[^\\n.,]{0,6}?(?:차|가빠|가쁘)"], {"cc": True}),
+    ("chest_pain", ["흉통", "chest pain", "re:가슴[^\\n.,]{0,12}?" + _PAIN], {"cc": True}),
+    ("chest_tight", ["흉부불편감", "가슴이답답", "가슴답답", "가슴이조이", "압박감", "chest tightness"], {"cc": True}),
+    ("headache", ["두통", "headache", "re:머리[^\\n.,]{0,10}?(?:" + _PAIN[3:-1] + "|지끈)"], {"cc": True}),
+    ("abd_pain", ["복통", "abdominal pain",
+                  "re:(?:(?<![가-힣])배(?:가|는|도|를|쪽이?| )|윗배|아랫배|명치|복부)[^\\n.,]{0,10}?" + _PAIN], {"cc": True}),
+    ("rlq", ["우하복부", "오른쪽아랫배", "오른쪽하복부", "rlq", "right lower quadrant"], {}),
+    ("ruq", ["우상복부", "오른쪽윗배", "오른쪽상복부", "ruq", "right upper quadrant"], {}),
+    ("llq", ["좌하복부", "왼쪽아랫배", "왼쪽하복부", "llq"], {}),
+    ("luq", ["좌상복부", "왼쪽윗배", "왼쪽상복부", "luq"], {}),
+    ("epigastric", ["상복부", "명치", "윗배", "epigastri"], {}),
+    ("hypogastric", ["하복부", "아랫배", "hypogastri", "lower abdomen"], {}),
+    ("right", ["우측", "오른쪽", "오른", "right", "rt"], {}),
+    ("left", ["좌측", "왼쪽", "왼", "left", "lt"], {}),
+    ("pain", ["통증", "아프", "아파", "아픈", "아팠", "쑤시", "쓰리", "쓰려", "결리", "pain"], {"optional": True, "cc": True}),
+    ("tearing", ["찢어", "찢는", "찢기", "찢듯", "찢어지", "뜯기", "tearing", "ripping"], {}),
+    ("squeezing", ["쥐어짜", "짓누르", "짓눌", "조이는", "squeez", "pressure-like"], {}),
+    ("stabbing", ["찌르", "찌릿", "찌른", "stabbing", "sharp"], {}),
+    ("burning", ["화끈", "타는듯", "타는것", "burning"], {}),
+    ("sudden", ["갑자기", "급성발병", "갑작스", "sudden", "abrupt"], {}),
+    ("radiation", ["방사", "뻗치", "뻗쳐", "뻗어", "퍼지", "radiat"], {}),
+    ("nausea", ["구역", "메스꺼", "메슥", "울렁", "nausea"], {}),
+    ("vomiting", ["구토", "토했", "토하", "토를", "토함", "게워", "vomit", "emesis"], {}),
+    ("diarrhea", ["설사", "묽은변", "diarrhea"], {}),
+    ("constipation", ["변비", "constipation"], {}),
+    ("cough", ["기침", "cough"], {"cc": True}),
+    ("sputum", ["가래", "객담", "sputum"], {}),
+    ("hemoptysis", ["객혈", "각혈", "피가래", "피섞인가래", "hemoptysis"], {}),
+    ("syncope", ["실신", "기절", "의식을잃", "정신을잃", "쓰러졌", "syncope"], {}),
+    ("dizziness", ["어지러", "어지럼", "현기증", "dizz", "vertigo"], {"cc": True}),
+    ("sweating", ["식은땀", "발한", "땀이", "땀을", "땀나", "diaphoresis", "sweat"], {}),
+    ("edema", ["부종", "붓", "부었", "부어", "edema", "swelling"], {}),
+    ("weakness", ["위약", "근력저하", "힘이빠", "힘빠", "힘이없", "weakness"], {}),
+    ("fatigue", ["피로", "피곤", "기운이없", "기운없", "무기력", "쇠약감", "fatigue", "malaise"], {}),
+    ("anorexia", ["식욕부진", "식욕저하", "입맛이없", "입맛없", "밥맛이없", "anorexia"], {}),
+    ("weight_loss", ["체중감소", "살이빠", "몸무게가줄", "체중이줄", "weight loss"], {}),
+    ("palpitation", ["두근", "심계항진", "palpitation"], {}),
+    ("dysuria", ["배뇨통", "소변볼때아프", "소변볼때아파", "소변볼때통증", "dysuria"], {}),
+    ("hematuria", ["혈뇨", "소변에피", "hematuria"], {}),
+    ("melena", ["흑색변", "짜장", "검은변", "까만변", "melena"], {}),
+    ("hematochezia", ["혈변", "피가섞인변", "선혈변", "hematochezia"], {}),
+    ("jaundice", ["황달", "눈이노랗", "피부가노랗", "jaundice", "icterus"], {}),
+    ("rash", ["발진", "rash"], {}),
+    ("confusion", ["의식저하", "혼돈", "착란", "혼미", "confusion", "altered mental"], {}),
+    ("neck_stiff", ["경부강직", "항부강직", "목이뻣뻣", "목뻣뻣", "re:목[이은도가]? ?뻣뻣", "neck stiffness", "nuchal rigidity"], {}),
+    ("tenderness", ["압통", "tenderness", "re:누르(?:면|니|자|는데)[^\\n.,]{0,8}?(?:아프|아파|아픈|통증)"], {}),
+    ("rebound", ["반발통", "반동압통", "rebound"], {}),
+    ("murphy", ["머피", "murphy"], {}),
+    ("murmur", ["심잡음", "잡음", "murmur"], {}),
+    ("crackles", ["수포음", "악설음", "crackle", "rale"], {}),
+    ("wheeze", ["천명", "쌕쌕", "wheez"], {}),
+    ("tachycardia", ["빈맥", "맥이빠르", "심박이빠르", "tachycardi"], {"measure": "tachy"}),
+    ("bradycardia", ["서맥", "bradycardi"], {"measure": "brady"}),
+    ("tachypnea", ["빈호흡", "tachypnea"], {"measure": "tachypnea"}),
+    ("hypotension", ["저혈압", "혈압저하", "혈압이낮", "hypotension"], {"measure": "hypotension"}),
+    ("hypertension", ["고혈압", "혈압이높", "hypertension"], {}),
+    ("hypoxemia", ["저산소", "산소포화도저하", "포화도저하", "hypoxemi", "hypoxia", "desaturation"], {"measure": "hypoxemia"}),
+    ("leukocytosis", ["백혈구증가", "백혈구상승", "백혈구수증가", "leukocytosis"], {"measure": "leukocytosis"}),
+    ("anemia", ["빈혈", "anemia"], {"measure": "anemia"}),
+    ("thrombocytopenia", ["혈소판감소", "thrombocytopenia"], {"measure": "thrombocytopenia"}),
+    ("wbc", ["백혈구", "wbc", "white blood cell"], {}),
+    ("hb", ["혈색소", "헤모글로빈", "hb", "hgb", "hemoglobin"], {}),
+    ("plt", ["혈소판", "plt", "platelet"], {}),
+    ("crp", ["crp", "c반응단백", "c-반응"], {}),
+    ("troponin", ["트로포닌", "troponin", "tni", "tnt"], {}),
+    ("ddimer", ["d-dimer", "d dimer", "ddimer", "디다이머", "d다이머"], {}),
+    ("st_elev", ["st분절상승", "st상승", "st elevation", "ste"], {}),
+    ("st_dep", ["st분절하강", "st하강", "st저하", "st depression"], {}),
+    ("bp", ["혈압", "bp", "blood pressure"], {}),
+    ("pulse", ["맥박", "심박수", "심박", "pulse", "heart rate", "hr"], {}),
+    ("temp", ["체온", "temperature", "bt"], {}),
+    ("spo2", ["산소포화도", "spo2", "sao2"], {}),
+    ("ecg", ["심전도", "ecg", "ekg"], {"optional": True}),
+    ("cxr", ["흉부x선", "흉부엑스레이", "가슴x선", "흉부방사선", "chest x-ray", "chest xray", "cxr"], {"optional": True}),
+    ("ct", ["ct", "씨티", "전산화단층"], {"optional": True}),
+    ("mri", ["mri", "자기공명"], {"optional": True}),
+    ("us", ["초음파", "ultrasound", "sonograph", "echo"], {"optional": True}),
+    ("labs", ["혈액검사", "피검사", "일반혈액", "cbc"], {"optional": True}),
+    ("physical", ["신체검사", "신체진찰", "진찰", "청진", "촉진", "시진", "타진", "physical exam"], {"optional": True}),
+]
+
+
+
 def merge_grounding(b: Builder) -> None:
-    from doctor_agent.agent import grounding
-    for grp, variants, _flags in grounding._GROUPS:
+    for grp, variants, _flags in _GROUPS:
         cid = GROUNDING_MAP.get(grp)
         if cid is None:
             continue

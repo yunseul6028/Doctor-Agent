@@ -1,6 +1,6 @@
 """Next-question planner: ranks candidate ASK / EXAM / TEST actions by how well they separate the live DDx.
 
-    suggest(state, k=3, include_safety=True) -> list[Suggestion]
+    suggest(state, k=3) -> list[Suggestion]
     render_for_prompt(suggestions, max_chars=300) -> str      "추천 다음 행동 (참고): ..." (Korean, <= 300 chars)
 
 How (stdlib only, CPU only, deterministic, no network, no state between calls):
@@ -19,8 +19,7 @@ How (stdlib only, CPU only, deterministic, no network, no state between calls):
 5. Exclusions: actions already done (state.asked, earlier TEST/EXAM text naming the test), features already known from
    the case text or the findings ledger (normalisation layer concepts -> KB terms, kb_tests.detect results), and
    TEST/EXAM requests that safety/preconditions.check() would block.
-6. Pending minimum safety checks (safety/protocols.py) are appended with safety=True (they are shown elsewhere in the
-   prompt; render_for_prompt leaves them out). A ranked action that also completes a pending check is marked too.
+Pending minimum safety checks are not suggested here: the protocols hint of the step prompt shows them (policy._hints).
 
 Suggestions are hints for the LLM, never evidence; nothing here calls an LLM.
 """
@@ -66,13 +65,8 @@ class Suggestion:
     targets: list[str] = field(default_factory=list)  # DDx names the action mainly argues for
     expected_value: float = 0.0    # information gain (bits) x cost-tier weight
     cost_tier: str = "ask"         # ask | exam | lab | imaging | invasive
-    source: str = ""               # "DDXPlus" | "lexicon" | "KB" | "curated" | "protocol:<id>"
-    citation: str = ""
-    safety: bool = False           # a pending minimum safety check (source "protocol:<id>", shown by the protocols
-    #                                hint) or a ranked action that also completes one (note says which)
+    source: str = ""               # "DDXPlus" | "lexicon" | "KB" | "curated"
     features: list[str] = field(default_factory=list)  # KB term ids the action observes
-    note: str = ""                 # e.g. a precondition warning
-    done_keywords: tuple[str, ...] = ()  # safety checks: action text that completes the check
 
     def action(self) -> Action:
         return Action(ActionType(self.type), self.content_ko, reason="question_planner")
@@ -446,19 +440,18 @@ def _done_test(state, kws: tuple[str, ...]) -> bool:
 
 
 # ------------------------------------------------------------------ public API
-def suggest(state, k: int = 3, include_safety: bool = True) -> list[Suggestion]:
-    """Top-k discriminating next actions (+ pending safety checks marked safety=True when include_safety). Fail-safe:
-    any problem returns what could be computed (possibly [])."""
+def suggest(state, k: int = 3) -> list[Suggestion]:
+    """Top-k discriminating next actions. Fail-safe: any problem returns []."""
     try:
-        return _suggest(state, k, include_safety)
+        return _suggest(state, k)
     except Exception:
         return []
 
 
-def _suggest(state, k: int, include_safety: bool) -> list[Suggestion]:
+def _suggest(state, k: int) -> list[Suggestion]:
     from doctor_agent.knowledge import kb
     if not kb.available():
-        return _safety(state) if include_safety else []
+        return []
     kbase = kb.get_kb()
     hyps = _hypotheses(kbase, state)
     ranked: list[Suggestion] = []
@@ -512,29 +505,11 @@ def _suggest(state, k: int, include_safety: bool) -> list[Suggestion]:
             if not targets:  # the action argues *against* someone: name the most affected hypothesis
                 j = max(range(len(hyps) - 1), key=lambda j: max(abs(ls[j] - m) for ls, m in zip(likes, mean)))
                 targets = [hyps[j].name]
-            cite = ""
-            if typ == "TEST" and a["src"] == "curated":
-                refs = []
-                for t in a["feats"]:
-                    for h in hyps:
-                        if h.idx is None:
-                            continue
-                        for x in kbase.diseases[h.idx].get("findings_from_tests", []):
-                            if x[0] == t and len(x) > 3 and x[3] and x[3] not in refs:
-                                refs.append(x[3])
-                cite = "; ".join(filter(None, (kbase.test_ref(r).get("cite", "").split(".")[0] for r in refs[:2])))
             cands.append(Suggestion(typ, req, targets, round(ig * TIER_W.get(a["tier"], 0.5), 4), a["tier"], a["src"],
-                                    cite, features=list(a["feats"])))
+                                    features=list(a["feats"])))
         cands.sort(key=lambda s: (-s.expected_value, s.type, s.content_ko))
         ranked = _filter(state, cands, k, actions)
-    pending = _safety(state)
-    for s in ranked:
-        for p in pending:
-            if _matches_check(p, s.content_ko):
-                s.safety = True
-                s.note = (s.note + " " if s.note else "") + f"안전 확인 항목({p.content_ko})"
-    return ranked + ([p for p in pending if not any(_matches_check(p, s.content_ko) for s in ranked)]
-                     if include_safety else [])
+    return ranked
 
 
 def _filter(state, cands: list[Suggestion], k: int, actions: dict) -> list[Suggestion]:
@@ -550,42 +525,15 @@ def _filter(state, cands: list[Suggestion], k: int, actions: dict) -> list[Sugge
             continue
         if any(o.type == s.type and similarity(o.content_ko, s.content_ko) >= SIMILAR for o in out):
             continue
-        if s.type in ("TEST", "EXAM"):
-            chk = preconditions.check(act.type, s.content_ko, state)
-            if chk.get("severity") == "block":
-                continue
-            if chk.get("severity") == "warn":
-                s.note = f"주의: {chk.get('why', '')[:60]}"
+        if s.type in ("TEST", "EXAM") and preconditions.check(act.type, s.content_ko, state).get("severity") == "block":
+            continue
         out.append(s)
     return out
 
 
-def _matches_check(p: Suggestion, content: str) -> bool:
-    c = (content or "").lower()
-    return any(kw in c for kw in p.done_keywords)
-
-
-def _safety(state) -> list[Suggestion]:
-    """Pending minimum safety checks as suggestions (safety=True, expected_value 0)."""
-    try:
-        from doctor_agent.safety import protocols
-        actions = [t.action.content for t in state.turns]
-        context = "\n".join(t.response for t in state.turns if "제공되지 않습니다" not in (t.response or ""))
-        out = []
-        for c in protocols.pending_checks(state.initial_info or "", actions, context):
-            if c.kind not in ("ask", "exam", "test"):
-                continue
-            tier = {"ask": "ask", "exam": "exam"}.get(c.kind, "lab")
-            out.append(Suggestion(c.kind.upper(), c.name, [], 0.0, tier, f"protocol:{c.id}", c.citation.short,
-                                  safety=True, done_keywords=tuple(c.keywords)))
-        return out
-    except Exception:
-        return []
-
-
-def render_for_prompt(suggestions: list[Suggestion], max_chars: int = MAX_CHARS, include_safety: bool = False) -> str:
+def render_for_prompt(suggestions: list[Suggestion], max_chars: int = MAX_CHARS) -> str:
     """Short Korean hint: "추천 다음 행동 (참고): 1) [문진] ... (감별: A·B) ..."; "" when there is nothing to show."""
-    rows = [s for s in suggestions if include_safety or not s.source.startswith("protocol:")]
+    rows = list(suggestions)
     if not rows:
         return ""
     head = "추천 다음 행동 (참고):"

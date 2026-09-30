@@ -103,13 +103,13 @@ def test_excluded_finding_penalises():
     import re
     case = None
     for t, dis in sorted(k.xpost.items()):
-        if not re.search("[가-힣]", k.terms[t]["ko"]) or not k._match(k.terms[t]["ko"]):
+        if not re.search("[가-힣]", k.terms[t]["ko"]) or not k._match_spans(k.terms[t]["ko"]):
             continue
         for i in dis:
             d = k.diseases[i]
             freq = dict(d["orpha_freq"])
             pos = [k.terms[x]["ko"] for x, f in sorted(freq.items()) if f in ("O", "VF", "F")
-                   and re.search("[가-힣]", k.terms[x]["ko"]) and k._match(k.terms[x]["ko"])][:3]
+                   and re.search("[가-힣]", k.terms[x]["ko"]) and k._match_spans(k.terms[x]["ko"])][:3]
             if len(pos) >= 2:
                 case = (d["id"], pos, k.terms[t]["ko"])
                 break
