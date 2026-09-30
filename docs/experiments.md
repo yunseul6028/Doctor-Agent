@@ -535,6 +535,31 @@ Korean "N 미만" range is no longer read as normal) and **Accuracy** (no false 
   ("D-dimer 1.2 (정상 <500 ng/mL)" -> absent); kb_tests false positives exposed by the value display:
   `anion_gap_high` from "vWF:Ag 95%", `tsat_high` in a haemodynamics report.
 
+### 2026-09-30 · one reference-range reader + look-alike analytes (`knowledge/refrange.py`; code only, no LLM)
+No case run, so no Accuracy / Efficiency / Safety row. Expected effect: **Safety** (abnormal labs with Korean /
+bare-number reference ranges no longer read normal) and **Accuracy** (no anion gap from "vWF:Ag", no transferrin
+saturation from a cath report, no free air from a perforated mitral leaflet). Fixes the "found, not fixed" items of
+the entry below. Rules are about how ranges and short names are written, not about cases (docs/nlp.md, "Fixes
+2026-09-30").
+- Sweep of 7,637 distinct result texts (data/cases_*, data/sample_cases, non-dummy eval/results runs) through
+  `nlp.findings.parse`, `kb_tests.detect`, `result_interpreter.interpret`, before -> after: 119 texts change. Reading
+  (concept / polarity) changes: kb 5, parse 7, interpreter 11 — all fixes, 0 regressions: anion_gap_high from
+  "vWF:Ag 95%" gone (3 readers); CEA 6.5 "(경미한 상승)" absent -> present (kb, parse; the interpreter already had it via
+  the bridge, now removed); tsat_high from "폐동맥 포화도 66%" gone (3); a spurious glucose_very_high "normal" read from the
+  word 혈당 inside "(혈당 대비 감소)" after a CSF / synovial glucose gone (3 x 2); "CRP 11.7 mg/dL (1394 nmol/L)" and
+  "Cr 1.86 mg/dL (164 μmol/L)" now crp_high / cr_high present (the "l" of the SI unit was read as a low flag; parse,
+  interpreter); IMG:free_air from "승모판 천공" (TEE) now an unmapped abnormal item, and "고막 천공 없음" no longer yields
+  IMG:free_air absent (4 otoscopy texts). Display-only: 86 kb "normal" readings next to "(정상)" are now value-based
+  (the interpreter shows the value, direction "normal"); 29 parse / 6 interpreter directions of low-side kb findings
+  "high" -> "low". Removing the interpreter's direction-word bridge changes 0 of 7,637 interpretations.
+- Gold: findings gold (`scripts/label_findings.py metrics`) concept+polarity .945 (P .948 / R .942) before = after;
+  result interpreter gold dev 1.00 / 1.00 (116), fresh 1.00 / 1.00 (66), unchanged. `eval_danger_gate.py`: one change,
+  da_494 (endocarditis) no longer "confirms" bowel perforation from the TEE leaflet perforation (fix); gold blocked 12
+  unchanged. `scripts/eval_kb.py` unchanged.
+- Not changed: `nlp.parse` still maps the lexicon form "천공" to IMG:free_air in any organ (lexicon-level; only the
+  result interpreter checks the organ); "AG" / "포화도" in a clause without their context are not read (kb_tests is
+  called per clause from nlp).
+
 ### 2026-09-30 · danger gate over-firing (`safety/danger_gate.py`; offline, no LLM)
 No case run, so no Accuracy / Efficiency / Safety row. Expected effect: **Efficiency** (fewer forced rule-out turns)
 with **Safety** kept (no high-value true catch lost). Measured with `eval/offline/eval_danger_gate.py` on the 267
