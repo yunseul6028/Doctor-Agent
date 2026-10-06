@@ -2,7 +2,7 @@
 
 - Safety = share of the guideline-based checklist (`safety/protocols.py`) completed. Chief-complaint categories are detected from the initial info only (since 2026-09-25; earlier results were rescored).
 - Patient/judge LLM: gemini-3.6-flash. The doctor model is listed per row.
-- Local scores only reflect **relative change**. They are not a prediction of the official score.
+- Local scores only reflect **relative change**. They are not an absolute performance estimate.
 
 | Date | Change | Prompt version | Doctor model | Cases | Patient type | Accuracy | Efficiency | Safety | Avg turns | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -18,7 +18,7 @@
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
 
 Prompt `v6-kb-strict-review` (KB hints, code-decided review, evidence-gated renaming) has **no LLM run yet**.
-The first rows for it should come from `eval/experiment.py` on the competition model (see below).
+The first rows for it should come from `eval/experiment.py` on gpt-oss-20b (see "How to measure on gpt-oss-20b" below).
 
 ### 2026-09-28 · prompt `v6-kb-strict-review` → `v7-advisors` (no LLM run yet)
 The four advisor modules are wired into the policy (`docs/architecture.md` "Advisors wired into the policy"): triage
@@ -82,7 +82,7 @@ Everything below was measured offline (rules, KB, case files). None of it has an
 | Area | Change | Measured |
 |---|---|---|
 | Agent | v6: KB hints (candidates, discriminators, dx normalisation); structured pre-diagnosis review with code-decided verdict and evidence-gated renaming; EXAM/TEST history questions → ASK; DDx name-variant dedupe | unit tests only |
-| Runtime | gpt-oss harmony handling, length retry, optional structured output, per-case time budget with degrade/forced final answer, never-crash submission mode, prompt cap, incremental `run.py` output | `tests/test_runtime.py` (28 tests) |
+| Runtime | gpt-oss harmony handling, length retry, optional structured output, per-case time budget with degrade/forced final answer, never-crash robust mode, prompt cap, incremental `run.py` output | `tests/test_runtime.py` (28 tests) |
 | Safety protocols | 7 → 20 → **26** categories; false triggers fixed from a per-case audit (periarticular pain ≠ hot joint, urticaria ≠ chronic pruritus, pregnancy test populations, adult-only dyspnea checks, negation window, …); rules got population conditions from the source abstracts | cases in `data/cases_aug` (267) with ≥ 1 applicable check: **87 → 159 → 173** (7 / 20 / 26 categories, re-measured on the current case files) |
 | Cases | Full augmentation of all sets → `data/cases_aug` (267); rule-based quality gate `scripts/check_cases.py` | hard issues **48 → 0** (45 placeholder search terms, 2 sex/age-inconsistent tests, 1 vital conflict); 15 cases / 57 edits; 2,278 soft issues left as a review list (`data/labels/case_quality_2026-09-27.json`) |
 | KB | Matching/ranking/normalisation rework (09-26), then curated test-result → disease links `kb_tests.py` (262 concepts, 452 links, 95 PMID-verified refs) | see below |
@@ -102,30 +102,30 @@ clinicalqa 111, held-out = agentclinic + diagnosisarena 156; `data/labels/kb_eva
 Latency 8.8 ms mean / 10.1 ms p95 per `candidates()` call, KB load 0.32 s. Diagnosis normalisation (held-out): KCD
 code for 56.4% of primary names. Details: `docs/data-sources.md` (knowledge base section).
 
-## How to run on competition API day
+## How to measure on gpt-oss-20b
 
 One command runs a standard profile, estimates cost first, compares conditions, and rebuilds the viewer + share page
 (`eval/experiment.py`; profiles in `eval/experiment_profiles.json`; fixed case lists in `eval/case_lists/`).
 
-1. Add the competition endpoint to `.env` (keys stay in `.env`; the script never prints them):
-   `COMPETITION_LLM_BASE_URL=…`, `COMPETITION_LLM_API_KEY=…` (optional `COMPETITION_LLM_MODEL`, default `openai/gpt-oss-20b`).
-   The existing `DOCTOR_LLM_*` lines also work. `--doctor-endpoint gemini` uses `GEMINI_LLM_*` or the shared `LLM_*`;
-   `local` uses `LOCAL_LLM_*` or Ollama `gpt-oss:20b`.
+1. Point the doctor at a gpt-oss-20b endpoint (any OpenAI-compatible server: vLLM, Ollama, a hosted API; keys stay
+   in `.env`, the script never prints them): `DOCTOR_LLM_BASE_URL=…`, `DOCTOR_LLM_API_KEY=…`,
+   `DOCTOR_LLM_MODEL=openai/gpt-oss-20b` with `--doctor-endpoint env` (the default), or `--doctor-endpoint local`
+   (`LOCAL_LLM_*` or Ollama `gpt-oss:20b`). `--doctor-endpoint gemini` uses `GEMINI_LLM_*` or the shared `LLM_*`.
 2. Free wiring check: `python eval/experiment.py --profile smoke --doctor-endpoint dummy --no-view`
-3. Plan + cost only: `python eval/experiment.py --profile dev --doctor-endpoint competition --estimate-only`
+3. Plan + cost only: `python eval/experiment.py --profile dev --doctor-endpoint env --estimate-only`
    (add `--price-in/--price-out` in KRW per 1M tokens, or `EXPERIMENT_PRICE_{IN,OUT}_PER_M`, to get a KRW figure).
-4. Smoke on the real model (5 cases, ~50 doctor calls): `python eval/experiment.py --profile smoke --doctor-endpoint competition`
+4. Smoke on the real model (5 cases, ~50 doctor calls): `python eval/experiment.py --profile smoke --doctor-endpoint env`
    → check `usage:` lines (real tokens/call) before anything bigger; later estimates use them automatically.
 5. Dev comparison (50 cases × v6 / v6-no-kb, ~900 calls, needs `--yes`):
-   `python eval/experiment.py --profile dev --doctor-endpoint competition --yes --log --note "first gpt-oss run"`
+   `python eval/experiment.py --profile dev --doctor-endpoint env --yes --log --note "first gpt-oss run"`
    Optional: `--conditions v6,v5-baseline` (v5 runs in a temporary git worktree at `c3ddecd`, rescored with the current
    scorer), `--env AGENT_CASE_TIME_BUDGET_S=240`, `--env DOCTOR_LLM_STRUCTURED_OUTPUT=guided_json`, `--compare-with FILE`.
 6. `full` (267 cases) only when a dev result justifies it.
 
-Defaults are the cheapest mode: keyword patient + no judge, so only the doctor spends competition credits
+Defaults are the cheapest mode: keyword patient + no judge, so only the doctor spends API budget
 (`--patient llm --judge llm` opt in; those use `PATIENT_LLM_*`/`JUDGE_LLM_*`, i.e. Gemini). Guard: `--yes` is required
 above `--max-calls` (300 doctor calls) or `--max-cost` (5,000 KRW, when prices are given). A billing error (402 /
-credits depleted) stops the running batch and skips the remaining conditions (exit code 3).
+credits depleted on a paid endpoint) stops the running batch and skips the remaining conditions (exit code 3).
 Cost estimate = cases × doctor calls/case (mean of past result files, else 12) × tokens/call, all × margin 1.3.
 Tokens/call: recorded usage of the same doctor model; else, for gpt-oss, the **measured** prompt tokens (see "Prompt
 token budget" below; mean step prompt over a case of the past mean length) + an assumed 1,000 / 1,800 / 2,048 output
@@ -134,7 +134,7 @@ tokens at effort low / medium / high; else usage of any other model; else 3,000 
 `--log` appends one table row per condition above and a comparison section (overall, per set, flips, n/a rate) under
 "Auto-logged experiment runs" at the end. The share page path is printed (`eval/results/share_<time>.html` or `--share`).
 
-### LLM record/replay cache (stretching the credits)
+### LLM record/replay cache (stretching the API budget)
 `eval/replay.py` wraps the SDK's `chat.completions.create` at the eval layer (like `eval/usage.py`; src untouched, never
 shipped). Key = sha256(endpoint, model, messages, temperature, max_tokens, reasoning_effort, response_format/extra_body,
 `--cache-salt`, `--cache-sample-idx`); `timeout` is ignored. One append-only JSONL per role in `eval/cache/`
@@ -150,7 +150,7 @@ fcntl-locked appends, safe with `--workers N`).
   the meter). The comparison prints a `cache` line per run and `--log` adds it to the notes.
 - Where it saves: the judge prompt is (case answer, predicted diagnosis), so every repeated diagnosis across conditions
   and reruns is free. Patient answers hit only while the conversation prefix is identical (same doctor question
-  sequence), i.e. unchanged conditions and the doctor-cached replays. The doctor (the competition credits) hits when a
+  sequence), i.e. unchanged conditions and the doctor-cached replays. The doctor (the main API cost) hits when a
   condition sends exactly the same requests again: reruns of the same code/prompt (baseline conditions, rescoring or
   scorer/viewer changes, parser-only changes that do not alter the prompts). A prompt change misses from its first
   differing call onward, so the saving there is the unchanged prefix only.
@@ -286,7 +286,7 @@ server, GPU, batching, prefix caching and gpt-oss's reasoning length at effort `
 | `MODERATE` | 4,000 | 60 | 0.5 | 300 | 11 s |
 
 Decode dominates (≥ 85% of each estimate): the number that matters is decode tok/s × (answer + reasoning) length.
-On API day: run a few cases, read `result["runtime"]["latency_main_s"]` (now recorded per call) and fit the four
+On the first gpt-oss-20b run: run a few cases, read `result["runtime"]["latency_main_s"]` (now recorded per call) and fit the four
 parameters with the prompt token counts above, then `--prefill-tps / --decode-tps / --overhead-s / --reasoning-tokens`
 re-predicts the table.
 
@@ -315,14 +315,15 @@ and turn sub-agents off by themselves; at moderate speed a typical case takes 3�
   ungrounded / location / cause-qualifier renamings — whether it now holds at a useful rate is untested.
 - Safety false triggers (anaphylaxis → stroke checks, etc.) were fixed by rules after a per-case audit; the Safety score
   has not been re-measured. 37 of 88 checks are still `unverified` against the guideline text (34 primary, 17 secondary).
-- Time: Gemma took 5–10 min per case. A per-case time budget now exists (`AGENT_CASE_TIME_BUDGET_S`), but the official
-  limit and gpt-oss speed on the competition server are unknown → set the budget on API day.
+- Time: Gemma took 5–10 min per case. A per-case time budget now exists (`AGENT_CASE_TIME_BUDGET_S`), but gpt-oss-20b
+  speed on our serving setup is unknown → set the budget from the first measured run.
 - Single runs of n = 40–50 have large run-to-run variance → repeat runs or the `full` profile before drawing conclusions.
 - Weak at subtype discrimination (bipolar I/II, vascular stenosis vs. underlying disease).
 - Augmented case entries (`data/cases_aug`) are LLM-written and not clinician-reviewed; 2,278 soft quality issues
   (mostly keyword-key collisions for the keyword simulator) remain as a review list.
 - KB ranking is a hint, not evidence: held-out top-10 is 0.269. `kb_hints` does not pass sex/age to `candidates()` yet.
-- The official environment (`env/official.py`), action/diagnosis format and how test results are provided are unknown.
+- Only our own environment exists (case files + simulated patient); behaviour against another patient environment or
+  diagnosis format is untested.
 
 ### 2026-09-28 · specialty routing for runtime consults (`knowledge/specialty.py`, code only, no LLM, not wired)
 Offline only (`python eval/offline/eval_specialty.py --results <dir with run_*.json>`; metrics in

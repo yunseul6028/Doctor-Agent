@@ -12,8 +12,8 @@ migration plan below.
 | `src/doctor_agent/nlp/lexicon.py` | loads `data/lexicon/concepts.json` once at import (read-only); `scan()` finds mentions | yes |
 | `src/doctor_agent/nlp/findings.py` | `parse()`, `match()`, `concepts_in()`, `affirmed()`, `denied()`; `assess_spans()` (polarity/subject of spans found by another vocabulary); `spans_of()`, `age_from_text()`; stable public helper names (see API) | yes |
 | `data/lexicon/kb_links.json` | concept → KB term ids with link kind (27 KB; `python scripts/eval_kb.py --build-links`) | yes |
-| `data/lexicon/concepts.json` | built lexicon (≈385 KB; recounted 2026-09-29: 634 concepts, 6,855 surface forms, 152 regexes (148 `re` + 4 `negre`), 57 block words) | yes (`scripts/package.py` INCLUDE) |
-| `data/lexicon/seed.tsv` | hand-authored seed (long format `id<TAB>field<TAB>value`) | no (build input only, excluded from the ZIP) |
+| `data/lexicon/concepts.json` | built lexicon (≈385 KB; recounted 2026-09-29: 634 concepts, 6,855 surface forms, 152 regexes (148 `re` + 4 `negre`), 57 block words) | yes |
+| `data/lexicon/seed.tsv` | hand-authored seed (long format `id<TAB>field<TAB>value`) | no (build input only) |
 | `scripts/build_lexicon.py` | merges seed + existing tables → `concepts.json` (`--check` for staleness) | no |
 | `scripts/label_findings.py` | gold-set pipeline (extract / dev / sample / show / freeze / metrics / errors) | no |
 | `data/labels/findings_gold_*` | candidates, draft, hand review, corrections, gold v1, metrics | no |
@@ -243,7 +243,7 @@ Principle: switch one module at a time behind its existing function signature, c
 | `safety/preconditions.py:_lp_ct_risks` (seizure-simile mask) | **kept + layer** | mask kept (and "증상/호흡곤란 발작" added: the layer reads "증상 발작 시" as a seizure); the masked text is read through `_affirmed` |
 | `knowledge/diagnostic_criteria.py:Doc.state`, `Doc._negated` | 25-char window | **done 2026-09-27**: keyword-like matches (≤ 20 chars, no result word of their own such as "ana 음성") read by the layer (`ReadText.findings_at`); uncertain / hypothetical / relatives' mentions are "skip" (never NOT_MET); long patterns and "- 음성" ledger lines keep the window rule |
 | `agent/ledger.py:FindingsLedger.update` | `similarity()` ≥ 0.6 dedupe | optional: key items by `LEXICON.lookup(item)` concept id so "열"/"발열" merge |
-| `scripts/package.py:INCLUDE` | ships `data/kb` | ships `data/lexicon/concepts.json` + `kb_links.json` (not `seed.tsv`); `LEXICON` is an import-time constant, so the cross-case check needs no allowlist entry |
+| runtime data | loads `data/kb` | also loads `data/lexicon/concepts.json` + `kb_links.json` (not `seed.tsv`); `LEXICON` is a read-only import-time constant, so it is not cross-case state |
 
 KB migration numbers (`scripts/eval_kb.py`, dev = sample + clinicalqa tuned, held-out = agentclinic + diagnosisarena
 report only; before = commit 8a9e049, after = `data/labels/kb_eval_2026-09-28_nlp.json`):
