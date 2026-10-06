@@ -1,0 +1,2937 @@
+{
+ "_note": "knowledge/specialty.py ten-id extension (endo_metab, psych), 2026-09-29, eval/offline/eval_specialty.py, no LLM. Gold data/labels/specialty_gold_v3.jsonl hand-labelled by the knowledge-rag agent (Claude Opus 5.5) before any ten-id specialty_of output: 43 new names (20 endo_metab, 17 psych, 6 boundary controls) + 11 corrected copies of v1/v2 items (v1/v2 files unchanged). before = the eight-id module (HEAD 8f4c162) on the same gold files; first_pass = first ten-id implementation; final = after the one fix read off the first-pass errors (myxoedema keyword; '갑상' narrowed to '갑상선' after a cases_aug listing showed 갑상혀관낭). routing_before_vs_ten_gold = the eight-id route() scored against the ten-id gold specialties (--gold-from, like-for-like). Routing replays local run files (eval/results, not in git; 224 non-dummy trajectories 2026-09-25/26). Timings on a shared machine (load average up to ~200 during these runs).",
+ "before": {
+  "gold": {
+   "v1": {
+    "n": 116,
+    "strict": 0.888,
+    "lenient": 0.914,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "neuro": "15/15",
+     "none": "12/22",
+     "peds_obgyn": "10/11",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "급성 신손상",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N17",
+      "kb_name": "급성 신부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신우신염",
+      "gold": null,
+      "also": [
+       "resp_id"
+      ],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N10",
+      "kb_name": "급성 세뇨관-간질신장염",
+      "lenient_ok": false
+     },
+     {
+      "name": "요로결석",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N21.8",
+      "kb_name": "기타 하부요로결석",
+      "lenient_ok": false
+     },
+     {
+      "name": "IgA 신병증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N02",
+      "kb_name": "재발성 및 지속성 혈뇨",
+      "lenient_ok": false
+     },
+     {
+      "name": "철결핍성 빈혈",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D50",
+      "kb_name": "철결핍빈혈",
+      "lenient_ok": false
+     },
+     {
+      "name": "Acute myeloid leukemia",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C92.0",
+      "kb_name": "급성 골수성 백혈병",
+      "lenient_ok": false
+     },
+     {
+      "name": "호지킨 림프종",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C81",
+      "kb_name": "호지킨림프종",
+      "lenient_ok": false
+     },
+     {
+      "name": "면역성 혈소판 감소증",
+      "gold": null,
+      "also": [
+       "rheum_immune"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.6",
+      "kb_name": "상세불명의 혈소판감소증",
+      "lenient_ok": false
+     },
+     {
+      "name": "저나트륨혈증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "횡문근융해증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "override",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v1_corrected": {
+    "n": 116,
+    "strict": 0.922,
+    "lenient": 0.948,
+    "per_label": {
+     "cardio": "13/13",
+     "endo_metab": "0/4",
+     "gi_liver": "17/18",
+     "heme_onc": "4/4",
+     "neuro": "15/15",
+     "none": "6/6",
+     "peds_obgyn": "10/11",
+     "psych": "0/2",
+     "renal_uro": "6/6",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "당뇨병성 케톤산증",
+      "gold": "endo_metab",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E10.1",
+      "kb_name": "당뇨병케톤산증",
+      "lenient_ok": false
+     },
+     {
+      "name": "그레이브스병",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E05.0",
+      "kb_name": "미만성 고이터를 동반한 갑상선독증",
+      "lenient_ok": false
+     },
+     {
+      "name": "부신 기능 부전",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E27.1",
+      "kb_name": "부신기능부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "쿠싱 증후군",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E24",
+      "kb_name": "쿠싱증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "주요 우울장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F32",
+      "kb_name": "주요 우울 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "Panic disorder",
+      "gold": "psych",
+      "also": [
+       "cardio"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F41",
+      "kb_name": "공황장애",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v2_new": {
+    "n": 48,
+    "strict": 0.938,
+    "lenient": 0.958,
+    "per_label": {
+     "endo_metab": "0/3",
+     "gi_liver": "1/1",
+     "heme_onc": "20/20",
+     "peds_obgyn": "1/1",
+     "renal_uro": "19/19",
+     "resp_id": "2/2",
+     "rheum_immune": "2/2"
+    },
+    "errors": [
+     {
+      "name": "갑상선 유두암",
+      "gold": "endo_metab",
+      "also": [
+       "heme_onc"
+      ],
+      "pred": "heme_onc",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "갑상선 기능 저하증",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E03",
+      "kb_name": "기타 갑상선기능저하증",
+      "lenient_ok": false
+     },
+     {
+      "name": "일차성 알도스테론증",
+      "gold": "endo_metab",
+      "also": [
+       "cardio"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E24",
+      "kb_name": "쿠싱증후군",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v3_new": {
+    "n": 43,
+    "strict": 0.093,
+    "lenient": 0.186,
+    "per_label": {
+     "endo_metab": "0/20",
+     "neuro": "1/3",
+     "none": "1/1",
+     "psych": "0/17",
+     "renal_uro": "2/2"
+    },
+    "errors": [
+     {
+      "name": "고삼투성 고혈당 상태",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "갑상선 중독 위기",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "점액수종 혼수",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "부신 위기",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "저혈당증",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E16.2",
+      "kb_name": "저혈당증",
+      "lenient_ok": false
+     },
+     {
+      "name": "고칼슘혈증",
+      "gold": "endo_metab",
+      "also": [
+       "heme_onc",
+       "renal_uro"
+      ],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "고칼슘혈증",
+      "lenient_ok": false
+     },
+     {
+      "name": "저칼슘혈증",
+      "gold": "endo_metab",
+      "also": [
+       "renal_uro"
+      ],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "고칼슘혈증",
+      "lenient_ok": false
+     },
+     {
+      "name": "원발성 부갑상선 기능 항진증",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E21.0",
+      "kb_name": "원발성 부갑상선기능항진증",
+      "lenient_ok": false
+     },
+     {
+      "name": "갈색세포종",
+      "gold": "endo_metab",
+      "also": [
+       "cardio"
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "뇌하수체 졸중",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "D35.2",
+      "kb_name": "뇌하수체 샘종",
+      "lenient_ok": false
+     },
+     {
+      "name": "애디슨병",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E27.1",
+      "kb_name": "원발성 부신피질부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "중추성 요붕증",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E23.2",
+      "kb_name": "요붕증",
+      "lenient_ok": false
+     },
+     {
+      "name": "항이뇨호르몬 분비 이상 증후군",
+      "gold": "endo_metab",
+      "also": [
+       "renal_uro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E22.2",
+      "kb_name": "부적절항이뇨호르몬분비증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "제2형 당뇨병",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E11",
+      "kb_name": "2형 당뇨병",
+      "lenient_ok": false
+     },
+     {
+      "name": "인슐린종",
+      "gold": "endo_metab",
+      "also": [
+       "gi_liver",
+       "heme_onc"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "C25.4",
+      "kb_name": "인슐린종",
+      "lenient_ok": true
+     },
+     {
+      "name": "아급성 갑상선염",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E06.1",
+      "kb_name": "아급성 갑상선염",
+      "lenient_ok": false
+     },
+     {
+      "name": "Diabetic ketoacidosis",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E10.1",
+      "kb_name": "당뇨병케톤산증",
+      "lenient_ok": false
+     },
+     {
+      "name": "Thyroid storm",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "thyroid crisis",
+      "lenient_ok": false
+     },
+     {
+      "name": "Pheochromocytoma",
+      "gold": "endo_metab",
+      "also": [
+       "cardio"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C74.1",
+      "kb_name": "크롬친화세포종",
+      "lenient_ok": false
+     },
+     {
+      "name": "뇌하수체 선종",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "D35.2",
+      "kb_name": "뇌하수체 샘종",
+      "lenient_ok": false
+     },
+     {
+      "name": "조현병",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F20",
+      "kb_name": "조현병",
+      "lenient_ok": false
+     },
+     {
+      "name": "양극성 장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F31.8",
+      "kb_name": "기타 양극성 정동장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "섬망",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F05.8",
+      "kb_name": "기타 섬망",
+      "lenient_ok": false
+     },
+     {
+      "name": "알코올 금단 증후군",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "진전 섬망",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F10.4",
+      "kb_name": "진전섬망",
+      "lenient_ok": false
+     },
+     {
+      "name": "신경이완제 악성 증후군",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": "neuro",
+      "how": "kcd",
+      "code": "G21.0",
+      "kb_name": "악성 신경이완증후군",
+      "lenient_ok": true
+     },
+     {
+      "name": "세로토닌 증후군",
+      "gold": "psych",
+      "also": [
+       "neuro",
+       null
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "긴장증",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "범불안장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F41.1",
+      "kb_name": "범불안장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "외상 후 스트레스 장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F43.1",
+      "kb_name": "외상후스트레스장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "신경성 식욕부진증",
+      "gold": "psych",
+      "also": [
+       "endo_metab"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F50.0",
+      "kb_name": "신경성 식욕부진",
+      "lenient_ok": false
+     },
+     {
+      "name": "단기 정신병적 장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "정신병적 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "전환 장애",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F44",
+      "kb_name": "전환 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "Delirium",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F05",
+      "kb_name": "섬망",
+      "lenient_ok": false
+     },
+     {
+      "name": "Neuroleptic malignant syndrome",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": "neuro",
+      "how": "kcd",
+      "code": "G21.0",
+      "kb_name": "악성 신경이완증후군",
+      "lenient_ok": true
+     },
+     {
+      "name": "Schizophrenia",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F20",
+      "kb_name": "조현병",
+      "lenient_ok": false
+     },
+     {
+      "name": "주의력결핍 과잉행동장애",
+      "gold": "psych",
+      "also": [
+       "peds_obgyn"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F90.0",
+      "kb_name": "주의력결핍 과다행동장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "베르니케 뇌병증",
+      "gold": "neuro",
+      "also": [
+       "endo_metab",
+       "psych"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E51.2",
+      "kb_name": "베르니케뇌병증",
+      "lenient_ok": false
+     },
+     {
+      "name": "혈관성 치매",
+      "gold": "neuro",
+      "also": [
+       "psych"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F01",
+      "kb_name": "혈관성 치매",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "all": {
+    "n": 207,
+    "strict": 0.754,
+    "lenient": 0.792,
+    "per_label": {
+     "cardio": "13/13",
+     "endo_metab": "0/27",
+     "gi_liver": "18/19",
+     "heme_onc": "24/24",
+     "neuro": "16/18",
+     "none": "7/7",
+     "peds_obgyn": "11/12",
+     "psych": "0/19",
+     "renal_uro": "27/27",
+     "resp_id": "22/22",
+     "rheum_immune": "18/19"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "당뇨병성 케톤산증",
+      "gold": "endo_metab",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E10.1",
+      "kb_name": "당뇨병케톤산증",
+      "lenient_ok": false
+     },
+     {
+      "name": "그레이브스병",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E05.0",
+      "kb_name": "미만성 고이터를 동반한 갑상선독증",
+      "lenient_ok": false
+     },
+     {
+      "name": "부신 기능 부전",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E27.1",
+      "kb_name": "부신기능부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "쿠싱 증후군",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E24",
+      "kb_name": "쿠싱증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "주요 우울장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F32",
+      "kb_name": "주요 우울 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "Panic disorder",
+      "gold": "psych",
+      "also": [
+       "cardio"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F41",
+      "kb_name": "공황장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "갑상선 유두암",
+      "gold": "endo_metab",
+      "also": [
+       "heme_onc"
+      ],
+      "pred": "heme_onc",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "갑상선 기능 저하증",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E03",
+      "kb_name": "기타 갑상선기능저하증",
+      "lenient_ok": false
+     },
+     {
+      "name": "일차성 알도스테론증",
+      "gold": "endo_metab",
+      "also": [
+       "cardio"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E24",
+      "kb_name": "쿠싱증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "고삼투성 고혈당 상태",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "갑상선 중독 위기",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "점액수종 혼수",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "부신 위기",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "저혈당증",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E16.2",
+      "kb_name": "저혈당증",
+      "lenient_ok": false
+     },
+     {
+      "name": "고칼슘혈증",
+      "gold": "endo_metab",
+      "also": [
+       "heme_onc",
+       "renal_uro"
+      ],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "고칼슘혈증",
+      "lenient_ok": false
+     },
+     {
+      "name": "저칼슘혈증",
+      "gold": "endo_metab",
+      "also": [
+       "renal_uro"
+      ],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "고칼슘혈증",
+      "lenient_ok": false
+     },
+     {
+      "name": "원발성 부갑상선 기능 항진증",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E21.0",
+      "kb_name": "원발성 부갑상선기능항진증",
+      "lenient_ok": false
+     },
+     {
+      "name": "갈색세포종",
+      "gold": "endo_metab",
+      "also": [
+       "cardio"
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "뇌하수체 졸중",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "D35.2",
+      "kb_name": "뇌하수체 샘종",
+      "lenient_ok": false
+     },
+     {
+      "name": "애디슨병",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E27.1",
+      "kb_name": "원발성 부신피질부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "중추성 요붕증",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E23.2",
+      "kb_name": "요붕증",
+      "lenient_ok": false
+     },
+     {
+      "name": "항이뇨호르몬 분비 이상 증후군",
+      "gold": "endo_metab",
+      "also": [
+       "renal_uro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E22.2",
+      "kb_name": "부적절항이뇨호르몬분비증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "제2형 당뇨병",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E11",
+      "kb_name": "2형 당뇨병",
+      "lenient_ok": false
+     },
+     {
+      "name": "인슐린종",
+      "gold": "endo_metab",
+      "also": [
+       "gi_liver",
+       "heme_onc"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "C25.4",
+      "kb_name": "인슐린종",
+      "lenient_ok": true
+     },
+     {
+      "name": "아급성 갑상선염",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E06.1",
+      "kb_name": "아급성 갑상선염",
+      "lenient_ok": false
+     },
+     {
+      "name": "Diabetic ketoacidosis",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "E10.1",
+      "kb_name": "당뇨병케톤산증",
+      "lenient_ok": false
+     },
+     {
+      "name": "Thyroid storm",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "thyroid crisis",
+      "lenient_ok": false
+     },
+     {
+      "name": "Pheochromocytoma",
+      "gold": "endo_metab",
+      "also": [
+       "cardio"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C74.1",
+      "kb_name": "크롬친화세포종",
+      "lenient_ok": false
+     },
+     {
+      "name": "뇌하수체 선종",
+      "gold": "endo_metab",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "D35.2",
+      "kb_name": "뇌하수체 샘종",
+      "lenient_ok": false
+     },
+     {
+      "name": "조현병",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F20",
+      "kb_name": "조현병",
+      "lenient_ok": false
+     },
+     {
+      "name": "양극성 장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F31.8",
+      "kb_name": "기타 양극성 정동장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "섬망",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F05.8",
+      "kb_name": "기타 섬망",
+      "lenient_ok": false
+     },
+     {
+      "name": "알코올 금단 증후군",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "진전 섬망",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F10.4",
+      "kb_name": "진전섬망",
+      "lenient_ok": false
+     },
+     {
+      "name": "신경이완제 악성 증후군",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": "neuro",
+      "how": "kcd",
+      "code": "G21.0",
+      "kb_name": "악성 신경이완증후군",
+      "lenient_ok": true
+     },
+     {
+      "name": "세로토닌 증후군",
+      "gold": "psych",
+      "also": [
+       "neuro",
+       null
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "긴장증",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "범불안장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F41.1",
+      "kb_name": "범불안장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "외상 후 스트레스 장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F43.1",
+      "kb_name": "외상후스트레스장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "신경성 식욕부진증",
+      "gold": "psych",
+      "also": [
+       "endo_metab"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F50.0",
+      "kb_name": "신경성 식욕부진",
+      "lenient_ok": false
+     },
+     {
+      "name": "단기 정신병적 장애",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "do",
+      "code": "",
+      "kb_name": "정신병적 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "전환 장애",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F44",
+      "kb_name": "전환 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "Delirium",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F05",
+      "kb_name": "섬망",
+      "lenient_ok": false
+     },
+     {
+      "name": "Neuroleptic malignant syndrome",
+      "gold": "psych",
+      "also": [
+       "neuro"
+      ],
+      "pred": "neuro",
+      "how": "kcd",
+      "code": "G21.0",
+      "kb_name": "악성 신경이완증후군",
+      "lenient_ok": true
+     },
+     {
+      "name": "Schizophrenia",
+      "gold": "psych",
+      "also": [],
+      "pred": null,
+      "how": "kcd",
+      "code": "F20",
+      "kb_name": "조현병",
+      "lenient_ok": false
+     },
+     {
+      "name": "주의력결핍 과잉행동장애",
+      "gold": "psych",
+      "also": [
+       "peds_obgyn"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F90.0",
+      "kb_name": "주의력결핍 과다행동장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "베르니케 뇌병증",
+      "gold": "neuro",
+      "also": [
+       "endo_metab",
+       "psych"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "E51.2",
+      "kb_name": "베르니케뇌병증",
+      "lenient_ok": false
+     },
+     {
+      "name": "혈관성 치매",
+      "gold": "neuro",
+      "also": [
+       "psych"
+      ],
+      "pred": null,
+      "how": "kcd",
+      "code": "F01",
+      "kb_name": "혈관성 치매",
+      "lenient_ok": false
+     }
+    ]
+   }
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 16,
+     "gi_liver": 14,
+     "none": 29,
+     "renal_uro": 5,
+     "rheum_immune": 4,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "heme_onc": 12,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "heme_onc": 8,
+     "renal_uro": 8,
+     "rheum_immune": 14,
+     "none": 16,
+     "neuro": 10
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 13,
+     "neuro": 7,
+     "heme_onc": 4,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "renal_uro": 1,
+     "peds_obgyn": 1,
+     "none": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "none": 59,
+    "renal_uro": 14,
+    "rheum_immune": 19,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "heme_onc": 24,
+    "cardio": 26
+   },
+   "outside_share": 0.221,
+   "outside_by_group": {
+    "derm": 12,
+    "other": 12,
+    "psych": 11,
+    "endo_metab": 10,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 179,
+    "keyword": 39,
+    "override": 27,
+    "none": 12,
+    "do": 10
+   }
+  },
+  "routing": {
+   "trajectories": 224,
+   "fired": 180,
+   "fired_share": 0.804,
+   "fired_correct": 160,
+   "fired_precision": 0.889,
+   "gold_in_six": 193,
+   "fired_gold_in_six": 173,
+   "fired_precision_gold_in_six": 0.925,
+   "final_snapshot_agreement": 0.879,
+   "fired_by_specialty": {
+    "gi_liver": 46,
+    "cardio": 30,
+    "resp_id": 20,
+    "neuro": 32,
+    "renal_uro": 14,
+    "peds_obgyn": 4,
+    "rheum_immune": 20,
+    "heme_onc": 14
+   },
+   "fire_turn_mean": 3.09,
+   "fired_on_wrong_final": 18,
+   "fired_on_wrong_final_correct_specialty": 15,
+   "route_time": {
+    "n": 1438,
+    "mean_ms": 0.21,
+    "p95_ms": 0.44,
+    "max_ms": 7.79
+   },
+   "resources_time": {
+    "n": 180,
+    "mean_ms": 2.92,
+    "p95_ms": 5.82,
+    "max_ms": 31.51
+   },
+   "examples_wrong": [
+    {
+     "run": "run_20260925_010657.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.778,
+     "why": [
+      "상위 감별 3개 중 소화기·간담췌(gi_liver) 비중 78%: 급성 위장관염/장염 44%, 장폐색 (Mechanical/Paralytic ileus) 33%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 70%: 대동맥 박리 40%, 대동맥 축착 20%, 본태성 고혈압 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "neuro",
+     "share": 0.7,
+     "why": [
+      "상위 감별 5개 중 신경(neuro) 비중 70%: 루이소체 치매 30%, 알츠하이머병 20%, 크로이츠펠트-야콥병 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_052026.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 80%: 대동맥 박리 40%, 고혈압성 뇌증 20%, 대동맥 축착 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 이차성 고혈압 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": null,
+     "turn": 3,
+     "routed": "neuro",
+     "share": 1.0,
+     "why": [
+      "상위 감별 4개 중 신경(neuro) 비중 100%: 비타민 B12 결핍에 의한 인지 및 신경계 장애 50%, 알츠하이머병 30%, 정상압 수두증 10%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_940",
+     "gold": "만성 골수성 백혈병",
+     "gold_spec": "heme_onc",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 80%: 간경화 50%, 만성 간염 15%, 간세포암 15%"
+     ]
+    },
+    {
+     "run": "run_20260926_202610.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 본태성 고혈압 20%"
+     ]
+    }
+   ]
+  }
+ },
+ "routing_before_vs_ten_gold": {
+  "trajectories": 224,
+  "fired": 180,
+  "fired_share": 0.804,
+  "fired_correct": 158,
+  "fired_precision": 0.878,
+  "gold_in_six": 220,
+  "fired_gold_in_six": 180,
+  "fired_precision_gold_in_six": 0.878,
+  "final_snapshot_agreement": 0.879,
+  "fired_by_specialty": {
+   "gi_liver": 46,
+   "cardio": 30,
+   "resp_id": 20,
+   "neuro": 32,
+   "renal_uro": 14,
+   "peds_obgyn": 4,
+   "rheum_immune": 20,
+   "heme_onc": 14
+  },
+  "fire_turn_mean": 3.09,
+  "fired_on_wrong_final": 18,
+  "fired_on_wrong_final_correct_specialty": 15,
+  "route_time": {
+   "n": 1438,
+   "mean_ms": 0.33,
+   "p95_ms": 0.71,
+   "max_ms": 35.36
+  },
+  "resources_time": {
+   "n": 180,
+   "mean_ms": 3.9,
+   "p95_ms": 7.49,
+   "max_ms": 50.61
+  }
+ },
+ "first_pass": {
+  "gold": {
+   "v1": {
+    "n": 116,
+    "strict": 0.836,
+    "lenient": 0.862,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "neuro": "15/15",
+     "none": "6/22",
+     "peds_obgyn": "10/11",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "당뇨병성 케톤산증",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E10.1",
+      "kb_name": "당뇨병케톤산증",
+      "lenient_ok": false
+     },
+     {
+      "name": "그레이브스병",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E05.0",
+      "kb_name": "미만성 고이터를 동반한 갑상선독증",
+      "lenient_ok": false
+     },
+     {
+      "name": "부신 기능 부전",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E27.1",
+      "kb_name": "부신기능부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "쿠싱 증후군",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E24",
+      "kb_name": "쿠싱증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신손상",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N17",
+      "kb_name": "급성 신부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신우신염",
+      "gold": null,
+      "also": [
+       "resp_id"
+      ],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N10",
+      "kb_name": "급성 세뇨관-간질신장염",
+      "lenient_ok": false
+     },
+     {
+      "name": "요로결석",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N21.8",
+      "kb_name": "기타 하부요로결석",
+      "lenient_ok": false
+     },
+     {
+      "name": "IgA 신병증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N02",
+      "kb_name": "재발성 및 지속성 혈뇨",
+      "lenient_ok": false
+     },
+     {
+      "name": "철결핍성 빈혈",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D50",
+      "kb_name": "철결핍빈혈",
+      "lenient_ok": false
+     },
+     {
+      "name": "Acute myeloid leukemia",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C92.0",
+      "kb_name": "급성 골수성 백혈병",
+      "lenient_ok": false
+     },
+     {
+      "name": "호지킨 림프종",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C81",
+      "kb_name": "호지킨림프종",
+      "lenient_ok": false
+     },
+     {
+      "name": "면역성 혈소판 감소증",
+      "gold": null,
+      "also": [
+       "rheum_immune"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.6",
+      "kb_name": "상세불명의 혈소판감소증",
+      "lenient_ok": false
+     },
+     {
+      "name": "주요 우울장애",
+      "gold": null,
+      "also": [],
+      "pred": "psych",
+      "how": "kcd",
+      "code": "F32",
+      "kb_name": "주요 우울 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "Panic disorder",
+      "gold": null,
+      "also": [],
+      "pred": "psych",
+      "how": "kcd",
+      "code": "F41",
+      "kb_name": "공황장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "저나트륨혈증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "횡문근융해증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "override",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v1_corrected": {
+    "n": 116,
+    "strict": 0.974,
+    "lenient": 1.0,
+    "per_label": {
+     "cardio": "13/13",
+     "endo_metab": "4/4",
+     "gi_liver": "17/18",
+     "heme_onc": "4/4",
+     "neuro": "15/15",
+     "none": "6/6",
+     "peds_obgyn": "10/11",
+     "psych": "2/2",
+     "renal_uro": "6/6",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     }
+    ]
+   },
+   "v2_new": {
+    "n": 48,
+    "strict": 1.0,
+    "lenient": 1.0,
+    "per_label": {
+     "endo_metab": "3/3",
+     "gi_liver": "1/1",
+     "heme_onc": "20/20",
+     "peds_obgyn": "1/1",
+     "renal_uro": "19/19",
+     "resp_id": "2/2",
+     "rheum_immune": "2/2"
+    },
+    "errors": []
+   },
+   "v3_new": {
+    "n": 43,
+    "strict": 0.977,
+    "lenient": 0.977,
+    "per_label": {
+     "endo_metab": "19/20",
+     "neuro": "3/3",
+     "none": "1/1",
+     "psych": "17/17",
+     "renal_uro": "2/2"
+    },
+    "errors": [
+     {
+      "name": "점액수종 혼수",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "all": {
+    "n": 207,
+    "strict": 0.981,
+    "lenient": 0.995,
+    "per_label": {
+     "cardio": "13/13",
+     "endo_metab": "26/27",
+     "gi_liver": "18/19",
+     "heme_onc": "24/24",
+     "neuro": "18/18",
+     "none": "7/7",
+     "peds_obgyn": "11/12",
+     "psych": "19/19",
+     "renal_uro": "27/27",
+     "resp_id": "22/22",
+     "rheum_immune": "18/19"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "점액수종 혼수",
+      "gold": "endo_metab",
+      "also": [],
+      "pred": null,
+      "how": "none",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   }
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 15,
+     "gi_liver": 14,
+     "psych": 7,
+     "renal_uro": 5,
+     "rheum_immune": 4,
+     "none": 23,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "heme_onc": 12,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "heme_onc": 8,
+     "renal_uro": 8,
+     "rheum_immune": 14,
+     "none": 6,
+     "psych": 3,
+     "endo_metab": 6,
+     "neuro": 11
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 8,
+     "endo_metab": 2,
+     "neuro": 7,
+     "heme_onc": 6,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4,
+     "psych": 1
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "renal_uro": 1,
+     "peds_obgyn": 1,
+     "endo_metab": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "psych": 11,
+    "renal_uro": 14,
+    "rheum_immune": 19,
+    "none": 37,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "heme_onc": 26,
+    "cardio": 26,
+    "endo_metab": 9
+   },
+   "outside_share": 0.139,
+   "outside_by_group": {
+    "derm": 12,
+    "other": 11,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 175,
+    "keyword": 42,
+    "override": 29,
+    "none": 11,
+    "do": 10
+   }
+  },
+  "routing": {
+   "trajectories": 224,
+   "fired": 198,
+   "fired_share": 0.884,
+   "fired_correct": 177,
+   "fired_precision": 0.894,
+   "gold_in_six": 220,
+   "fired_gold_in_six": 198,
+   "fired_precision_gold_in_six": 0.894,
+   "final_snapshot_agreement": 0.941,
+   "fired_by_specialty": {
+    "gi_liver": 46,
+    "cardio": 30,
+    "resp_id": 20,
+    "neuro": 34,
+    "renal_uro": 14,
+    "peds_obgyn": 4,
+    "rheum_immune": 20,
+    "psych": 6,
+    "endo_metab": 10,
+    "heme_onc": 14
+   },
+   "fire_turn_mean": 3.09,
+   "fired_on_wrong_final": 23,
+   "fired_on_wrong_final_correct_specialty": 19,
+   "route_time": {
+    "n": 1438,
+    "mean_ms": 0.23,
+    "p95_ms": 0.5,
+    "max_ms": 8.5
+   },
+   "resources_time": {
+    "n": 198,
+    "mean_ms": 3.11,
+    "p95_ms": 6.85,
+    "max_ms": 35.84
+   },
+   "examples_wrong": [
+    {
+     "run": "run_20260925_010657.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.778,
+     "why": [
+      "상위 감별 3개 중 소화기·간담췌(gi_liver) 비중 78%: 급성 위장관염/장염 44%, 장폐색 (Mechanical/Paralytic ileus) 33%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 70%: 대동맥 박리 40%, 대동맥 축착 20%, 본태성 고혈압 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "neuro",
+     "share": 0.8,
+     "why": [
+      "상위 감별 5개 중 신경(neuro) 비중 80%: 루이소체 치매 30%, 알츠하이머병 20%, 크로이츠펠트-야콥병 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_052026.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 80%: 대동맥 박리 40%, 고혈압성 뇌증 20%, 대동맥 축착 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 이차성 고혈압 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "neuro",
+     "share": 1.0,
+     "why": [
+      "상위 감별 4개 중 신경(neuro) 비중 100%: 비타민 B12 결핍에 의한 인지 및 신경계 장애 50%, 알츠하이머병 30%, 정상압 수두증 10%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_940",
+     "gold": "만성 골수성 백혈병",
+     "gold_spec": "heme_onc",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 80%: 간경화 50%, 만성 간염 15%, 간세포암 15%"
+     ]
+    },
+    {
+     "run": "run_20260926_202610.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 본태성 고혈압 20%"
+     ]
+    }
+   ]
+  }
+ },
+ "final": {
+  "gold": {
+   "v1": {
+    "n": 116,
+    "strict": 0.836,
+    "lenient": 0.862,
+    "per_label": {
+     "cardio": "13/13",
+     "gi_liver": "17/18",
+     "neuro": "15/15",
+     "none": "6/22",
+     "peds_obgyn": "10/11",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     },
+     {
+      "name": "당뇨병성 케톤산증",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E10.1",
+      "kb_name": "당뇨병케톤산증",
+      "lenient_ok": false
+     },
+     {
+      "name": "그레이브스병",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E05.0",
+      "kb_name": "미만성 고이터를 동반한 갑상선독증",
+      "lenient_ok": false
+     },
+     {
+      "name": "부신 기능 부전",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E27.1",
+      "kb_name": "부신기능부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "쿠싱 증후군",
+      "gold": null,
+      "also": [],
+      "pred": "endo_metab",
+      "how": "kcd",
+      "code": "E24",
+      "kb_name": "쿠싱증후군",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신손상",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N17",
+      "kb_name": "급성 신부전",
+      "lenient_ok": false
+     },
+     {
+      "name": "급성 신우신염",
+      "gold": null,
+      "also": [
+       "resp_id"
+      ],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N10",
+      "kb_name": "급성 세뇨관-간질신장염",
+      "lenient_ok": false
+     },
+     {
+      "name": "요로결석",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N21.8",
+      "kb_name": "기타 하부요로결석",
+      "lenient_ok": false
+     },
+     {
+      "name": "IgA 신병증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "kcd",
+      "code": "N02",
+      "kb_name": "재발성 및 지속성 혈뇨",
+      "lenient_ok": false
+     },
+     {
+      "name": "철결핍성 빈혈",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D50",
+      "kb_name": "철결핍빈혈",
+      "lenient_ok": false
+     },
+     {
+      "name": "Acute myeloid leukemia",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C92.0",
+      "kb_name": "급성 골수성 백혈병",
+      "lenient_ok": false
+     },
+     {
+      "name": "호지킨 림프종",
+      "gold": null,
+      "also": [],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "C81",
+      "kb_name": "호지킨림프종",
+      "lenient_ok": false
+     },
+     {
+      "name": "면역성 혈소판 감소증",
+      "gold": null,
+      "also": [
+       "rheum_immune"
+      ],
+      "pred": "heme_onc",
+      "how": "kcd",
+      "code": "D69.6",
+      "kb_name": "상세불명의 혈소판감소증",
+      "lenient_ok": false
+     },
+     {
+      "name": "주요 우울장애",
+      "gold": null,
+      "also": [],
+      "pred": "psych",
+      "how": "kcd",
+      "code": "F32",
+      "kb_name": "주요 우울 장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "Panic disorder",
+      "gold": null,
+      "also": [],
+      "pred": "psych",
+      "how": "kcd",
+      "code": "F41",
+      "kb_name": "공황장애",
+      "lenient_ok": false
+     },
+     {
+      "name": "저나트륨혈증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     },
+     {
+      "name": "횡문근융해증",
+      "gold": null,
+      "also": [],
+      "pred": "renal_uro",
+      "how": "override",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": false
+     }
+    ]
+   },
+   "v1_corrected": {
+    "n": 116,
+    "strict": 0.974,
+    "lenient": 1.0,
+    "per_label": {
+     "cardio": "13/13",
+     "endo_metab": "4/4",
+     "gi_liver": "17/18",
+     "heme_onc": "4/4",
+     "neuro": "15/15",
+     "none": "6/6",
+     "peds_obgyn": "10/11",
+     "psych": "2/2",
+     "renal_uro": "6/6",
+     "resp_id": "20/20",
+     "rheum_immune": "16/17"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     }
+    ]
+   },
+   "v2_new": {
+    "n": 48,
+    "strict": 1.0,
+    "lenient": 1.0,
+    "per_label": {
+     "endo_metab": "3/3",
+     "gi_liver": "1/1",
+     "heme_onc": "20/20",
+     "peds_obgyn": "1/1",
+     "renal_uro": "19/19",
+     "resp_id": "2/2",
+     "rheum_immune": "2/2"
+    },
+    "errors": []
+   },
+   "v3_new": {
+    "n": 43,
+    "strict": 1.0,
+    "lenient": 1.0,
+    "per_label": {
+     "endo_metab": "20/20",
+     "neuro": "3/3",
+     "none": "1/1",
+     "psych": "17/17",
+     "renal_uro": "2/2"
+    },
+    "errors": []
+   },
+   "all": {
+    "n": 207,
+    "strict": 0.986,
+    "lenient": 1.0,
+    "per_label": {
+     "cardio": "13/13",
+     "endo_metab": "27/27",
+     "gi_liver": "18/19",
+     "heme_onc": "24/24",
+     "neuro": "18/18",
+     "none": "7/7",
+     "peds_obgyn": "11/12",
+     "psych": "19/19",
+     "renal_uro": "27/27",
+     "resp_id": "22/22",
+     "rheum_immune": "18/19"
+    },
+    "errors": [
+     {
+      "name": "급성 류마티스열",
+      "gold": "rheum_immune",
+      "also": [
+       "cardio"
+      ],
+      "pred": "cardio",
+      "how": "kcd",
+      "code": "I00",
+      "kb_name": "류마티스열",
+      "lenient_ok": true
+     },
+     {
+      "name": "Clostridioides difficile infection",
+      "gold": "gi_liver",
+      "also": [
+       "resp_id"
+      ],
+      "pred": "resp_id",
+      "how": "keyword",
+      "code": "",
+      "kb_name": "",
+      "lenient_ok": true
+     },
+     {
+      "name": "영아 비후성 유문 협착증",
+      "gold": "peds_obgyn",
+      "also": [
+       "gi_liver"
+      ],
+      "pred": "gi_liver",
+      "how": "kcd",
+      "code": "K31.1",
+      "kb_name": "성인 비대성 유문협착",
+      "lenient_ok": true
+     }
+    ]
+   }
+  },
+  "distribution": {
+   "n": 267,
+   "per_source": {
+    "agentclinic": {
+     "neuro": 15,
+     "gi_liver": 14,
+     "psych": 7,
+     "renal_uro": 5,
+     "rheum_immune": 4,
+     "none": 23,
+     "resp_id": 12,
+     "peds_obgyn": 11,
+     "heme_onc": 12,
+     "cardio": 4
+    },
+    "clinicalqa": {
+     "gi_liver": 15,
+     "resp_id": 12,
+     "cardio": 8,
+     "peds_obgyn": 4,
+     "heme_onc": 8,
+     "renal_uro": 8,
+     "rheum_immune": 14,
+     "none": 7,
+     "psych": 3,
+     "endo_metab": 5,
+     "neuro": 11
+    },
+    "diagnosisarena": {
+     "cardio": 11,
+     "none": 8,
+     "endo_metab": 2,
+     "neuro": 7,
+     "heme_onc": 6,
+     "resp_id": 7,
+     "rheum_immune": 1,
+     "gi_liver": 2,
+     "peds_obgyn": 4,
+     "psych": 1
+    },
+    "sample": {
+     "gi_liver": 5,
+     "cardio": 3,
+     "resp_id": 1,
+     "neuro": 4,
+     "renal_uro": 1,
+     "peds_obgyn": 1,
+     "endo_metab": 1
+    }
+   },
+   "all": {
+    "neuro": 37,
+    "gi_liver": 36,
+    "psych": 11,
+    "renal_uro": 14,
+    "rheum_immune": 19,
+    "none": 38,
+    "resp_id": 32,
+    "peds_obgyn": 20,
+    "heme_onc": 26,
+    "cardio": 26,
+    "endo_metab": 8
+   },
+   "outside_share": 0.142,
+   "outside_by_group": {
+    "derm": 12,
+    "other": 12,
+    "msk_ortho": 9,
+    "ent_eye": 5
+   },
+   "how": {
+    "kcd": 175,
+    "keyword": 41,
+    "override": 29,
+    "none": 12,
+    "do": 10
+   }
+  },
+  "routing": {
+   "trajectories": 224,
+   "fired": 198,
+   "fired_share": 0.884,
+   "fired_correct": 177,
+   "fired_precision": 0.894,
+   "gold_in_six": 220,
+   "fired_gold_in_six": 198,
+   "fired_precision_gold_in_six": 0.894,
+   "final_snapshot_agreement": 0.941,
+   "fired_by_specialty": {
+    "gi_liver": 46,
+    "cardio": 30,
+    "resp_id": 20,
+    "neuro": 34,
+    "renal_uro": 14,
+    "peds_obgyn": 4,
+    "rheum_immune": 20,
+    "psych": 6,
+    "endo_metab": 10,
+    "heme_onc": 14
+   },
+   "fire_turn_mean": 3.09,
+   "fired_on_wrong_final": 23,
+   "fired_on_wrong_final_correct_specialty": 19,
+   "route_time": {
+    "n": 1438,
+    "mean_ms": 0.22,
+    "p95_ms": 0.45,
+    "max_ms": 8.61
+   },
+   "resources_time": {
+    "n": 198,
+    "mean_ms": 3.07,
+    "p95_ms": 6.72,
+    "max_ms": 33.65
+   },
+   "examples_wrong": [
+    {
+     "run": "run_20260925_010657.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.778,
+     "why": [
+      "상위 감별 3개 중 소화기·간담췌(gi_liver) 비중 78%: 급성 위장관염/장염 44%, 장폐색 (Mechanical/Paralytic ileus) 33%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_024617.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_006",
+     "gold": "위식도 역류질환",
+     "gold_spec": "gi_liver",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.6,
+     "why": [
+      "상위 감별 5개 중 심장·혈관(cardio) 비중 60%: 안정형 협심증 40%, 대동맥 박리 10%, 폐색전증 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_031315.json",
+     "case": "synthetic_015",
+     "gold": "당뇨병성 케톤산증",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 70%: 급성 충수염 40%, 급성 위장염 30%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.7,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 70%: 대동맥 박리 40%, 대동맥 축착 20%, 본태성 고혈압 10%"
+     ]
+    },
+    {
+     "run": "run_20260925_135709.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "neuro",
+     "share": 0.8,
+     "why": [
+      "상위 감별 5개 중 신경(neuro) 비중 80%: 루이소체 치매 30%, 알츠하이머병 20%, 크로이츠펠트-야콥병 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_052026.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 심장·혈관(cardio) 비중 80%: 대동맥 박리 40%, 고혈압성 뇌증 20%, 대동맥 축착 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 이차성 고혈압 20%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_343",
+     "gold": "비타민 B12 결핍",
+     "gold_spec": "endo_metab",
+     "turn": 3,
+     "routed": "neuro",
+     "share": 1.0,
+     "why": [
+      "상위 감별 4개 중 신경(neuro) 비중 100%: 비타민 B12 결핍에 의한 인지 및 신경계 장애 50%, 알츠하이머병 30%, 정상압 수두증 10%"
+     ]
+    },
+    {
+     "run": "run_20260926_202333.json",
+     "case": "cqa_940",
+     "gold": "만성 골수성 백혈병",
+     "gold_spec": "heme_onc",
+     "turn": 3,
+     "routed": "gi_liver",
+     "share": 0.8,
+     "why": [
+      "상위 감별 4개 중 소화기·간담췌(gi_liver) 비중 80%: 간경화 50%, 만성 간염 15%, 간세포암 15%"
+     ]
+    },
+    {
+     "run": "run_20260926_202610.json",
+     "case": "cqa_181",
+     "gold": "타카야수 동맥염",
+     "gold_spec": "rheum_immune",
+     "turn": 3,
+     "routed": "cardio",
+     "share": 1.0,
+     "why": [
+      "상위 감별 3개 중 심장·혈관(cardio) 비중 100%: 대동맥 축착 50%, 신혈관성 고혈압 30%, 본태성 고혈압 20%"
+     ]
+    }
+   ]
+  }
+ }
+}

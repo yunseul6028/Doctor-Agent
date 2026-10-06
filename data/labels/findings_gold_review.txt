@@ -1,0 +1,141 @@
+# Hand review of data/labels/findings_gold_draft.jsonl (knowledge-rag agent, claude-opus-5-5, 2026-09-27; no LLM call).
+# One line per reviewed item: <id> <TAB> ok | gold findings separated by " ; " (empty = no finding)
+# A gold finding is concept/POL[/subject][/temporality]; POL P=present A=absent U=uncertain; defaults patient/current.
+# Converted to data/labels/findings_gold_corrections.json by scripts/label_findings.py freeze.
+# Filtered for the public repository: entries for the AgentClinic-MedQA- and DiagnosisArena-derived cases (private evaluation sets, not redistributable) were removed; aggregates computed on the full private set are marked as such.
+# --- batch 1
+clinicalqa/cqa_42:e10.2	ok
+clinicalqa/cqa_211:t7.0	ok
+clinicalqa/cqa_630:e9.0	ok
+sample/synthetic_006:e5.1	SIGN:dehydration/A ; SIGN:tonsillar_exudate/A ; SIGN:pharyngeal_erythema/A
+sample/synthetic_006:t0.0	ECG:ecg_st_depression/A ; SIGN:tachycardia/A ; SIGN:bradycardia/A
+clinicalqa/cqa_417:e4.2	ok
+clinicalqa/cqa_513:t7.0	SIGN:tachycardia/A ; SIGN:bradycardia/A ; ECG:ecg_st_depression/A
+sample/synthetic_003:e8.2	ok
+clinicalqa/cqa_61:t6.1	ok
+clinicalqa/cqa_510:t7.0	ok
+clinicalqa/cqa_940:e3.0	ok
+clinicalqa/cqa_69:e11.0	ok
+clinicalqa/cqa_928:e8.0	ok
+clinicalqa/cqa_42:e4.1	SIGN:lymphadenopathy/A ; SIGN:goiter/A
+clinicalqa/cqa_238:e8.1	ok
+clinicalqa/cqa_417:h1.0	ok
+clinicalqa/cqa_234:e3.0	ok
+sample/synthetic_009:e3.0	SIGN:neck_stiffness/A
+clinicalqa/cqa_1029:t11.0	SIGN:lymphadenopathy/A ; IMG:cbd_dilation/A ; SIGN:ascites/A
+clinicalqa/cqa_442:t9.0	ok
+clinicalqa/cqa_533:e4.0	ok
+# --- batch 2
+clinicalqa/cqa_516:e3.1	ok
+clinicalqa/cqa_726:e11.0	ok
+clinicalqa/cqa_6:h1.0	ok
+clinicalqa/cqa_232:t6.0	ok
+clinicalqa/cqa_742:e6.0	ok
+clinicalqa/cqa_742:t7.1	ok
+clinicalqa/cqa_1:t4.0	LAB:proteinuria/A ; LAB:glycosuria/A ; LAB:urine_blood/A ; SYM:dark_urine/P
+clinicalqa/cqa_371:e5.0	SIGN:lymphadenopathy/A ; SIGN:goiter/A
+clinicalqa/cqa_744:t14.0	ok
+clinicalqa/cqa_466:t9.0	ok
+clinicalqa/cqa_734:e5.0	SIGN:lymphadenopathy/A ; SIGN:jvd/A
+clinicalqa/cqa_513:t9.0	
+clinicalqa/cqa_726:h0.3	ok
+sample/synthetic_015:h0.0	SYM:abdominal_pain/P ; QUAL:squeezing/P
+sample/synthetic_002:h1.0	SYM:chest_pain/P ; QUAL:squeezing/P
+sample/synthetic_004:h4.0	SIGN:unilateral_leg_swelling/P ; SYM:calf_pain/P
+clinicalqa/cqa_236:e12.0	QUAL:radiation/A ; SYM:paresthesia/A
+sample/synthetic_015:t5.0	
+# --- batch 3
+sample/synthetic_016:h6.0	SYM:chills/P ; SYM:high_fever/A
+clinicalqa/cqa_848:t12.0	ok
+clinicalqa/cqa_578:e1.0	ok
+clinicalqa/cqa_636:h3.0	ok
+clinicalqa/cqa_771:h5.0	ok
+clinicalqa/cqa_417:h5.0	SYM:hearing_loss/A/family
+sample/synthetic_006:h9.0	HX:cardiovascular_disease/A/family
+clinicalqa/cqa_966:h3.0	ok
+clinicalqa/cqa_550:h5.0	ok
+clinicalqa/cqa_446:h2.0	ok
+clinicalqa/cqa_466:h2.0	QUAL:sudden_onset/P/family ; SYM:syncope/P/family ; HX:sudden_death/P/family
+sample/synthetic_015:h9.1	ok
+# --- batch 4
+clinicalqa/cqa_211:t0.0	ok
+clinicalqa/cqa_227:h0.0	SYM:diarrhea/P/patient/past ; SYM:abdominal_pain/P/patient/past
+clinicalqa/cqa_595:h2.0	HX:hypertension/P/patient/chronic ; HX:medication/P/patient/chronic
+clinicalqa/cqa_510:h0.1	QUAL:positional/P
+sample/synthetic_014:h8.1	ok
+clinicalqa/cqa_47:h1.0	ok
+clinicalqa/cqa_437:h1.0	HX:head_trauma/P/patient/past
+clinicalqa/cqa_61:h3.0	HX:pmh/A/patient/past ; GRP:weight_change/A
+clinicalqa/cqa_629:h4.1	ok
+clinicalqa/cqa_466:h1.0	SYM:palpitation/P/patient/past ; SYM:syncope/P/patient/past
+clinicalqa/cqa_627:t3.0	ok
+clinicalqa/cqa_52:t1.0	ok
+clinicalqa/cqa_725:t16.0	ok
+clinicalqa/cqa_627:t2.0	ok
+clinicalqa/cqa_113:t2.0	ok
+# --- batch 5
+clinicalqa/cqa_234:e1.0	ok
+clinicalqa/cqa_113:t4.0	ok
+sample/synthetic_008:t4.0	ok
+clinicalqa/cqa_458:e0.0	SIGN:hypotension/A ; SIGN:elevated_bp/A ; SIGN:tachycardia/P ; SIGN:irregular_pulse/A ; SIGN:tachypnea/A ; SYM:fever/A
+clinicalqa/cqa_408:t9.0	ok
+clinicalqa/cqa_181:t6.0	ok
+clinicalqa/cqa_404:t3.0	ok
+clinicalqa/cqa_69:e0.0	ok
+clinicalqa/cqa_729:t11.0	ok
+clinicalqa/cqa_742:t4.0	ok
+clinicalqa/cqa_739:e2.0	ok
+clinicalqa/cqa_521:e0.0	ok
+sample/synthetic_003:h7.0	HX:hypertension/P/patient/chronic ; HX:medication/A
+clinicalqa/cqa_234:h1.0	ok
+clinicalqa/cqa_800:h0.0	SIGN:edema/P ; SIGN:facial_edema/P ; SIGN:leg_edema/P
+clinicalqa/cqa_69:h2.0	SYM:fever/P/patient/past ; SYM:myalgia/P/patient/past
+sample/synthetic_010:h2.1	ok
+sample/synthetic_011:h2.1	ok
+sample/synthetic_009:h0.1	ok
+clinicalqa/cqa_762:h2.0	SYM:weight_loss/P/patient/chronic ; SYM:anorexia/P/patient/chronic
+clinicalqa/cqa_28:h1.0	ok
+# --- batch 6
+clinicalqa/cqa_538:h0.0	ok
+clinicalqa/cqa_343:h3.0	ok
+clinicalqa/cqa_113:h2.0	ok
+clinicalqa/cqa_232:h0.0	QUAL:nocturnal/P ; SYM:arthralgia/P
+clinicalqa/cqa_388:h0.1	ok
+sample/synthetic_011:h3.1	SYM:photophobia/A
+sample/synthetic_004:h4.1	ok
+sample/synthetic_009:h0.0	ok
+sample/synthetic_015:h3.0	SYM:anorexia/A ; SYM:weight_loss/P
+clinicalqa/cqa_245:h2.0	ok
+sample/synthetic_015:h8.0	HX:raw_food/A ; HX:sick_contact/A
+clinicalqa/cqa_513:h0.0	ok
+clinicalqa/cqa_408:h1.0	ok
+sample/synthetic_016:h0.0	QUAL:colicky/P/patient/intermittent ; SYM:abdominal_pain/P/patient/intermittent
+sample/synthetic_007:h0.0	ok
+sample/synthetic_011:h0.0	SYM:headache/P ; QUAL:squeezing/P ; SYM:neck_pain/P
+sample/synthetic_010:h5.0	SYM:amenorrhea/A ; SYM:irregular_menses/A
+sample/synthetic_016:h7.0	SYM:oliguria/P ; SYM:dizziness/A
+clinicalqa/cqa_996:h0.1	ok
+sample/synthetic_013:h0.1	QUAL:squeezing/P ; SYM:pain/P
+sample/synthetic_011:h9.1	ok
+clinicalqa/cqa_355:t0.0	ok
+clinicalqa/cqa_521:e5.0	ok
+# --- batch 7
+clinicalqa/cqa_928:e9.0	ok
+clinicalqa/cqa_622:e6.0	SIGN:irregular_pulse/A ; SIGN:murmur/A ; SIGN:friction_rub/A
+clinicalqa/cqa_538:e5.0	SIGN:irregular_pulse/A ; SIGN:murmur/A ; SIGN:friction_rub/A
+clinicalqa/cqa_458:e9.0	ok
+clinicalqa/cqa_121:e8.0	ok
+clinicalqa/cqa_417:e11.0	SYM:altered_mental_status/A
+sample/synthetic_015:e9.1	ok
+clinicalqa/cqa_912:e10.0	SYM:altered_mental_status/A ; SYM:arthralgia/P ; SYM:gait_disturbance/P
+clinicalqa/cqa_328:e11.0	SYM:suicidal_ideation/A ; SYM:suicidal_ideation/P/patient/past
+clinicalqa/cqa_578:e11.0	ok
+clinicalqa/cqa_928:e12.0	ok
+clinicalqa/cqa_6:h0.1	QUAL:nocturnal/P
+clinicalqa/cqa_841:h0.1	ok
+clinicalqa/cqa_388:e9.0	ok
+sample/synthetic_012:h1.0	SYM:irregular_menses/P/patient/chronic
+clinicalqa/cqa_45:h0.0	SYM:chest_pain/P ; QUAL:positional/P
+clinicalqa/cqa_1:t10.0	ok
+clinicalqa/cqa_181:t2.0	
+sample/synthetic_011:h7.0	ok

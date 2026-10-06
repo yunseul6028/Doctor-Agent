@@ -1,0 +1,762 @@
+{
+"reviewer": "knowledge-rag agent (claude-opus-5-5), hand review, 2026-09-27, no LLM call",
+"source": "data/labels/findings_gold_review.txt",
+"items": {
+"clinicalqa/cqa_42:e10.2": "ok",
+"clinicalqa/cqa_211:t7.0": "ok",
+"clinicalqa/cqa_630:e9.0": "ok",
+"sample/synthetic_006:e5.1": [
+[
+"SIGN:dehydration",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:tonsillar_exudate",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:pharyngeal_erythema",
+"absent",
+"patient",
+"current"
+]
+],
+"sample/synthetic_006:t0.0": [
+[
+"ECG:ecg_st_depression",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:tachycardia",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:bradycardia",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_417:e4.2": "ok",
+"clinicalqa/cqa_513:t7.0": [
+[
+"SIGN:tachycardia",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:bradycardia",
+"absent",
+"patient",
+"current"
+],
+[
+"ECG:ecg_st_depression",
+"absent",
+"patient",
+"current"
+]
+],
+"sample/synthetic_003:e8.2": "ok",
+"clinicalqa/cqa_61:t6.1": "ok",
+"clinicalqa/cqa_510:t7.0": "ok",
+"clinicalqa/cqa_940:e3.0": "ok",
+"clinicalqa/cqa_69:e11.0": "ok",
+"clinicalqa/cqa_928:e8.0": "ok",
+"clinicalqa/cqa_42:e4.1": [
+[
+"SIGN:lymphadenopathy",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:goiter",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_238:e8.1": "ok",
+"clinicalqa/cqa_417:h1.0": "ok",
+"clinicalqa/cqa_234:e3.0": "ok",
+"sample/synthetic_009:e3.0": [
+[
+"SIGN:neck_stiffness",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_1029:t11.0": [
+[
+"SIGN:lymphadenopathy",
+"absent",
+"patient",
+"current"
+],
+[
+"IMG:cbd_dilation",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:ascites",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_442:t9.0": "ok",
+"clinicalqa/cqa_533:e4.0": "ok",
+"clinicalqa/cqa_516:e3.1": "ok",
+"clinicalqa/cqa_726:e11.0": "ok",
+"clinicalqa/cqa_6:h1.0": "ok",
+"clinicalqa/cqa_232:t6.0": "ok",
+"clinicalqa/cqa_742:e6.0": "ok",
+"clinicalqa/cqa_742:t7.1": "ok",
+"clinicalqa/cqa_1:t4.0": [
+[
+"LAB:proteinuria",
+"absent",
+"patient",
+"current"
+],
+[
+"LAB:glycosuria",
+"absent",
+"patient",
+"current"
+],
+[
+"LAB:urine_blood",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:dark_urine",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_371:e5.0": [
+[
+"SIGN:lymphadenopathy",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:goiter",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_744:t14.0": "ok",
+"clinicalqa/cqa_466:t9.0": "ok",
+"clinicalqa/cqa_734:e5.0": [
+[
+"SIGN:lymphadenopathy",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:jvd",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_513:t9.0": [],
+"clinicalqa/cqa_726:h0.3": "ok",
+"sample/synthetic_015:h0.0": [
+[
+"SYM:abdominal_pain",
+"present",
+"patient",
+"current"
+],
+[
+"QUAL:squeezing",
+"present",
+"patient",
+"current"
+]
+],
+"sample/synthetic_002:h1.0": [
+[
+"SYM:chest_pain",
+"present",
+"patient",
+"current"
+],
+[
+"QUAL:squeezing",
+"present",
+"patient",
+"current"
+]
+],
+"sample/synthetic_004:h4.0": [
+[
+"SIGN:unilateral_leg_swelling",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:calf_pain",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_236:e12.0": [
+[
+"QUAL:radiation",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:paresthesia",
+"absent",
+"patient",
+"current"
+]
+],
+"sample/synthetic_015:t5.0": [],
+"sample/synthetic_016:h6.0": [
+[
+"SYM:chills",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:high_fever",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_848:t12.0": "ok",
+"clinicalqa/cqa_578:e1.0": "ok",
+"clinicalqa/cqa_636:h3.0": "ok",
+"clinicalqa/cqa_771:h5.0": "ok",
+"clinicalqa/cqa_417:h5.0": [
+[
+"SYM:hearing_loss",
+"absent",
+"family",
+"current"
+]
+],
+"sample/synthetic_006:h9.0": [
+[
+"HX:cardiovascular_disease",
+"absent",
+"family",
+"current"
+]
+],
+"clinicalqa/cqa_966:h3.0": "ok",
+"clinicalqa/cqa_550:h5.0": "ok",
+"clinicalqa/cqa_446:h2.0": "ok",
+"clinicalqa/cqa_466:h2.0": [
+[
+"QUAL:sudden_onset",
+"present",
+"family",
+"current"
+],
+[
+"SYM:syncope",
+"present",
+"family",
+"current"
+],
+[
+"HX:sudden_death",
+"present",
+"family",
+"current"
+]
+],
+"sample/synthetic_015:h9.1": "ok",
+"clinicalqa/cqa_211:t0.0": "ok",
+"clinicalqa/cqa_227:h0.0": [
+[
+"SYM:diarrhea",
+"present",
+"patient",
+"past"
+],
+[
+"SYM:abdominal_pain",
+"present",
+"patient",
+"past"
+]
+],
+"clinicalqa/cqa_595:h2.0": [
+[
+"HX:hypertension",
+"present",
+"patient",
+"chronic"
+],
+[
+"HX:medication",
+"present",
+"patient",
+"chronic"
+]
+],
+"clinicalqa/cqa_510:h0.1": [
+[
+"QUAL:positional",
+"present",
+"patient",
+"current"
+]
+],
+"sample/synthetic_014:h8.1": "ok",
+"clinicalqa/cqa_47:h1.0": "ok",
+"clinicalqa/cqa_437:h1.0": [
+[
+"HX:head_trauma",
+"present",
+"patient",
+"past"
+]
+],
+"clinicalqa/cqa_61:h3.0": [
+[
+"HX:pmh",
+"absent",
+"patient",
+"past"
+],
+[
+"GRP:weight_change",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_629:h4.1": "ok",
+"clinicalqa/cqa_466:h1.0": [
+[
+"SYM:palpitation",
+"present",
+"patient",
+"past"
+],
+[
+"SYM:syncope",
+"present",
+"patient",
+"past"
+]
+],
+"clinicalqa/cqa_627:t3.0": "ok",
+"clinicalqa/cqa_52:t1.0": "ok",
+"clinicalqa/cqa_725:t16.0": "ok",
+"clinicalqa/cqa_627:t2.0": "ok",
+"clinicalqa/cqa_113:t2.0": "ok",
+"clinicalqa/cqa_234:e1.0": "ok",
+"clinicalqa/cqa_113:t4.0": "ok",
+"sample/synthetic_008:t4.0": "ok",
+"clinicalqa/cqa_458:e0.0": [
+[
+"SIGN:hypotension",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:elevated_bp",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:tachycardia",
+"present",
+"patient",
+"current"
+],
+[
+"SIGN:irregular_pulse",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:tachypnea",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:fever",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_408:t9.0": "ok",
+"clinicalqa/cqa_181:t6.0": "ok",
+"clinicalqa/cqa_404:t3.0": "ok",
+"clinicalqa/cqa_69:e0.0": "ok",
+"clinicalqa/cqa_729:t11.0": "ok",
+"clinicalqa/cqa_742:t4.0": "ok",
+"clinicalqa/cqa_739:e2.0": "ok",
+"clinicalqa/cqa_521:e0.0": "ok",
+"sample/synthetic_003:h7.0": [
+[
+"HX:hypertension",
+"present",
+"patient",
+"chronic"
+],
+[
+"HX:medication",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_234:h1.0": "ok",
+"clinicalqa/cqa_800:h0.0": [
+[
+"SIGN:edema",
+"present",
+"patient",
+"current"
+],
+[
+"SIGN:facial_edema",
+"present",
+"patient",
+"current"
+],
+[
+"SIGN:leg_edema",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_69:h2.0": [
+[
+"SYM:fever",
+"present",
+"patient",
+"past"
+],
+[
+"SYM:myalgia",
+"present",
+"patient",
+"past"
+]
+],
+"sample/synthetic_010:h2.1": "ok",
+"sample/synthetic_011:h2.1": "ok",
+"sample/synthetic_009:h0.1": "ok",
+"clinicalqa/cqa_762:h2.0": [
+[
+"SYM:weight_loss",
+"present",
+"patient",
+"chronic"
+],
+[
+"SYM:anorexia",
+"present",
+"patient",
+"chronic"
+]
+],
+"clinicalqa/cqa_28:h1.0": "ok",
+"clinicalqa/cqa_538:h0.0": "ok",
+"clinicalqa/cqa_343:h3.0": "ok",
+"clinicalqa/cqa_113:h2.0": "ok",
+"clinicalqa/cqa_232:h0.0": [
+[
+"QUAL:nocturnal",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:arthralgia",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_388:h0.1": "ok",
+"sample/synthetic_011:h3.1": [
+[
+"SYM:photophobia",
+"absent",
+"patient",
+"current"
+]
+],
+"sample/synthetic_004:h4.1": "ok",
+"sample/synthetic_009:h0.0": "ok",
+"sample/synthetic_015:h3.0": [
+[
+"SYM:anorexia",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:weight_loss",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_245:h2.0": "ok",
+"sample/synthetic_015:h8.0": [
+[
+"HX:raw_food",
+"absent",
+"patient",
+"current"
+],
+[
+"HX:sick_contact",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_513:h0.0": "ok",
+"clinicalqa/cqa_408:h1.0": "ok",
+"sample/synthetic_016:h0.0": [
+[
+"QUAL:colicky",
+"present",
+"patient",
+"intermittent"
+],
+[
+"SYM:abdominal_pain",
+"present",
+"patient",
+"intermittent"
+]
+],
+"sample/synthetic_007:h0.0": "ok",
+"sample/synthetic_011:h0.0": [
+[
+"SYM:headache",
+"present",
+"patient",
+"current"
+],
+[
+"QUAL:squeezing",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:neck_pain",
+"present",
+"patient",
+"current"
+]
+],
+"sample/synthetic_010:h5.0": [
+[
+"SYM:amenorrhea",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:irregular_menses",
+"absent",
+"patient",
+"current"
+]
+],
+"sample/synthetic_016:h7.0": [
+[
+"SYM:oliguria",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:dizziness",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_996:h0.1": "ok",
+"sample/synthetic_013:h0.1": [
+[
+"QUAL:squeezing",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:pain",
+"present",
+"patient",
+"current"
+]
+],
+"sample/synthetic_011:h9.1": "ok",
+"clinicalqa/cqa_355:t0.0": "ok",
+"clinicalqa/cqa_521:e5.0": "ok",
+"clinicalqa/cqa_928:e9.0": "ok",
+"clinicalqa/cqa_622:e6.0": [
+[
+"SIGN:irregular_pulse",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:murmur",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:friction_rub",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_538:e5.0": [
+[
+"SIGN:irregular_pulse",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:murmur",
+"absent",
+"patient",
+"current"
+],
+[
+"SIGN:friction_rub",
+"absent",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_458:e9.0": "ok",
+"clinicalqa/cqa_121:e8.0": "ok",
+"clinicalqa/cqa_417:e11.0": [
+[
+"SYM:altered_mental_status",
+"absent",
+"patient",
+"current"
+]
+],
+"sample/synthetic_015:e9.1": "ok",
+"clinicalqa/cqa_912:e10.0": [
+[
+"SYM:altered_mental_status",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:arthralgia",
+"present",
+"patient",
+"current"
+],
+[
+"SYM:gait_disturbance",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_328:e11.0": [
+[
+"SYM:suicidal_ideation",
+"absent",
+"patient",
+"current"
+],
+[
+"SYM:suicidal_ideation",
+"present",
+"patient",
+"past"
+]
+],
+"clinicalqa/cqa_578:e11.0": "ok",
+"clinicalqa/cqa_928:e12.0": "ok",
+"clinicalqa/cqa_6:h0.1": [
+[
+"QUAL:nocturnal",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_841:h0.1": "ok",
+"clinicalqa/cqa_388:e9.0": "ok",
+"sample/synthetic_012:h1.0": [
+[
+"SYM:irregular_menses",
+"present",
+"patient",
+"chronic"
+]
+],
+"clinicalqa/cqa_45:h0.0": [
+[
+"SYM:chest_pain",
+"present",
+"patient",
+"current"
+],
+[
+"QUAL:positional",
+"present",
+"patient",
+"current"
+]
+],
+"clinicalqa/cqa_1:t10.0": "ok",
+"clinicalqa/cqa_181:t2.0": [],
+"sample/synthetic_011:h7.0": "ok"
+}
+}

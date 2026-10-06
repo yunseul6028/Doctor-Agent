@@ -1,0 +1,2431 @@
+{
+ "date": "2026-09-26",
+ "kb_load_s": 0.33,
+ "ranking": {
+  "overall": {
+   "n": 267,
+   "top1": 0.0712,
+   "top3": 0.1498,
+   "top10": 0.2584,
+   "top50": 0.3745,
+   "mrr": 0.129,
+   "coverage_in_kb": 0.8951,
+   "coverage_with_symptoms": 0.6255,
+   "top10_given_covered": 0.4132
+  },
+  "dev": {
+   "n": 111,
+   "top1": 0.1081,
+   "top3": 0.2072,
+   "top10": 0.3333,
+   "top50": 0.4955,
+   "mrr": 0.1829,
+   "coverage_in_kb": 0.955,
+   "coverage_with_symptoms": 0.7297,
+   "top10_given_covered": 0.4568
+  },
+  "heldout": {
+   "n": 156,
+   "top1": 0.0449,
+   "top3": 0.109,
+   "top10": 0.2051,
+   "top50": 0.2885,
+   "mrr": 0.0905,
+   "coverage_in_kb": 0.8526,
+   "coverage_with_symptoms": 0.5513,
+   "top10_given_covered": 0.3721
+  },
+  "sample": {
+   "n": 16,
+   "top1": 0.0625,
+   "top3": 0.1875,
+   "top10": 0.5,
+   "top50": 0.75,
+   "mrr": 0.1743,
+   "coverage_in_kb": 1.0,
+   "coverage_with_symptoms": 0.9375,
+   "top10_given_covered": 0.5333
+  },
+  "clinicalqa": {
+   "n": 95,
+   "top1": 0.1158,
+   "top3": 0.2105,
+   "top10": 0.3053,
+   "top50": 0.4526,
+   "mrr": 0.1844,
+   "coverage_in_kb": 0.9474,
+   "coverage_with_symptoms": 0.6947,
+   "top10_given_covered": 0.4394
+  },
+  "agentclinic": {
+   "n": 107,
+   "top1": 0.0654,
+   "top3": 0.1589,
+   "top10": 0.2617,
+   "top50": 0.3458,
+   "mrr": 0.1246,
+   "coverage_in_kb": 0.8785,
+   "coverage_with_symptoms": 0.5794,
+   "top10_given_covered": 0.4516
+  },
+  "diagnosisarena": {
+   "n": 49,
+   "top1": 0.0,
+   "top3": 0.0,
+   "top10": 0.0816,
+   "top50": 0.1633,
+   "mrr": 0.0161,
+   "coverage_in_kb": 0.7959,
+   "coverage_with_symptoms": 0.4898,
+   "top10_given_covered": 0.1667
+  },
+  "latency_ms": {
+   "mean": 2.67,
+   "p95": 2.62,
+   "max": 180.96
+  }
+ },
+ "ranking_history_exam_only": {
+  "dev": {
+   "n": 111,
+   "top1": 0.1171,
+   "top3": 0.2162,
+   "top10": 0.3423,
+   "top50": 0.5045,
+   "mrr": 0.1886,
+   "coverage_in_kb": 0.955,
+   "coverage_with_symptoms": 0.7297,
+   "top10_given_covered": 0.4691
+  },
+  "heldout": {
+   "n": 156,
+   "top1": 0.0577,
+   "top3": 0.109,
+   "top10": 0.1859,
+   "top50": 0.2628,
+   "mrr": 0.0957,
+   "coverage_in_kb": 0.8526,
+   "coverage_with_symptoms": 0.5513,
+   "top10_given_covered": 0.3372
+  },
+  "overall": {
+   "n": 267,
+   "top1": 0.0824,
+   "top3": 0.1536,
+   "top10": 0.2509,
+   "top50": 0.3633,
+   "mrr": 0.1343,
+   "coverage_in_kb": 0.8951,
+   "coverage_with_symptoms": 0.6255,
+   "top10_given_covered": 0.4012
+  }
+ },
+ "normalize": {
+  "dev": {
+   "cases": 111,
+   "names": 564,
+   "hit_rate": 0.8227,
+   "code_rate": 0.7394,
+   "primary_hit_rate": 0.8378,
+   "primary_code_rate": 0.7838,
+   "alias_code_agreement": 0.6842
+  },
+  "heldout": {
+   "cases": 156,
+   "names": 827,
+   "hit_rate": 0.5961,
+   "code_rate": 0.5333,
+   "primary_hit_rate": 0.5769,
+   "primary_code_rate": 0.5641,
+   "alias_code_agreement": 0.6789
+  },
+  "overall": {
+   "cases": 267,
+   "names": 1391,
+   "hit_rate": 0.688,
+   "code_rate": 0.6168,
+   "primary_hit_rate": 0.6854,
+   "primary_code_rate": 0.6554,
+   "alias_code_agreement": 0.6814
+  }
+ },
+ "cases": [
+  {
+   "id": "sample/synthetic_001",
+   "set": "sample",
+   "dx": "급성 충수염",
+   "gold": [
+    "DOID:8337"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 52,
+   "rank": null,
+   "top3": [
+    "요로감염증",
+    "클로스트리디움 디피실 대장염",
+    "혈전증"
+   ],
+   "ms": 180.96
+  },
+  {
+   "id": "sample/synthetic_002",
+   "set": "sample",
+   "dx": "급성 ST분절상승 심근경색(전벽)",
+   "gold": [
+    "DOID:5844",
+    "DOID:9408"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 68,
+   "rank": 2,
+   "top3": [
+    "공황장애",
+    "급성 심근경색증",
+    "림프종"
+   ],
+   "ms": 2.21
+  },
+  {
+   "id": "sample/synthetic_003",
+   "set": "sample",
+   "dx": "급성 대동맥 박리(Stanford A형)",
+   "gold": [
+    "DOID:0080685"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 49,
+   "rank": null,
+   "top3": [
+    "급성 스트레스반응",
+    "심장병",
+    "패혈증"
+   ],
+   "ms": 1.9
+  },
+  {
+   "id": "sample/synthetic_004",
+   "set": "sample",
+   "dx": "폐색전증",
+   "gold": [
+    "DOID:2972",
+    "DOID:9477"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 62,
+   "rank": 3,
+   "top3": [
+    "공기 가슴증",
+    "혈전증",
+    "폐색전증"
+   ],
+   "ms": 2.26
+  },
+  {
+   "id": "sample/synthetic_005",
+   "set": "sample",
+   "dx": "원발성 자연 기흉(우측)",
+   "gold": [
+    "DOID:0080218",
+    "DOID:1673"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": 4,
+   "top3": [
+    "심장병",
+    "공황장애",
+    "심낭염"
+   ],
+   "ms": 1.7
+  },
+  {
+   "id": "sample/synthetic_006",
+   "set": "sample",
+   "dx": "위식도 역류질환",
+   "gold": [
+    "DOID:13976",
+    "DOID:6050",
+    "DOID:8534"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 51,
+   "rank": 7,
+   "top3": [
+    "부비강염",
+    "만성 부비동염",
+    "폐렴"
+   ],
+   "ms": 1.66
+  },
+  {
+   "id": "sample/synthetic_007",
+   "set": "sample",
+   "dx": "지주막하 출혈",
+   "gold": [
+    "DOID:0060228",
+    "DOID:10941",
+    "WD:Q693442"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 71,
+   "rank": 13,
+   "top3": [
+    "수막염",
+    "뇌염",
+    "스트리크닌 및 염분의 독성효과"
+   ],
+   "ms": 2.34
+  },
+  {
+   "id": "sample/synthetic_008",
+   "set": "sample",
+   "dx": "세균성 수막염",
+   "gold": [
+    "DOID:0080176",
+    "DOID:9470",
+    "DOID:9471",
+    "WD:Q109466005",
+    "WD:Q890785"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 65,
+   "rank": 10,
+   "top3": [
+    "중앙유럽진드기매개뇌염",
+    "일본뇌염",
+    "기타 진드기매개바이러스뇌염"
+   ],
+   "ms": 2.35
+  },
+  {
+   "id": "sample/synthetic_009",
+   "set": "sample",
+   "dx": "급성 허혈성 뇌졸중",
+   "gold": [
+    "DOID:0051062",
+    "DOID:3454",
+    "DOID:3526"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 69,
+   "rank": 1,
+   "top3": [
+    "허혈성 뇌졸중",
+    "출혈성 뇌졸중",
+    "심장병"
+   ],
+   "ms": 2.11
+  },
+  {
+   "id": "sample/synthetic_010",
+   "set": "sample",
+   "dx": "급성 신우신염",
+   "gold": [
+    "DOID:0080784",
+    "DOID:11400",
+    "DOID:559"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 55,
+   "rank": 23,
+   "top3": [
+    "열사병",
+    "방광의 상세불명 장애",
+    "뎅기"
+   ],
+   "ms": 2.3
+  },
+  {
+   "id": "sample/synthetic_011",
+   "set": "sample",
+   "dx": "긴장형 두통",
+   "gold": [
+    "WD:Q1338684"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": 50,
+   "top3": [
+    "수막알균감염",
+    "기타 진드기매개바이러스뇌염",
+    "기타 두통증후군"
+   ],
+   "ms": 2.03
+  },
+  {
+   "id": "sample/synthetic_012",
+   "set": "sample",
+   "dx": "자궁외임신 파열",
+   "gold": [
+    "DOID:0060329"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 57,
+   "rank": 5,
+   "top3": [
+    "급성 스트레스반응",
+    "혈전증",
+    "열사병"
+   ],
+   "ms": 2.1
+  },
+  {
+   "id": "sample/synthetic_013",
+   "set": "sample",
+   "dx": "급성 담낭염",
+   "gold": [
+    "DOID:1949"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 55,
+   "rank": null,
+   "top3": [
+    "살모넬라장염",
+    "충수염",
+    "결장 게울염"
+   ],
+   "ms": 2.03
+  },
+  {
+   "id": "sample/synthetic_014",
+   "set": "sample",
+   "dx": "급성 췌장염",
+   "gold": [
+    "DOID:2913",
+    "DOID:4988",
+    "DOID:4989"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 61,
+   "rank": 44,
+   "top3": [
+    "장염",
+    "살모넬라장염",
+    "와포자충증"
+   ],
+   "ms": 2.2
+  },
+  {
+   "id": "sample/synthetic_015",
+   "set": "sample",
+   "dx": "당뇨병성 케톤산증",
+   "gold": [
+    "DOID:1837"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 52,
+   "rank": null,
+   "top3": [
+    "약물 알레르기",
+    "저체온증",
+    "혈전증"
+   ],
+   "ms": 2.23
+  },
+  {
+   "id": "sample/synthetic_016",
+   "set": "sample",
+   "dx": "급성 위장관염",
+   "gold": [
+    "DOID:2326",
+    "WD:Q183134"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 51,
+   "rank": 10,
+   "top3": [
+    "살모넬라장염",
+    "돼지 인플루엔자",
+    "복강질환"
+   ],
+   "ms": 2.78
+  },
+  {
+   "id": "clinicalqa/cqa_1",
+   "set": "clinicalqa",
+   "dx": "원발성 담즙성 담관염",
+   "gold": [
+    "DOID:12236",
+    "DOID:9446"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": 40,
+   "top3": [
+    "포도당-6-인산탈수소효소 결핍",
+    "C형 간염",
+    "A형 간염"
+   ],
+   "ms": 3.57
+  },
+  {
+   "id": "clinicalqa/cqa_1024",
+   "set": "clinicalqa",
+   "dx": "담관세포암",
+   "gold": [
+    "DOID:4947"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 78,
+   "rank": null,
+   "top3": [
+    "간암",
+    "간염",
+    "와포자충증"
+   ],
+   "ms": 3.27
+  },
+  {
+   "id": "clinicalqa/cqa_1025",
+   "set": "clinicalqa",
+   "dx": "원발성 경화성 담관염",
+   "gold": [
+    "DOID:0060643"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 46,
+   "rank": null,
+   "top3": [
+    "간외담관의 악성 신생물",
+    "급성 전염성 결막염",
+    "유방의 상세불명 장애"
+   ],
+   "ms": 1.95
+  },
+  {
+   "id": "clinicalqa/cqa_1029",
+   "set": "clinicalqa",
+   "dx": "자가면역성 간염",
+   "gold": [
+    "DOID:2048"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 60,
+   "rank": null,
+   "top3": [
+    "간염",
+    "A형 간염",
+    "이중이형접합낫적혈구장애"
+   ],
+   "ms": 4.94
+  },
+  {
+   "id": "clinicalqa/cqa_113",
+   "set": "clinicalqa",
+   "dx": "폐암",
+   "gold": [
+    "DOID:1324"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 58,
+   "rank": 1,
+   "top3": [
+    "폐암",
+    "급성 인두염",
+    "만성 폐쇄성 폐질환"
+   ],
+   "ms": 3.88
+  },
+  {
+   "id": "clinicalqa/cqa_117",
+   "set": "clinicalqa",
+   "dx": "급성 폐색전증",
+   "gold": [
+    "DOID:9477"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 64,
+   "rank": 2,
+   "top3": [
+    "혈전증",
+    "폐색전증",
+    "공기 가슴증"
+   ],
+   "ms": 4.61
+  },
+  {
+   "id": "clinicalqa/cqa_118",
+   "set": "clinicalqa",
+   "dx": "승모판 협착증",
+   "gold": [
+    "DOID:1754",
+    "DOID:2377"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 60,
+   "rank": null,
+   "top3": [
+    "폐암",
+    "심장병",
+    "폐색전증"
+   ],
+   "ms": 2.28
+  },
+  {
+   "id": "clinicalqa/cqa_121",
+   "set": "clinicalqa",
+   "dx": "폐아스페르길루스종",
+   "gold": [
+    "DOID:0050153",
+    "DOID:13564"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 48,
+   "rank": null,
+   "top3": [
+    "상세불명의 단방조충감염",
+    "고환의 기능이상",
+    "폐색전증"
+   ],
+   "ms": 2.44
+  },
+  {
+   "id": "clinicalqa/cqa_128",
+   "set": "clinicalqa",
+   "dx": "기관지 카르시노이드 종양",
+   "gold": [
+    "DOID:3904"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 50,
+   "rank": null,
+   "top3": [
+    "폐암",
+    "천식",
+    "만성 폐쇄성 폐질환"
+   ],
+   "ms": 2.24
+  },
+  {
+   "id": "clinicalqa/cqa_14",
+   "set": "clinicalqa",
+   "dx": "임신성 소양진",
+   "gold": [],
+   "in_kb": false,
+   "gold_has_symptoms": false,
+   "n_findings": 40,
+   "rank": null,
+   "top3": [
+    "옴",
+    "피부 질환",
+    "칸디다증"
+   ],
+   "ms": 1.91
+  },
+  {
+   "id": "clinicalqa/cqa_148",
+   "set": "clinicalqa",
+   "dx": "다발성 골수종",
+   "gold": [
+    "DOID:9538"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 56,
+   "rank": null,
+   "top3": [
+    "상세불명의 빈혈",
+    "크론병",
+    "거세포성동맥염"
+   ],
+   "ms": 2.38
+  },
+  {
+   "id": "clinicalqa/cqa_157",
+   "set": "clinicalqa",
+   "dx": "급성 사구체신염",
+   "gold": [
+    "DOID:1312",
+    "DOID:14064",
+    "DOID:4782"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 52,
+   "rank": null,
+   "top3": [
+    "상완신경총장애",
+    "침샘의 질환",
+    "설사"
+   ],
+   "ms": 2.01
+  },
+  {
+   "id": "clinicalqa/cqa_17",
+   "set": "clinicalqa",
+   "dx": "임신성 담즙정체증",
+   "gold": [
+    "DOID:0070227"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 51,
+   "rank": null,
+   "top3": [
+    "간질환",
+    "간경화증",
+    "머릿니 침입"
+   ],
+   "ms": 1.81
+  },
+  {
+   "id": "clinicalqa/cqa_181",
+   "set": "clinicalqa",
+   "dx": "타카야수 동맥염",
+   "gold": [
+    "DOID:2508",
+    "DOID:865"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 58,
+   "rank": null,
+   "top3": [
+    "폰 히펠-린도병",
+    "크롬친화세포종",
+    "쿠싱증후군"
+   ],
+   "ms": 2.0
+  },
+  {
+   "id": "clinicalqa/cqa_211",
+   "set": "clinicalqa",
+   "dx": "대퇴골 경부 골절",
+   "gold": [],
+   "in_kb": false,
+   "gold_has_symptoms": false,
+   "n_findings": 57,
+   "rank": null,
+   "top3": [
+    "골다공증",
+    "다발골수종",
+    "월경전 증후군"
+   ],
+   "ms": 1.95
+  },
+  {
+   "id": "clinicalqa/cqa_225",
+   "set": "clinicalqa",
+   "dx": "세균성 관절염",
+   "gold": [
+    "DOID:813",
+    "DOID:848"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 47,
+   "rank": 2,
+   "top3": [
+    "통풍",
+    "패혈성 관절염",
+    "치쿤구니아열"
+   ],
+   "ms": 1.93
+  },
+  {
+   "id": "clinicalqa/cqa_227",
+   "set": "clinicalqa",
+   "dx": "반응성 관절염",
+   "gold": [
+    "DOID:12594",
+    "DOID:14525",
+    "DOID:6196"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 40,
+   "rank": null,
+   "top3": [
+    "에볼라바이러스병",
+    "통풍",
+    "크론병"
+   ],
+   "ms": 2.0
+  },
+  {
+   "id": "clinicalqa/cqa_229",
+   "set": "clinicalqa",
+   "dx": "가성통풍",
+   "gold": [
+    "DOID:1156"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 53,
+   "rank": null,
+   "top3": [
+    "신부전",
+    "전신홍반루푸스",
+    "관절염"
+   ],
+   "ms": 1.87
+  },
+  {
+   "id": "clinicalqa/cqa_231",
+   "set": "clinicalqa",
+   "dx": "쇼그렌 증후군",
+   "gold": [
+    "DOID:12894"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 53,
+   "rank": 2,
+   "top3": [
+    "월경전 증후군",
+    "쇼그렌 증후군",
+    "통풍"
+   ],
+   "ms": 1.92
+  },
+  {
+   "id": "clinicalqa/cqa_232",
+   "set": "clinicalqa",
+   "dx": "통풍",
+   "gold": [
+    "DOID:13189",
+    "DOID:848"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 44,
+   "rank": 1,
+   "top3": [
+    "통풍",
+    "패혈성 관절염",
+    "관절병증"
+   ],
+   "ms": 1.8
+  },
+  {
+   "id": "clinicalqa/cqa_234",
+   "set": "clinicalqa",
+   "dx": "골관절염",
+   "gold": [
+    "DOID:8398",
+    "DOID:848"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": null,
+   "top3": [
+    "통풍",
+    "류머티스 관절염",
+    "뼈의 파젯병[변형성 골염]"
+   ],
+   "ms": 1.59
+  },
+  {
+   "id": "clinicalqa/cqa_236",
+   "set": "clinicalqa",
+   "dx": "드퀘르벵 건초염",
+   "gold": [
+    "DOID:14107",
+    "DOID:970"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 46,
+   "rank": null,
+   "top3": [
+    "통풍",
+    "귀의 상세불명 장애",
+    "월경전 증후군"
+   ],
+   "ms": 1.51
+  },
+  {
+   "id": "clinicalqa/cqa_238",
+   "set": "clinicalqa",
+   "dx": "전신성 홍반성 루푸스",
+   "gold": [
+    "DOID:8857",
+    "DOID:9074"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 59,
+   "rank": 1,
+   "top3": [
+    "홍반루푸스",
+    "건선성 관절염",
+    "아르헨티나출혈열"
+   ],
+   "ms": 1.77
+  },
+  {
+   "id": "clinicalqa/cqa_245",
+   "set": "clinicalqa",
+   "dx": "전신성 경화증",
+   "gold": [
+    "DOID:418",
+    "DOID:419"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 60,
+   "rank": null,
+   "top3": [
+    "월경전 증후군",
+    "통풍",
+    "건염"
+   ],
+   "ms": 1.73
+  },
+  {
+   "id": "clinicalqa/cqa_28",
+   "set": "clinicalqa",
+   "dx": "피부근염",
+   "gold": [
+    "DOID:10223"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 53,
+   "rank": null,
+   "top3": [
+    "궤양성 대장염",
+    "상세불명의 빈혈",
+    "결장암"
+   ],
+   "ms": 2.14
+  },
+  {
+   "id": "clinicalqa/cqa_285",
+   "set": "clinicalqa",
+   "dx": "급성 담낭염",
+   "gold": [
+    "DOID:1949"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": null,
+   "top3": [
+    "클로스트리디움 디피실 대장염",
+    "크론병",
+    "살모넬라장염"
+   ],
+   "ms": 1.81
+  },
+  {
+   "id": "clinicalqa/cqa_3",
+   "set": "clinicalqa",
+   "dx": "만성 단순 태선",
+   "gold": [
+    "DOID:3309",
+    "DOID:8574"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 41,
+   "rank": null,
+   "top3": [
+    "유방의 상세불명 장애",
+    "피부 질환",
+    "건선"
+   ],
+   "ms": 1.72
+  },
+  {
+   "id": "clinicalqa/cqa_31",
+   "set": "clinicalqa",
+   "dx": "만성 신부전",
+   "gold": [
+    "DOID:784"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 70,
+   "rank": null,
+   "top3": [
+    "수은 중독",
+    "납 중독",
+    "뇌진탕후증후군"
+   ],
+   "ms": 2.23
+  },
+  {
+   "id": "clinicalqa/cqa_328",
+   "set": "clinicalqa",
+   "dx": "양극성 II형 장애, 현재 경조증 삽화",
+   "gold": [
+    "DOID:0050449",
+    "DOID:0060166",
+    "DOID:3312"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 52,
+   "rank": null,
+   "top3": [
+    "주의력결핍 과다행동장애",
+    "정신 질환",
+    "운동과다성 행동장애"
+   ],
+   "ms": 1.56
+  },
+  {
+   "id": "clinicalqa/cqa_330",
+   "set": "clinicalqa",
+   "dx": "주요우울장애",
+   "gold": [
+    "DOID:1470"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 53,
+   "rank": 27,
+   "top3": [
+    "상세불명의 재발성 우울장애",
+    "계절성 정동 장애",
+    "섬유근통"
+   ],
+   "ms": 1.88
+  },
+  {
+   "id": "clinicalqa/cqa_343",
+   "set": "clinicalqa",
+   "dx": "비타민 B12 결핍",
+   "gold": [
+    "DOID:0050731"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 65,
+   "rank": 14,
+   "top3": [
+    "일과성 뇌허혈증",
+    "납 중독",
+    "섬망"
+   ],
+   "ms": 1.75
+  },
+  {
+   "id": "clinicalqa/cqa_355",
+   "set": "clinicalqa",
+   "dx": "경도인지장애",
+   "gold": [
+    "DOID:0080832"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 58,
+   "rank": null,
+   "top3": [
+    "알츠하이머병",
+    "납 중독",
+    "섬망"
+   ],
+   "ms": 1.69
+  },
+  {
+   "id": "clinicalqa/cqa_360",
+   "set": "clinicalqa",
+   "dx": "거대적아구성 빈혈",
+   "gold": [
+    "DOID:0050731",
+    "DOID:13382"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 66,
+   "rank": 3,
+   "top3": [
+    "크로이츠펠트-야콥병",
+    "상완신경총장애",
+    "비타민 B12 결핍"
+   ],
+   "ms": 2.03
+  },
+  {
+   "id": "clinicalqa/cqa_366",
+   "set": "clinicalqa",
+   "dx": "연쇄구균성 인두편도염",
+   "gold": [
+    "DOID:2275",
+    "WD:Q840143"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 37,
+   "rank": 4,
+   "top3": [
+    "상세불명의 급성 상기도감염",
+    "인플루엔자",
+    "급성 비인두염[감기]"
+   ],
+   "ms": 1.82
+  },
+  {
+   "id": "clinicalqa/cqa_371",
+   "set": "clinicalqa",
+   "dx": "지역사회획득폐렴",
+   "gold": [
+    "DOID:552"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 57,
+   "rank": 1,
+   "top3": [
+    "폐렴",
+    "만성 폐쇄성 폐질환",
+    "공기 가슴증"
+   ],
+   "ms": 1.95
+  },
+  {
+   "id": "clinicalqa/cqa_376",
+   "set": "clinicalqa",
+   "dx": "기관지확장증",
+   "gold": [
+    "DOID:9563"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 51,
+   "rank": 17,
+   "top3": [
+    "만성 폐쇄성 폐질환",
+    "급성 기관지염",
+    "부비강염"
+   ],
+   "ms": 1.51
+  },
+  {
+   "id": "clinicalqa/cqa_381",
+   "set": "clinicalqa",
+   "dx": "만성 폐쇄성 폐질환",
+   "gold": [
+    "DOID:3083"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 61,
+   "rank": 1,
+   "top3": [
+    "만성 폐쇄성 폐질환",
+    "급성 기관지염",
+    "천식"
+   ],
+   "ms": 1.63
+  },
+  {
+   "id": "clinicalqa/cqa_383",
+   "set": "clinicalqa",
+   "dx": "폐결핵",
+   "gold": [
+    "DOID:2957",
+    "DOID:399"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 56,
+   "rank": 3,
+   "top3": [
+    "폐렴",
+    "만성 폐쇄성 폐질환",
+    "결핵"
+   ],
+   "ms": 1.85
+  },
+  {
+   "id": "clinicalqa/cqa_388",
+   "set": "clinicalqa",
+   "dx": "과민성 폐렴",
+   "gold": [
+    "DOID:14453",
+    "DOID:841"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 55,
+   "rank": null,
+   "top3": [
+    "폐렴",
+    "부비강염",
+    "결핵"
+   ],
+   "ms": 2.12
+  },
+  {
+   "id": "clinicalqa/cqa_404",
+   "set": "clinicalqa",
+   "dx": "청신경종",
+   "gold": [
+    "DOID:12689"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 51,
+   "rank": 2,
+   "top3": [
+    "메니에르병",
+    "뇌신경의 양성 신생물",
+    "잠수병"
+   ],
+   "ms": 2.05
+  },
+  {
+   "id": "clinicalqa/cqa_408",
+   "set": "clinicalqa",
+   "dx": "이경화증",
+   "gold": [
+    "DOID:12185"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 47,
+   "rank": 24,
+   "top3": [
+    "중이염",
+    "메니에르병",
+    "불완전골형성"
+   ],
+   "ms": 1.51
+  },
+  {
+   "id": "clinicalqa/cqa_417",
+   "set": "clinicalqa",
+   "dx": "소음성 난청",
+   "gold": [
+    "WD:Q1756133"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 58,
+   "rank": 4,
+   "top3": [
+    "불완전골형성",
+    "입술갈림증",
+    "어셔 증후군"
+   ],
+   "ms": 1.86
+  },
+  {
+   "id": "clinicalqa/cqa_42",
+   "set": "clinicalqa",
+   "dx": "하벽 심근경색",
+   "gold": [
+    "DOID:5844"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 71,
+   "rank": 2,
+   "top3": [
+    "공기 가슴증",
+    "급성 심근경색증",
+    "심장병"
+   ],
+   "ms": 2.47
+  },
+  {
+   "id": "clinicalqa/cqa_437",
+   "set": "clinicalqa",
+   "dx": "중추성 요붕증",
+   "gold": [
+    "DOID:0081055",
+    "DOID:12388",
+    "DOID:9409"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 55,
+   "rank": null,
+   "top3": [
+    "급성 비인두염[감기]",
+    "고양이할큄병",
+    "히스토플라스마증"
+   ],
+   "ms": 1.86
+  },
+  {
+   "id": "clinicalqa/cqa_442",
+   "set": "clinicalqa",
+   "dx": "신성 요붕증",
+   "gold": [
+    "DOID:0081057",
+    "DOID:12387"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": 3,
+   "top3": [
+    "요붕증",
+    "요붕증",
+    "신장성 요붕증"
+   ],
+   "ms": 1.67
+  },
+  {
+   "id": "clinicalqa/cqa_446",
+   "set": "clinicalqa",
+   "dx": "방실결절 회귀성 빈맥",
+   "gold": [],
+   "in_kb": false,
+   "gold_has_symptoms": false,
+   "n_findings": 47,
+   "rank": null,
+   "top3": [
+    "심낭염",
+    "심장병",
+    "공기 가슴증"
+   ],
+   "ms": 1.88
+  },
+  {
+   "id": "clinicalqa/cqa_45",
+   "set": "clinicalqa",
+   "dx": "급성 심낭염",
+   "gold": [
+    "DOID:1787"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 47,
+   "rank": 1,
+   "top3": [
+    "심낭염",
+    "공기 가슴증",
+    "폐렴"
+   ],
+   "ms": 1.92
+  },
+  {
+   "id": "clinicalqa/cqa_458",
+   "set": "clinicalqa",
+   "dx": "그레이브스병",
+   "gold": [
+    "DOID:10719",
+    "DOID:12176",
+    "DOID:12361"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 65,
+   "rank": null,
+   "top3": [
+    "공황장애",
+    "갑상샘 항진증",
+    "스트리크닌 및 염분의 독성효과"
+   ],
+   "ms": 1.79
+  },
+  {
+   "id": "clinicalqa/cqa_466",
+   "set": "clinicalqa",
+   "dx": "긴 QT 증후군",
+   "gold": [
+    "DOID:2843"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 52,
+   "rank": null,
+   "top3": [
+    "공황장애",
+    "심방세동",
+    "심낭염"
+   ],
+   "ms": 1.77
+  },
+  {
+   "id": "clinicalqa/cqa_47",
+   "set": "clinicalqa",
+   "dx": "자발성 기흉",
+   "gold": [
+    "DOID:1673"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 58,
+   "rank": 4,
+   "top3": [
+    "천식",
+    "폐렴",
+    "폐색전증"
+   ],
+   "ms": 1.8
+  },
+  {
+   "id": "clinicalqa/cqa_503",
+   "set": "clinicalqa",
+   "dx": "자가면역 두드러기",
+   "gold": [
+    "DOID:1555"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": 43,
+   "top3": [
+    "건선",
+    "유방의 상세불명 장애",
+    "피부병"
+   ],
+   "ms": 2.01
+  },
+  {
+   "id": "clinicalqa/cqa_510",
+   "set": "clinicalqa",
+   "dx": "특발성 두개내 고혈압",
+   "gold": [
+    "DOID:11459"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 46,
+   "rank": null,
+   "top3": [
+    "수두증",
+    "녹내장",
+    "외상성 뇌손상"
+   ],
+   "ms": 1.67
+  },
+  {
+   "id": "clinicalqa/cqa_513",
+   "set": "clinicalqa",
+   "dx": "삼차신경통",
+   "gold": [
+    "DOID:12098"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": null,
+   "top3": [
+    "선천성 풍진증후군",
+    "크롬친화세포종",
+    "살서제의 독성효과"
+   ],
+   "ms": 1.59
+  },
+  {
+   "id": "clinicalqa/cqa_514",
+   "set": "clinicalqa",
+   "dx": "편두통",
+   "gold": [
+    "DOID:10024",
+    "DOID:6364"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 44,
+   "rank": 6,
+   "top3": [
+    "일산화 탄소 중독",
+    "편모충증[람블편모충증]",
+    "수두증"
+   ],
+   "ms": 1.65
+  },
+  {
+   "id": "clinicalqa/cqa_516",
+   "set": "clinicalqa",
+   "dx": "군발두통",
+   "gold": [
+    "WD:Q166907"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 45,
+   "rank": 6,
+   "top3": [
+    "급성 비인두염[감기]",
+    "부비강염",
+    "중이염"
+   ],
+   "ms": 1.78
+  },
+  {
+   "id": "clinicalqa/cqa_52",
+   "set": "clinicalqa",
+   "dx": "대동맥 박리",
+   "gold": [
+    "DOID:0080685"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 52,
+   "rank": null,
+   "top3": [
+    "심장병",
+    "폐색전증",
+    "열사병"
+   ],
+   "ms": 1.6
+  },
+  {
+   "id": "clinicalqa/cqa_521",
+   "set": "clinicalqa",
+   "dx": "뇌정맥동혈전증",
+   "gold": [
+    "DOID:0060903",
+    "DOID:3572"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 53,
+   "rank": null,
+   "top3": [
+    "중앙유럽진드기매개뇌염",
+    "뇌동맥류",
+    "광견병"
+   ],
+   "ms": 2.03
+  },
+  {
+   "id": "clinicalqa/cqa_523",
+   "set": "clinicalqa",
+   "dx": "세균성 뇌수막염",
+   "gold": [
+    "DOID:9470",
+    "DOID:9471",
+    "WD:Q109466005"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": 1,
+   "top3": [
+    "수막염",
+    "뇌염",
+    "수막증"
+   ],
+   "ms": 1.95
+  },
+  {
+   "id": "clinicalqa/cqa_530",
+   "set": "clinicalqa",
+   "dx": "위암",
+   "gold": [
+    "DOID:10534",
+    "DOID:5517"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": null,
+   "top3": [
+    "캄필로박터장염",
+    "식도의 천공",
+    "공황장애"
+   ],
+   "ms": 1.66
+  },
+  {
+   "id": "clinicalqa/cqa_533",
+   "set": "clinicalqa",
+   "dx": "바렛식도와 고도 이형성",
+   "gold": [
+    "DOID:9206"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 51,
+   "rank": null,
+   "top3": [
+    "위-식도역류병",
+    "식도열공탈장",
+    "호산구성 식도염"
+   ],
+   "ms": 1.85
+  },
+  {
+   "id": "clinicalqa/cqa_538",
+   "set": "clinicalqa",
+   "dx": "과민성 장증후군",
+   "gold": [
+    "DOID:9778"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 45,
+   "rank": 1,
+   "top3": [
+    "과민대장증후군",
+    "젖당불내성",
+    "복강질환"
+   ],
+   "ms": 1.93
+  },
+  {
+   "id": "clinicalqa/cqa_549",
+   "set": "clinicalqa",
+   "dx": "만성 췌장염",
+   "gold": [
+    "DOID:0051065",
+    "DOID:4989"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 63,
+   "rank": 5,
+   "top3": [
+    "상세불명의 협심증",
+    "편모충증[람블편모충증]",
+    "창자암"
+   ],
+   "ms": 2.1
+  },
+  {
+   "id": "clinicalqa/cqa_550",
+   "set": "clinicalqa",
+   "dx": "췌장암",
+   "gold": [
+    "DOID:1793"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 77,
+   "rank": 5,
+   "top3": [
+    "포도당-6-인산탈수소효소 결핍",
+    "클로스트리디움 디피실 대장염",
+    "간암"
+   ],
+   "ms": 2.34
+  },
+  {
+   "id": "clinicalqa/cqa_555",
+   "set": "clinicalqa",
+   "dx": "셀리악병",
+   "gold": [
+    "DOID:10608"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 77,
+   "rank": 20,
+   "top3": [
+    "대상포진",
+    "수두",
+    "피부병"
+   ],
+   "ms": 2.62
+  },
+  {
+   "id": "clinicalqa/cqa_575",
+   "set": "clinicalqa",
+   "dx": "갑상혀관낭",
+   "gold": [],
+   "in_kb": false,
+   "gold_has_symptoms": false,
+   "n_findings": 38,
+   "rank": null,
+   "top3": [
+    "연조직육종",
+    "고환의 기능이상",
+    "빌름스 종양"
+   ],
+   "ms": 1.3
+  },
+  {
+   "id": "clinicalqa/cqa_578",
+   "set": "clinicalqa",
+   "dx": "호지킨 림프종",
+   "gold": [
+    "DOID:8567"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 61,
+   "rank": 14,
+   "top3": [
+    "감염성 단핵구증",
+    "림프종",
+    "결핵성 말초림프절병증"
+   ],
+   "ms": 2.2
+  },
+  {
+   "id": "clinicalqa/cqa_580",
+   "set": "clinicalqa",
+   "dx": "새열낭종",
+   "gold": [],
+   "in_kb": false,
+   "gold_has_symptoms": false,
+   "n_findings": 48,
+   "rank": null,
+   "top3": [
+    "고환의 기능이상",
+    "빌름스 종양",
+    "연조직육종"
+   ],
+   "ms": 1.6
+  },
+  {
+   "id": "clinicalqa/cqa_595",
+   "set": "clinicalqa",
+   "dx": "급성 세뇨관 괴사",
+   "gold": [
+    "DOID:12556"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 65,
+   "rank": null,
+   "top3": [
+    "장염",
+    "콜레라",
+    "급성 심근경색증"
+   ],
+   "ms": 2.14
+  },
+  {
+   "id": "clinicalqa/cqa_6",
+   "set": "clinicalqa",
+   "dx": "진성 적혈구증가증",
+   "gold": [
+    "DOID:8997"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 51,
+   "rank": null,
+   "top3": [
+    "호지킨림프종",
+    "림프종",
+    "갑상샘저하증"
+   ],
+   "ms": 1.78
+  },
+  {
+   "id": "clinicalqa/cqa_61",
+   "set": "clinicalqa",
+   "dx": "위식도역류질환",
+   "gold": [
+    "DOID:13976",
+    "DOID:8534"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": 26,
+   "top3": [
+    "급성 심근경색증",
+    "식도열공탈장",
+    "호산구성 식도염"
+   ],
+   "ms": 1.85
+  },
+  {
+   "id": "clinicalqa/cqa_622",
+   "set": "clinicalqa",
+   "dx": "다낭성 난소 증후군",
+   "gold": [
+    "DOID:11612"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 57,
+   "rank": 1,
+   "top3": [
+    "다낭성 난소 증후군",
+    "주사",
+    "안드로젠과다"
+   ],
+   "ms": 1.68
+  },
+  {
+   "id": "clinicalqa/cqa_627",
+   "set": "clinicalqa",
+   "dx": "갑상선기능저하증",
+   "gold": [
+    "DOID:1459",
+    "DOID:7188"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 61,
+   "rank": 1,
+   "top3": [
+    "갑상샘저하증",
+    "심부전",
+    "폐부종"
+   ],
+   "ms": 1.87
+  },
+  {
+   "id": "clinicalqa/cqa_629",
+   "set": "clinicalqa",
+   "dx": "신경성 식욕부진증",
+   "gold": [
+    "DOID:8689"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 68,
+   "rank": null,
+   "top3": [
+    "갑상샘저하증",
+    "파라티푸스 A",
+    "장티푸스"
+   ],
+   "ms": 2.15
+  },
+  {
+   "id": "clinicalqa/cqa_630",
+   "set": "clinicalqa",
+   "dx": "프로락틴 분비 뇌하수체 선종",
+   "gold": [
+    "DOID:12700",
+    "DOID:3829",
+    "DOID:5394"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 53,
+   "rank": null,
+   "top3": [
+    "상세불명의 망막장애",
+    "거세포성동맥염",
+    "유전성 망막디스트로피"
+   ],
+   "ms": 2.1
+  },
+  {
+   "id": "clinicalqa/cqa_636",
+   "set": "clinicalqa",
+   "dx": "터너 증후군",
+   "gold": [
+    "DOID:3491"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 57,
+   "rank": 1,
+   "top3": [
+    "터너 증후군"
+   ],
+   "ms": 2.23
+  },
+  {
+   "id": "clinicalqa/cqa_660",
+   "set": "clinicalqa",
+   "dx": "베르니케 뇌병증",
+   "gold": [
+    "DOID:2384"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 50,
+   "rank": null,
+   "top3": [
+    "결핵",
+    "저체온증",
+    "비타민 B12 결핍"
+   ],
+   "ms": 1.87
+  },
+  {
+   "id": "clinicalqa/cqa_664",
+   "set": "clinicalqa",
+   "dx": "괴사성 장염",
+   "gold": [
+    "DOID:8677"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 66,
+   "rank": null,
+   "top3": [
+    "크림-콩고 출혈열",
+    "포도당-6-인산탈수소효소 결핍",
+    "이매개 재귀열"
+   ],
+   "ms": 2.67
+  },
+  {
+   "id": "clinicalqa/cqa_69",
+   "set": "clinicalqa",
+   "dx": "바이러스성 늑막염",
+   "gold": [
+    "DOID:10247"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 60,
+   "rank": null,
+   "top3": [
+    "히스토플라스마증",
+    "재향군인병",
+    "콕시디오이데스진균증"
+   ],
+   "ms": 2.14
+  },
+  {
+   "id": "clinicalqa/cqa_725",
+   "set": "clinicalqa",
+   "dx": "혈전성 혈소판 감소성 자반증",
+   "gold": [
+    "DOID:10772"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 58,
+   "rank": null,
+   "top3": [
+    "급성 골수성 백혈병",
+    "간경화증",
+    "급성 림프모구 백혈병"
+   ],
+   "ms": 2.12
+  },
+  {
+   "id": "clinicalqa/cqa_726",
+   "set": "clinicalqa",
+   "dx": "강직-간대 발작",
+   "gold": [
+    "DOID:7725"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 55,
+   "rank": null,
+   "top3": [
+    "뇌의 악성 신생물",
+    "섬망",
+    "오스트랄리아뇌염"
+   ],
+   "ms": 1.95
+  },
+  {
+   "id": "clinicalqa/cqa_729",
+   "set": "clinicalqa",
+   "dx": "심장성 실신",
+   "gold": [
+    "DOID:6000"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 56,
+   "rank": null,
+   "top3": [
+    "심장병",
+    "갑상샘저하증",
+    "파라티푸스 A"
+   ],
+   "ms": 1.81
+  },
+  {
+   "id": "clinicalqa/cqa_734",
+   "set": "clinicalqa",
+   "dx": "바이러스성 뇌염",
+   "gold": [
+    "DOID:646",
+    "DOID:8566",
+    "DOID:9588"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": 2,
+   "top3": [
+    "쿤진 뇌염",
+    "뇌염",
+    "기타 두통증후군"
+   ],
+   "ms": 2.29
+  },
+  {
+   "id": "clinicalqa/cqa_739",
+   "set": "clinicalqa",
+   "dx": "양성 전립선 비대증",
+   "gold": [
+    "DOID:11132"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 50,
+   "rank": 18,
+   "top3": [
+    "요도의 상세불명 장애",
+    "젖당불내성",
+    "과민대장증후군"
+   ],
+   "ms": 1.39
+  },
+  {
+   "id": "clinicalqa/cqa_742",
+   "set": "clinicalqa",
+   "dx": "급성 신우신염",
+   "gold": [
+    "DOID:11400",
+    "DOID:559"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 57,
+   "rank": null,
+   "top3": [
+    "신장 및 요관의 결석",
+    "혈전증",
+    "요로감염증"
+   ],
+   "ms": 2.35
+  },
+  {
+   "id": "clinicalqa/cqa_744",
+   "set": "clinicalqa",
+   "dx": "간질성 방광염/방광통증 증후군",
+   "gold": [
+    "DOID:13949",
+    "DOID:1678"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 49,
+   "rank": 5,
+   "top3": [
+    "성병",
+    "요로감염증",
+    "상세불명의 복부탈장"
+   ],
+   "ms": 1.84
+  },
+  {
+   "id": "clinicalqa/cqa_762",
+   "set": "clinicalqa",
+   "dx": "대장암",
+   "gold": [
+    "DOID:0080199",
+    "DOID:1993",
+    "DOID:219",
+    "DOID:9256"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": 6,
+   "top3": [
+    "창자암",
+    "복강질환",
+    "납 중독"
+   ],
+   "ms": 1.71
+  },
+  {
+   "id": "clinicalqa/cqa_771",
+   "set": "clinicalqa",
+   "dx": "크론병",
+   "gold": [
+    "DOID:8778"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 52,
+   "rank": 11,
+   "top3": [
+    "납 중독",
+    "글루텐 알레르기",
+    "복강질환"
+   ],
+   "ms": 1.87
+  },
+  {
+   "id": "clinicalqa/cqa_800",
+   "set": "clinicalqa",
+   "dx": "막성신병증",
+   "gold": [
+    "DOID:10976",
+    "DOID:1312"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 61,
+   "rank": null,
+   "top3": [
+    "신부전",
+    "신증후군",
+    "국소부종"
+   ],
+   "ms": 1.74
+  },
+  {
+   "id": "clinicalqa/cqa_841",
+   "set": "clinicalqa",
+   "dx": "운동 유발성 아나필락시스",
+   "gold": [
+    "DOID:0070027"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 46,
+   "rank": 28,
+   "top3": [
+    "폐색전증",
+    "식품 알레르기",
+    "약물 알레르기"
+   ],
+   "ms": 2.13
+  },
+  {
+   "id": "clinicalqa/cqa_848",
+   "set": "clinicalqa",
+   "dx": "직업성 천식",
+   "gold": [
+    "DOID:0080820"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 53,
+   "rank": null,
+   "top3": [
+    "만성 폐쇄성 폐질환",
+    "천식",
+    "폐암"
+   ],
+   "ms": 1.7
+  },
+  {
+   "id": "clinicalqa/cqa_912",
+   "set": "clinicalqa",
+   "dx": "혈우병 A",
+   "gold": [
+    "DOID:12134"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 42,
+   "rank": null,
+   "top3": [
+    "백혈병",
+    "급성 골수성 백혈병",
+    "통풍"
+   ],
+   "ms": 1.63
+  },
+  {
+   "id": "clinicalqa/cqa_928",
+   "set": "clinicalqa",
+   "dx": "다발성 근염",
+   "gold": [
+    "DOID:0080745"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 53,
+   "rank": 39,
+   "top3": [
+    "전두측두치매 및/또는 근위축성 측삭경화증 7",
+    "보행 실행증",
+    "원발성 부신피질부전"
+   ],
+   "ms": 1.78
+  },
+  {
+   "id": "clinicalqa/cqa_940",
+   "set": "clinicalqa",
+   "dx": "만성 골수성 백혈병",
+   "gold": [
+    "DOID:8552"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 54,
+   "rank": null,
+   "top3": [
+    "감염성 단핵구증",
+    "상세불명의 빈혈",
+    "혈구탐식성 림프조직구증"
+   ],
+   "ms": 1.95
+  },
+  {
+   "id": "clinicalqa/cqa_966",
+   "set": "clinicalqa",
+   "dx": "강직성 척추염",
+   "gold": [
+    "DOID:7147"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": true,
+   "n_findings": 48,
+   "rank": 24,
+   "top3": [
+    "전립샘암",
+    "방광의 악성 신생물",
+    "뼈의 파젯병[변형성 골염]"
+   ],
+   "ms": 1.41
+  },
+  {
+   "id": "clinicalqa/cqa_996",
+   "set": "clinicalqa",
+   "dx": "용혈성 요독 증후군",
+   "gold": [
+    "DOID:12554"
+   ],
+   "in_kb": true,
+   "gold_has_symptoms": false,
+   "n_findings": 57,
+   "rank": null,
+   "top3": [
+    "상세불명의 빈혈",
+    "와포자충증",
+    "장염"
+   ],
+   "ms": 2.13
+  }
+ ],
+ "method": "findings = positive clauses of initial/history/exam/tests (negated/normal clauses dropped); gold = KB profiles resolved from diagnosis + aliases; candidates(k=50).",
+ "baseline": {
+  "note": "kb.py at commit 705efb8 (before this change), same harness, same findings, same gold ids (new resolver); baseline candidates() gets no negatives/sex/age (API did not support sex/age; negatives passed in the old API matched nothing because negated text was filtered).",
+  "ranking": {
+   "dev": {
+    "n": 111,
+    "top1": 0.0631,
+    "top3": 0.1622,
+    "top10": 0.2703,
+    "top50": 0.3964,
+    "mrr": 0.1327,
+    "coverage_in_kb": 0.955,
+    "coverage_with_symptoms": 0.7297,
+    "top10_given_covered": 0.3704
+   },
+   "heldout": {
+    "n": 156,
+    "top1": 0.0385,
+    "top3": 0.109,
+    "top10": 0.1923,
+    "top50": 0.2885,
+    "mrr": 0.0924,
+    "coverage_in_kb": 0.8526,
+    "coverage_with_symptoms": 0.5513,
+    "top10_given_covered": 0.3488
+   },
+   "overall": {
+    "n": 267,
+    "top1": 0.0487,
+    "top3": 0.1311,
+    "top10": 0.2247,
+    "top50": 0.3333,
+    "mrr": 0.1092,
+    "coverage_in_kb": 0.8951,
+    "coverage_with_symptoms": 0.6255,
+    "top10_given_covered": 0.3593
+   },
+   "sample": {
+    "n": 16,
+    "top1": 0.0625,
+    "top3": 0.125,
+    "top10": 0.3125,
+    "top50": 0.5,
+    "mrr": 0.1158,
+    "coverage_in_kb": 1.0,
+    "coverage_with_symptoms": 0.9375,
+    "top10_given_covered": 0.3333
+   },
+   "clinicalqa": {
+    "n": 95,
+    "top1": 0.0632,
+    "top3": 0.1684,
+    "top10": 0.2632,
+    "top50": 0.3789,
+    "mrr": 0.1356,
+    "coverage_in_kb": 0.9474,
+    "coverage_with_symptoms": 0.6947,
+    "top10_given_covered": 0.3788
+   },
+   "agentclinic": {
+    "n": 107,
+    "top1": 0.0561,
+    "top3": 0.1402,
+    "top10": 0.2336,
+    "top50": 0.3271,
+    "mrr": 0.1206,
+    "coverage_in_kb": 0.8785,
+    "coverage_with_symptoms": 0.5794,
+    "top10_given_covered": 0.4032
+   },
+   "diagnosisarena": {
+    "n": 49,
+    "top1": 0.0,
+    "top3": 0.0408,
+    "top10": 0.102,
+    "top50": 0.2041,
+    "mrr": 0.0307,
+    "coverage_in_kb": 0.7959,
+    "coverage_with_symptoms": 0.4898,
+    "top10_given_covered": 0.2083
+   },
+   "latency_ms": {
+    "mean": 32.68,
+    "p95": 42.36,
+    "max": 74.21
+   }
+  },
+  "ranking_history_exam_only": {
+   "dev": {
+    "n": 111,
+    "top1": 0.0631,
+    "top3": 0.1351,
+    "top10": 0.2613,
+    "top50": 0.3964,
+    "mrr": 0.1223,
+    "coverage_in_kb": 0.955,
+    "coverage_with_symptoms": 0.7297,
+    "top10_given_covered": 0.358
+   },
+   "heldout": {
+    "n": 156,
+    "top1": 0.0577,
+    "top3": 0.1026,
+    "top10": 0.1795,
+    "top50": 0.2628,
+    "mrr": 0.0974,
+    "coverage_in_kb": 0.8526,
+    "coverage_with_symptoms": 0.5513,
+    "top10_given_covered": 0.3256
+   },
+   "overall": {
+    "n": 267,
+    "top1": 0.0599,
+    "top3": 0.1161,
+    "top10": 0.2135,
+    "top50": 0.3184,
+    "mrr": 0.1078,
+    "coverage_in_kb": 0.8951,
+    "coverage_with_symptoms": 0.6255,
+    "top10_given_covered": 0.3413
+   }
+  },
+  "normalize": {
+   "dev": {
+    "cases": 111,
+    "names": 564,
+    "hit_rate": 0.8404,
+    "code_rate": 0.711,
+    "primary_hit_rate": 0.7928,
+    "primary_code_rate": 0.7207,
+    "alias_code_agreement": 0.6413
+   },
+   "heldout": {
+    "cases": 156,
+    "names": 827,
+    "hit_rate": 0.6699,
+    "code_rate": 0.5538,
+    "primary_hit_rate": 0.5577,
+    "primary_code_rate": 0.5064,
+    "alias_code_agreement": 0.6293
+   },
+   "overall": {
+    "cases": 267,
+    "names": 1391,
+    "hit_rate": 0.739,
+    "code_rate": 0.6175,
+    "primary_hit_rate": 0.6554,
+    "primary_code_rate": 0.5955,
+    "alias_code_agreement": 0.6346
+   }
+  }
+ },
+ "ablation_top1_top10_mrr": {
+  "note": "one component removed at a time from the final version",
+  "full": {
+   "dev": [
+    0.108,
+    0.333,
+    0.183
+   ],
+   "heldout": [
+    0.045,
+    0.205,
+    0.09
+   ]
+  },
+  "no_negatives": {
+   "dev": [
+    0.099,
+    0.351,
+    0.186
+   ],
+   "heldout": [
+    0.038,
+    0.199,
+    0.088
+   ]
+  },
+  "no_sex_age": {
+   "dev": [
+    0.108,
+    0.333,
+    0.182
+   ],
+   "heldout": [
+    0.045,
+    0.211,
+    0.09
+   ]
+  },
+  "no_term_backoff": {
+   "dev": [
+    0.099,
+    0.261,
+    0.156
+   ],
+   "heldout": [
+    0.019,
+    0.167,
+    0.066
+   ]
+  },
+  "no_lab_vital_parsing": {
+   "dev": [
+    0.099,
+    0.342,
+    0.178
+   ],
+   "heldout": [
+    0.045,
+    0.199,
+    0.089
+   ]
+  },
+  "no_curated_regex": {
+   "dev": [
+    0.081,
+    0.324,
+    0.166
+   ],
+   "heldout": [
+    0.045,
+    0.199,
+    0.088
+   ]
+  }
+ },
+ "normalize_audit": "Manual check of random names whose result changed vs 705efb8 (45-name sample of 292 changed out of 1391): 28 better (mostly wrong fuzzy/abbreviation guesses removed, e.g. STEMI no longer -> NSTEMI I21.4, 중추성 요붕증 no longer -> nephrogenic N25.1), 6 worse (lost correct fuzzy hits such as 복합 부분 발작 -> G40.2, 조현형 성격장애 -> F68.8 instead of F21), 11 neutral. Hit rate alone overstates the old version.",
+ "_note": "Filtered for the public repository: entries for the AgentClinic-MedQA- and DiagnosisArena-derived cases (private evaluation sets, not redistributable) were removed; aggregates computed on the full private set are marked as such. 'ranking', 'normalize' and 'baseline' aggregates are over the full private set (267 cases)."
+}

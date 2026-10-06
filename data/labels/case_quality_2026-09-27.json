@@ -1,0 +1,4845 @@
+{
+ "date": "2026-09-27",
+ "script": "scripts/check_cases.py --fix",
+ "note": "Rule-based check of data/cases_aug (no LLM). Hard issues must be zero (tests/test_case_quality.py); soft issues are a review list (ambiguous clinical judgments are flagged, not fixed). Edits change LLM-augmented entries only, except removing the placeholder search term 'english' from original keys (values untouched); original case facts never change.",
+ "summary_before": {
+  "n_cases": 267,
+  "issues": {
+   "demographic_test:hard": {
+    "count": 2,
+    "cases": 2
+   },
+   "demographic_test:soft": {
+    "count": 1,
+    "cases": 1
+   },
+   "finding_conflict:soft": {
+    "count": 7,
+    "cases": 3
+   },
+   "interpretive:soft": {
+    "count": 6,
+    "cases": 6
+   },
+   "key_collision:soft": {
+    "count": 208,
+    "cases": 191
+   },
+   "key_collision_orig:soft": {
+    "count": 1069,
+    "cases": 215
+   },
+   "key_cross_section:soft": {
+    "count": 7,
+    "cases": 7
+   },
+   "key_duplicate_token:soft": {
+    "count": 28,
+    "cases": 20
+   },
+   "key_generic_token:soft": {
+    "count": 886,
+    "cases": 250
+   },
+   "key_placeholder_token:hard": {
+    "count": 45,
+    "cases": 5
+   },
+   "key_placeholder_token:soft": {
+    "count": 7,
+    "cases": 6
+   },
+   "key_substring_hazard:soft": {
+    "count": 43,
+    "cases": 39
+   },
+   "key_unreachable:soft": {
+    "count": 3,
+    "cases": 3
+   },
+   "leak:soft": {
+    "count": 31,
+    "cases": 29
+   },
+   "unit_mismatch:soft": {
+    "count": 1,
+    "cases": 1
+   },
+   "vital_conflict:hard": {
+    "count": 1,
+    "cases": 1
+   },
+   "vital_conflict:soft": {
+    "count": 2,
+    "cases": 2
+   }
+  },
+  "hard_total": 48,
+  "cases_with_hard": 8
+ },
+ "summary_after": {
+  "n_cases": 267,
+  "issues": {
+   "demographic_test:soft": {
+    "count": 1,
+    "cases": 1
+   },
+   "finding_conflict:soft": {
+    "count": 7,
+    "cases": 3
+   },
+   "interpretive:soft": {
+    "count": 6,
+    "cases": 6
+   },
+   "key_collision:soft": {
+    "count": 208,
+    "cases": 191
+   },
+   "key_collision_orig:soft": {
+    "count": 1069,
+    "cases": 215
+   },
+   "key_cross_section:soft": {
+    "count": 2,
+    "cases": 2
+   },
+   "key_duplicate_token:soft": {
+    "count": 21,
+    "cases": 18
+   },
+   "key_generic_token:soft": {
+    "count": 886,
+    "cases": 250
+   },
+   "key_placeholder_token:soft": {
+    "count": 7,
+    "cases": 6
+   },
+   "key_substring_hazard:soft": {
+    "count": 34,
+    "cases": 33
+   },
+   "key_unreachable:soft": {
+    "count": 3,
+    "cases": 3
+   },
+   "leak:soft": {
+    "count": 31,
+    "cases": 29
+   },
+   "unit_mismatch:soft": {
+    "count": 1,
+    "cases": 1
+   },
+   "vital_conflict:soft": {
+    "count": 2,
+    "cases": 2
+   }
+  },
+  "hard_total": 0,
+  "cases_with_hard": 0
+ },
+ "edits": {
+  "clinicalqa/cqa_181": [
+   {
+    "action": "rename_key",
+    "section": "tests",
+    "old": "대동맥 조영 ct|대동맥 ct|cta|aortic ct|대동맥ct",
+    "new": "대동맥 조영 ct|대동맥 ct|cta 검사|cta test|aortic ct|대동맥ct",
+    "reason": "search terms matching unrelated requests (empty/generic/short, or a short abbreviation inside a common request word such as 'iop' in 'biopsy') removed or made specific: ['cta']"
+   }
+  ],
+  "clinicalqa/cqa_360": [
+   {
+    "action": "rename_key",
+    "section": "tests",
+    "old": "메틸말론산 검사|methylmalonic acid|mma",
+    "new": "메틸말론산 검사|methylmalonic acid|mma 검사|mma test",
+    "reason": "search terms matching unrelated requests (empty/generic/short, or a short abbreviation inside a common request word such as 'iop' in 'biopsy') removed or made specific: ['mma']"
+   }
+  ],
+  "sample/synthetic_015": [
+   {
+    "action": "rename_key",
+    "section": "tests",
+    "old": "자가항체|gad 항체|gad antibody|anti-gad|ica",
+    "new": "자가항체|gad 항체|gad antibody|anti-gad|ica 검사|ica test",
+    "reason": "search terms matching unrelated requests (empty/generic/short, or a short abbreviation inside a common request word such as 'iop' in 'biopsy') removed or made specific: ['ica']"
+   }
+  ]
+ },
+ "original_key_breadth": {
+  "generic_tokens_in_original_keys": {
+   "혈액검사": 137,
+   "청진": 70,
+   "진찰": 59,
+   "신체진찰": 57,
+   "촉진": 46,
+   "시진": 45,
+   "ct": 42,
+   "x-ray": 40,
+   "mri": 30,
+   "초음파": 27,
+   "엑스레이": 24,
+   "영상검사": 22,
+   "타진": 19,
+   "혈액": 19,
+   "혈액 검사": 18,
+   "ultrasound": 18,
+   "lab": 18,
+   "피검사": 16,
+   "x선": 14,
+   "목": 14,
+   "씨티": 11,
+   "항체": 10,
+   "단층": 10,
+   "영상": 9,
+   "눈": 9,
+   "배": 8,
+   "xray": 7,
+   "hb": 5,
+   "신체검사": 5,
+   "배양": 5,
+   "us": 5,
+   "검사": 4,
+   "imaging": 4,
+   "신체 진찰": 4,
+   "lh": 4,
+   "영상 검사": 3,
+   "ua": 3,
+   "pt": 3,
+   "ck": 3,
+   "physical": 3,
+   "진찰 소견": 3,
+   "culture": 3,
+   "방사선": 2,
+   "코": 2,
+   "소견": 2,
+   "rf": 2,
+   "수치": 2,
+   "bp": 2,
+   "cr": 2,
+   "통증": 1,
+   "signs": 1,
+   "exam": 1,
+   "blood": 1,
+   "귀": 1,
+   "labs": 1,
+   "t4": 1,
+   "sm": 1,
+   "scan": 1,
+   "if": 1,
+   "em": 1,
+   "bt": 1,
+   "fa": 1,
+   "검진": 1,
+   "입": 1,
+   "ph": 1
+  },
+  "common_requests_hitting_several_entries_via_original_keys": {
+   "두경부 진찰": 63,
+   "눈 진찰": 57,
+   "심장 청진": 57,
+   "구강 진찰": 54,
+   "폐 청진": 53,
+   "인두 진찰": 52,
+   "신경학적 진찰": 51,
+   "일반혈액검사": 51,
+   "흉부 진찰": 50,
+   "장음 청진": 50,
+   "관절 진찰": 49,
+   "경부 림프절 촉진": 47,
+   "복부 진찰": 45,
+   "피부 진찰": 45,
+   "갑상선 촉진": 42,
+   "renal function": 42,
+   "liver function test": 38,
+   "복부 촉진": 37,
+   "chest x-ray": 24,
+   "신기능 검사 (BUN/Cr)": 14,
+   "복부 CT": 13,
+   "의식 상태 평가": 12,
+   "뇌 CT": 12,
+   "head ct": 12,
+   "감각 검사": 10,
+   "흉부 X선": 9,
+   "혈액 배양": 8,
+   "복부 초음파": 7,
+   "골반 진찰": 5,
+   "귀 진찰": 5,
+   "척추 진찰": 4,
+   "유방 진찰": 4,
+   "흉부 CT": 4,
+   "abdominal ultrasound": 3,
+   "뇌신경 검사": 3,
+   "전해질 검사": 3,
+   "blood culture": 3,
+   "혈당 검사": 3,
+   "lumbar puncture": 3,
+   "근력 검사": 2,
+   "cardiac exam": 2,
+   "CRP": 2,
+   "간기능 검사": 2,
+   "소변검사": 2,
+   "heent exam": 1,
+   "lung exam": 1,
+   "abdominal exam": 1,
+   "neurologic exam": 1,
+   "skin exam": 1,
+   "extremity exam": 1,
+   "vital signs": 1,
+   "뇌 MRI": 1,
+   "체온 측정": 1,
+   "안저 검사": 1,
+   "하지 부종 확인": 1,
+   "뇌척수액 검사": 1,
+   "척추 MRI": 1,
+   "임신 검사": 1,
+   "thyroid function test": 1
+  }
+ },
+ "issues_after": {
+  "clinicalqa/cqa_1": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['자가항체 검사|항핵항체|ana']",
+    "section": "tests",
+    "key": "자가항체 검사|항핵항체|ana",
+    "aug": true,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 피부|진찰|외관 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 피부|진찰|외관 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 피부|진찰|외관 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 피부|진찰|외관 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 피부|진찰|외관 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 피부|진찰|외관 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 피부|진찰|외관 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_1024": [
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "lymphadenopathy: present in tests['복부CT|CT|영상검사'] ('간문부 림프절 비대') but denied in exam['좌쇄골상부 림프절 촉진|쇄골상부 림프절|virchow node|수파쇄골 림프절'] ('좌측 쇄골상부 부위에서 촉지되는 림프절 종대는 없음')",
+    "where": "exam['좌쇄골상부 림프절 촉진|쇄골상부 림프절|virchow node|수파쇄골 림프절']",
+    "section": "exam",
+    "key": "좌쇄골상부 림프절 촉진|쇄골상부 림프절|virchow node|수파쇄골 림프절",
+    "aug": true,
+    "finding": "lymphadenopathy"
+   },
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "lymphadenopathy: present in tests['복부 ct|복부-골반 ct|복부 골반 ct|abdominal ct|abdomen ct|abdominopelvic ct|배 ct'] ('간문부 림프절 비대') but denied in exam['좌쇄골상부 림프절 촉진|쇄골상부 림프절|virchow node|수파쇄골 림프절'] ('좌측 쇄골상부 부위에서 촉지되는 림프절 종대는 없음')",
+    "where": "exam['좌쇄골상부 림프절 촉진|쇄골상부 림프절|virchow node|수파쇄골 림프절']",
+    "section": "exam",
+    "key": "좌쇄골상부 림프절 촉진|쇄골상부 림프절|virchow node|수파쇄골 림프절",
+    "aug": true,
+    "finding": "lymphadenopathy"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|간기능검사|LFT || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: 복부CT|CT|영상검사 || 복부 ct|복부-골반 ct|복부 골반 ct|abdominal ct|abd"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 복부CT|CT|영상검사 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_1025": [
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "jaundice: present in initial ('주호소: 최근 6개월간 간헐적인 황달과 전신 가려움증') but denied in exam['heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|눈 진찰|목구멍'] ('공막 황달 없음')",
+    "where": "exam['heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|눈 진찰|목구멍']",
+    "section": "exam",
+    "key": "heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|눈 진찰|목구멍",
+    "aug": true,
+    "finding": "jaundice"
+   },
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "jaundice: present in initial ('주호소: 최근 6개월간 간헐적인 황달과 전신 가려움증') but denied in exam['피부|발진|skin|rash|점상출혈|자반'] ('명확한 황달')",
+    "where": "exam['피부|발진|skin|rash|점상출혈|자반']",
+    "section": "exam",
+    "key": "피부|발진|skin|rash|점상출혈|자반",
+    "aug": true,
+    "finding": "jaundice"
+   },
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "jaundice: present in history['황달|가려움증|증상|기간'] ('최근 6개월 동안 눈이나 피부가 노랗게 변하는 증상이 왔다 갔다 하고 전신이 가려워요') but denied in exam['heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|눈 진찰|목구멍'] ('공막 황달 없음')",
+    "where": "exam['heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|눈 진찰|목구멍']",
+    "section": "exam",
+    "key": "heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|눈 진찰|목구멍",
+    "aug": true,
+    "finding": "jaundice"
+   },
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "jaundice: present in history['황달|가려움증|증상|기간'] ('최근 6개월 동안 눈이나 피부가 노랗게 변하는 증상이 왔다 갔다 하고 전신이 가려워요') but denied in exam['피부|발진|skin|rash|점상출혈|자반'] ('명확한 황달')",
+    "where": "exam['피부|발진|skin|rash|점상출혈|자반']",
+    "section": "exam",
+    "key": "피부|발진|skin|rash|점상출혈|자반",
+    "aug": true,
+    "finding": "jaundice"
+   },
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['자가항체|혈청 검사|ANA|ANCA']",
+    "section": "tests",
+    "key": "자가항체|혈청 검사|ANA|ANCA",
+    "aug": false,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 눈|공막|황달|진찰 || heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 눈|공막|황달|진찰 || heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 눈|공막|황달|진찰 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 3 entries: 눈|공막|황달|진찰 || 피부|발진|skin|rash|점상출혈|자반 || 피부 진찰|긁은 자국|가려움증 징후|scratches"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 눈|공막|황달|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 눈|공막|황달|진찰 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 눈|공막|황달|진찰 || heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 눈|공막|황달|진찰 || heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 복부 CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_1029": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 촉진",
+    "aug": true,
+    "detail": "request '복부 촉진' hits 2 entries: 신체진찰|공막|복부|압통 || 간 촉진|복부 촉진|간 비대|간크기"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|간기능검사 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_113": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|숨소리|흉부진찰|수포음 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 청진|숨소리|흉부진찰|수포음 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|lung "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|숨소리|흉부진찰|수포음 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: 흉부 CT|CT || 복부 ct|복부ct|복부-골반 ct|복부 골반 ct|abdominal c"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 흉부 X-선|X-ray|엑스레이 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 흉부 CT|CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 흉부 CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_117": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '폐색전증'",
+    "where": "history['가족력']",
+    "section": "history",
+    "key": "가족력",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 활력징후|진찰 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 활력징후|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 활력징후|진찰 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 활력징후|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|D-dimer|BNP|트로포닌 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 흉부CT|폐동맥CT|CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 흉부CT|폐동맥CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_118": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|심음|심잡음 || 심장 진찰|심장 청진|심장진찰|심장청진|cardiac exam|heart"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|심음|심잡음 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_121": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 활력징후|신체진찰|청진|수포음|가슴 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 활력징후|신체진찰|청진|수포음|가슴 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 활력징후|신체진찰|청진|수포음|가슴 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_128": [
+   {
+    "type": "finding_conflict",
+    "severity": "soft",
+    "detail": "wheeze: present in exam['체위 변화 후 흉부 청진|우측 측와위 청진|체위변화 청진'] ('우측으로 누운 상태에서 흉부 청진 시 오른쪽 중간 폐야에서 간헐적인 국소적 천명음 이 미세하게 청진됨') but denied in exam['폐 청진|폐청진|흉부 청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|lung exam|chest exam|수포음|천명음'] ('천명음은 청진되지 않음')",
+    "where": "exam['폐 청진|폐청진|흉부 청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|lung exam|chest exam|수포음|천명음']",
+    "section": "exam",
+    "key": "폐 청진|폐청진|흉부 청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|lung exam|chest exam|수포음|천명음",
+    "aug": true,
+    "finding": "wheeze"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 흉부청진|청진|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 흉부청진|청진|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 흉부청진|청진|진찰 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 흉부청진|청진|진찰 || 폐 청진|폐청진|흉부 청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|lung "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 흉부청진|청진|진찰 || 폐 청진|폐청진|흉부 청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|lung "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 흉부청진|청진|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 흉부청진|청진|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 흉부청진|청진|진찰 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 흉부청진|청진|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 흉부청진|청진|진찰 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 흉부청진|청진|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 흉부청진|청진|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 흉부X선|X-ray|엑스레이 || 흉부 x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선|흉부 단"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 흉부CT|CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 흉부CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_14": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 신체진찰|피부|복부|사지|진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 신체진찰|피부|복부|사지|진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 신체진찰|피부|복부|사지|진찰|physical exam || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 신체진찰|피부|복부|사지|진찰|physical exam || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 신체진찰|피부|복부|사지|진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 신체진찰|피부|복부|사지|진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|간기능|빌리루빈|간효소|lab || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_148": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 척추X선|X-ray|영상검사 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_157": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'aso' is a substring of unrelated request words: ['ultrasound']",
+    "where": "tests['보체|ASO|면역검사']",
+    "section": "tests",
+    "key": "보체|ASO|면역검사",
+    "aug": false,
+    "token": "aso"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 진찰|부종|신체검사 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 진찰|부종|신체검사 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 진찰|부종|신체검사 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 진찰|부종|신체검사 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 진찰|부종|신체검사 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 진찰|부종|신체검사 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 진찰|부종|신체검사 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 진찰|부종|신체검사 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "신기능 검사 (BUN/Cr)",
+    "aug": true,
+    "detail": "request '신기능 검사 (BUN/Cr)' hits 2 entries: 신장기능|BUN|크레아티닌|혈청 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_17": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['자가항체 검사|자가면역 간염|ana|ama|anti-smooth muscle']",
+    "section": "tests",
+    "key": "자가항체 검사|자가면역 간염|ana|ama|anti-smooth muscle",
+    "aug": true,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|간기능|빌리루빈|담즙산 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_181": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['항핵항체|ana|항핵항체검사']",
+    "section": "tests",
+    "key": "항핵항체|ana|항핵항체검사",
+    "aug": true,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 잡음|청진|혈관잡음 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 잡음|청진|혈관잡음 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 잡음|청진|혈관잡음 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 흉부X선|X-ray|cxr || 흉부 x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선|흉부 단"
+   }
+  ],
+  "clinicalqa/cqa_211": [
+   {
+    "type": "key_placeholder_token",
+    "severity": "soft",
+    "detail": "vague search term '기타'",
+    "where": "history['기타|기타병력|other']",
+    "section": "history",
+    "key": "기타|기타병력|other",
+    "aug": false,
+    "token": "기타"
+   },
+   {
+    "type": "key_placeholder_token",
+    "severity": "soft",
+    "detail": "vague search term 'other'",
+    "where": "history['기타|기타병력|other']",
+    "section": "history",
+    "key": "기타|기타병력|other",
+    "aug": false,
+    "token": "other"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 하지|시진|진찰|physical || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 하지|시진|진찰|physical || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 하지|시진|진찰|physical || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 하지|시진|진찰|physical || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 하지|시진|진찰|physical || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 하지|시진|진찰|physical || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 하지|시진|진찰|physical || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 하지|시진|진찰|physical || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: X-ray|엑스레이|방사선|xray || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_225": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 무릎|진찰|관절|부종|발적|열감 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 무릎|진찰|관절|부종|발적|열감 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_227": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 관절|무릎|발목|신체 진찰 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   }
+  ],
+  "clinicalqa/cqa_229": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_231": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['혈청학검사|류마티스인자|항체|RF|CCP|ANA|SSA|SSB']",
+    "section": "tests",
+    "key": "혈청학검사|류마티스인자|항체|RF|CCP|ANA|SSA|SSB",
+    "aug": false,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 신체진찰|관절|손목|손가락|종창 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   }
+  ],
+  "clinicalqa/cqa_232": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 관절|신체진찰|MTP || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "신기능 검사 (BUN/Cr)",
+    "aug": true,
+    "detail": "request '신기능 검사 (BUN/Cr)' hits 2 entries: 혈액검사|CBC|요산|uric acid|BUN|크레아티닌 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "흉부 X선",
+    "aug": true,
+    "detail": "request '흉부 X선' hits 2 entries: X선|X-ray|발 X선 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: X선|X-ray|발 X선 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_234": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 신체진찰|무릎|관절|physical_exam || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 엑스레이|X-ray|영상검사 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_236": [
+   {
+    "type": "interpretive",
+    "severity": "soft",
+    "detail": "diagnostic interpretation: '좌측 정중신경 부위 타진 시 수근관 증후군을 시사하는 방사통이나 감각 이상'",
+    "where": "exam['티넬 징후|수근관 증후군 진찰|tinel sign|수근관 징후']",
+    "section": "exam",
+    "key": "티넬 징후|수근관 증후군 진찰|tinel sign|수근관 징후",
+    "aug": true
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 시진|진찰|발적|부종|압통|손목 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 시진|진찰|발적|부종|압통|손목 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "흉부 X선",
+    "aug": true,
+    "detail": "request '흉부 X선' hits 2 entries: X-ray|손목 엑스레이|X선 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: X-ray|손목 엑스레이|X선 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_238": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['면역혈청|항체|ANA|dsDNA|Sm']",
+    "section": "tests",
+    "key": "면역혈청|항체|ANA|dsDNA|Sm",
+    "aug": false,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 관절|진찰|압통|부종 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 관절|진찰|압통|부종 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 관절|진찰|압통|부종 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 관절|진찰|압통|부종 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 관절|진찰|압통|부종 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 관절|진찰|압통|부종 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 3 entries: 관절|진찰|압통|부종 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 구강 진찰|구강 검진|oral exam"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 엑스레이|X-ray|영상 || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_245": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['항핵항체|ANA']",
+    "section": "tests",
+    "key": "항핵항체|ANA",
+    "aug": false,
+    "token": "ana"
+   },
+   {
+    "type": "key_unreachable",
+    "severity": "soft",
+    "detail": "every search term is a long phrase (>10 chars); short requests miss it",
+    "where": "tests['손톱주름 모세혈관확장증|Nailfold capillaroscopy']",
+    "section": "tests",
+    "key": "손톱주름 모세혈관확장증|Nailfold capillaroscopy",
+    "aug": false
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 피부|손가락|시진|촉진 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "갑상선 촉진",
+    "aug": true,
+    "detail": "request '갑상선 촉진' hits 2 entries: 피부|손가락|시진|촉진 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 촉진",
+    "aug": true,
+    "detail": "request '복부 촉진' hits 2 entries: 피부|손가락|시진|촉진 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_28": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['혈액 검사|CPK|항핵항체|항Jo-1|blood test|ANA']",
+    "section": "tests",
+    "key": "혈액 검사|CPK|항핵항체|항Jo-1|blood test|ANA",
+    "aug": false,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "근력 검사",
+    "aug": true,
+    "detail": "request '근력 검사' hits 2 entries: 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상 || 근력 검사|근력 측정|도수 근력 검사|mmt|manual muscle t"
+   }
+  ],
+  "clinicalqa/cqa_285": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 초음파",
+    "aug": true,
+    "detail": "request '복부 초음파' hits 2 entries: 복부초음파|초음파|US || 복부 초음파|abdominal ultrasound|abdominal us"
+   }
+  ],
+  "clinicalqa/cqa_3": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ige' is a substring of unrelated request words: ['antigen']",
+    "where": "tests['IgE|면역글로불린']",
+    "section": "tests",
+    "key": "IgE|면역글로불린",
+    "aug": false,
+    "token": "ige"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 신체진찰|피부|진찰|physical|skin || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 신체진찰|피부|진찰|physical|skin || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_31": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 피부|진찰|결절 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 피부|진찰|결절 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 피부|진찰|결절 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 피부|진찰|결절 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 피부|진찰|결절 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 피부|진찰|결절 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 피부|진찰|결절 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 피부|진찰|결절 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "신기능 검사 (BUN/Cr)",
+    "aug": true,
+    "detail": "request '신기능 검사 (BUN/Cr)' hits 2 entries: 혈액검사|BUN|크레아티닌|신장기능|전해질|CBC|헤모글로빈 || electrolyte|나트륨|칼륨|sodium|potassium|crea"
+   }
+  ],
+  "clinicalqa/cqa_328": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 진찰|말투|지남력|환각|망상|mental status || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 진찰|말투|지남력|환각|망상|mental status || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_330": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '우울증'",
+    "where": "history['가족력|유전']",
+    "section": "history",
+    "key": "가족력|유전",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_343": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_355": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_360": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_366": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|청진소견|심음|호흡음 || 심장 진찰|심장 청진|심장진찰|심장청진|심잡음|cardiac exam|h"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 청진|청진소견|심음|호흡음 || 폐 청진|폐청진|흉부 청진|흉부청진|폐 진찰|흉부 진찰|흉부진찰|lung"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 목|인두|편도|진찰 || 폐 청진|폐청진|흉부 청진|흉부청진|폐 진찰|흉부 진찰|흉부진찰|lung"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 목|인두|편도|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|청진소견|심음|호흡음 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 목|인두|편도|진찰 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 목|인두|편도|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 목|인두|편도|진찰 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   }
+  ],
+  "clinicalqa/cqa_371": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 흉부청진|청진|수포음|폐음 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 흉부청진|청진|수포음|폐음 || 폐 청진|폐청진|흉부 청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|lung "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 흉부청진|청진|수포음|폐음 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 흉부X선|X-ray|엑스레이|CXR || 흉부 x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선|흉부 단"
+   }
+  ],
+  "clinicalqa/cqa_376": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|청진소견|폐음|수포음 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 청진|청진소견|폐음|수포음 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|청진소견|폐음|수포음 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 흉부X선|X-ray|엑스레이 || 흉부 x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선|흉부 단"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 흉부CT|CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 흉부CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_381": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 흉부|청진|폐|신체검진 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 흉부|청진|폐|신체검진 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_383": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선 || 림프절 촉진|경부 림프절 촉진|체표 림프절 진찰|lymph node ex"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 구강 || 구강 검진|구강 진찰|oral exam"
+   }
+  ],
+  "clinicalqa/cqa_388": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_404": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_408": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 측두골CT|CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 측두골CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_417": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|안구 진찰|눈 진 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "뇌신경 검사",
+    "aug": true,
+    "detail": "request '뇌신경 검사' hits 2 entries: 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상 || 뇌신경 검사|안구운동 검사|안진검사|cranial nerve exam|n"
+   }
+  ],
+  "clinicalqa/cqa_42": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|심음|폐음|수포음|갤럽 || 심장 진찰|심장 청진|심장진찰|심장청진|심잡음|cardiac exam|h"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 청진|심음|폐음|수포음|갤럽 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|심음|폐음|수포음|갤럽 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_437": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|전해질|혈당|삼투압 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_442": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 활력징후|진찰 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 활력징후|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 활력징후|진찰 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 활력징후|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 활력징후|진찰 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 활력징후|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_446": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 신체검사|청진 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 신체검사|청진 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 신체검사|청진 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|갑상선|전해질 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_45": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|심음|마찰음|friction rub || 심장 진찰|심장 청진|심장진찰|심장청진|심잡음|cardiac exam|h"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 청진|심음|마찰음|friction rub || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|심음|마찰음|friction rub || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_458": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|갑상선기능검사|항체|lab || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_466": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 활력징후|혈압|맥박|청진 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 활력징후|혈압|맥박|청진 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 활력징후|혈압|맥박|청진 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|전해질|갑상선|혈당 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_47": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 청진|타진|폐|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 청진|타진|폐|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|타진|폐|진찰 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 청진|타진|폐|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|타진|폐|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 청진|타진|폐|진찰 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 청진|타진|폐|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 청진|타진|폐|진찰 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 청진|타진|폐|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 청진|타진|폐|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_503": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['자가항체|ANA|dsDNA|보체|RF']",
+    "section": "tests",
+    "key": "자가항체|ANA|dsDNA|보체|RF",
+    "aug": false,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 신체진찰|관절|피부 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   }
+  ],
+  "clinicalqa/cqa_510": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_513": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "감각 검사",
+    "aug": true,
+    "detail": "request '감각 검사' hits 2 entries: 신경학 검진|신경학적 검진|삼차신경|감각 검사 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   }
+  ],
+  "clinicalqa/cqa_514": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_52": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 심음|청진|심잡음|auscultation || 심장 진찰|심장 청진|심장진찰|심장청진|cardiac exam|heart"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 심음|청진|심잡음|auscultation || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 심음|청진|심잡음|auscultation || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_521": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 뇌 CT|CT|brain CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 뇌 CT|CT|brain CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_523": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "뇌 CT",
+    "aug": true,
+    "detail": "request '뇌 CT' hits 2 entries: 뇌CT|CT || 뇌 ct|두부 ct|두부ct|머리 ct|head ct|brain ct|뇌"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "head ct",
+    "aug": true,
+    "detail": "request 'head ct' hits 2 entries: 뇌CT|CT || 뇌 ct|두부 ct|두부ct|머리 ct|head ct|brain ct|뇌"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 뇌CT|CT || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 뇌CT|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_530": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '위암'",
+    "where": "history['가족력|부모|아빠']",
+    "section": "history",
+    "key": "가족력|부모|아빠",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 활력징후|진찰|복부|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 활력징후|진찰|복부|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_533": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: 'Barrett's esophagus'",
+    "where": "tests['상부위장관내시경|내시경|조직검사|생검']",
+    "section": "tests",
+    "key": "상부위장관내시경|내시경|조직검사|생검",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선 || 두경부 진찰|림프절 진찰|head and neck exam"
+   }
+  ],
+  "clinicalqa/cqa_538": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 복부진찰|압통|반발통|장음|청진 || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 복부진찰|압통|반발통|장음|청진 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   }
+  ],
+  "clinicalqa/cqa_549": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 활력징후|진찰|영양|압통|복부 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || 복부 진찰|복부 압통|복부 진찰 소견|심와부 압통"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 활력징후|진찰|영양|압통|복부 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|포도당|아밀라아제|리파아제|간수치|빌리루빈 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈당 검사",
+    "aug": true,
+    "detail": "request '혈당 검사' hits 2 entries: 전해질|electrolyte|나트륨|칼륨|sodium|potassium| || 당화혈색소|hba1c|혈당 검사"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: 복부CT|영상|CT || 복부 ct|복부-골반 ct|복부 골반 ct|abdominal ct|abd"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 복부CT|영상|CT || 간기능|간 기능|간 수치|간효소|lft|liver function|ast"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 복부CT|영상|CT || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_550": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '췌장암'",
+    "where": "history['가족력']",
+    "section": "history",
+    "key": "가족력",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 복부|진찰|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 복부|진찰|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 복부|진찰|압통|종괴 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 복부|진찰|압통|종괴 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 복부|진찰|압통|종괴 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 복부|진찰|압통|종괴 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 복부|진찰|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 복부|진찰|압통|종괴 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|간기능|생화학 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_555": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_575": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 신체진찰|목진찰|종괴|시진|촉진|physical exam || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "갑상선 촉진",
+    "aug": true,
+    "detail": "request '갑상선 촉진' hits 2 entries: 신체진찰|목진찰|종괴|시진|촉진|physical exam || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 촉진",
+    "aug": true,
+    "detail": "request '복부 촉진' hits 2 entries: 신체진찰|목진찰|종괴|시진|촉진|physical exam || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_578": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: 신체 진찰|경부 진찰|목 진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_580": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 촉진",
+    "aug": true,
+    "detail": "request '복부 촉진' hits 2 entries: 경부|촉진|종괴 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_595": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "신기능 검사 (BUN/Cr)",
+    "aug": true,
+    "detail": "request '신기능 검사 (BUN/Cr)' hits 2 entries: 혈액검사|CBC|신장기능|전해질|BUN|Cr || electrolyte|나트륨|칼륨|sodium|potassium|크레아티"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "CRP",
+    "aug": true,
+    "detail": "request 'CRP' hits 2 entries: 혈액검사|CBC|신장기능|전해질|BUN|Cr || crp|c-반응|c반응|염증 수치|염증수치|염증 표지|esr|적혈구침강|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 초음파",
+    "aug": true,
+    "detail": "request '복부 초음파' hits 2 entries: 신장초음파|초음파|US || 복부 초음파|복부초음파|abdominal ultrasound|abdomi"
+   }
+  ],
+  "clinicalqa/cqa_6": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 4 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 3 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 복부|진찰|촉진|비장 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "갑상선 촉진",
+    "aug": true,
+    "detail": "request '갑상선 촉진' hits 2 entries: 복부|진찰|촉진|비장 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 3 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 3 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 3 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 3 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 3 entries: 피부|진찰|발진|상처 || 복부|진찰|촉진|비장 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_61": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_622": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|혈당|공복혈당 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_627": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심부건반사",
+    "aug": true,
+    "detail": "request '심부건반사' hits 2 entries: 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상 || 심부건반사|건반사|deep tendon reflex|dtr"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|갑상선기능검사|TFT|TSH|Free T4 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_629": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|호르몬검사|FSH|LH|에스트라디올|TSH|프로락틴|코르티솔 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_630": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|호르몬검사|blood test || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_636": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '45,X'",
+    "where": "tests['염색체검사|핵형|karyotype']",
+    "section": "tests",
+    "key": "염색체검사|핵형|karyotype",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 심장|청진|잡음|murmur || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 심장|청진|잡음|murmur || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|호르몬|FSH|LH|에스트라디올|테스토스테론|TSH|Free T || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_660": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "의식 상태 평가",
+    "aug": true,
+    "detail": "request '의식 상태 평가' hits 2 entries: 지남력|의식|단기기억|정신상태|mental || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심부건반사",
+    "aug": true,
+    "detail": "request '심부건반사' hits 2 entries: 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상 || 심부건반사 검사|심부건반사|deep tendon reflex|dtr"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 신경학검사|눈|안구|안구진탕|외직근|보행|실조|neurology || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_664": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 복부진찰|청진|촉진|abdominal exam || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "갑상선 촉진",
+    "aug": true,
+    "detail": "request '갑상선 촉진' hits 2 entries: 복부진찰|청진|촉진|abdominal exam || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 복부진찰|청진|촉진|abdominal exam || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 복부진찰|청진|촉진|abdominal exam || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "chest x-ray",
+    "aug": true,
+    "detail": "request 'chest x-ray' hits 2 entries: 복부 X선|엑스레이|x-ray|kUB || 흉부 x선|흉부x선|흉부 x-ray|흉부 엑스레이|흉부 사진|흉부 방사선"
+   }
+  ],
+  "clinicalqa/cqa_69": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 청진|타진|흉부진찰|흉막마찰음|탁음|chest exam || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 청진|타진|흉부진찰|흉막마찰음|탁음|chest exam || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|lung "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 청진|타진|흉부진찰|흉막마찰음|탁음|chest exam || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "clinicalqa/cqa_725": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['항핵항체|ana|ana test|항핵항체검사']",
+    "section": "tests",
+    "key": "항핵항체|ana|ana test|항핵항체검사",
+    "aug": true,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 하지|점상출혈|피부|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 하지|점상출혈|피부|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 하지|점상출혈|피부|진찰 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 하지|점상출혈|피부|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 하지|점상출혈|피부|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 하지|점상출혈|피부|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 3 entries: 하지|점상출혈|피부|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 잇몸 촉진|구강 진찰|gingival exam"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "신기능 검사 (BUN/Cr)",
+    "aug": true,
+    "detail": "request '신기능 검사 (BUN/Cr)' hits 2 entries: 신장기능|bun|cr|creatinine || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "CRP",
+    "aug": true,
+    "detail": "request 'CRP' hits 2 entries: 신장기능|bun|cr|creatinine || crp|c-반응|c반응|염증 수치|염증수치|염증 표지|esr|적혈구침강|"
+   }
+  ],
+  "clinicalqa/cqa_726": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "의식 상태 평가",
+    "aug": true,
+    "detail": "request '의식 상태 평가' hits 2 entries: 의식|신경학적검사 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사 || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_729": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_734": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_739": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 복부|하복부|진찰|abdomen || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 복부|하복부|진찰|abdomen || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 초음파",
+    "aug": true,
+    "detail": "request '복부 초음파' hits 2 entries: 초음파|전립선초음파|US || 복부 초음파|복부초음파|abdominal ultrasound|abdomi"
+   }
+  ],
+  "clinicalqa/cqa_742": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: 복부CT|CT|영상검사 || 복부 ct|복부-골반 ct|복부 골반 ct|abdominal ct|abd"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 복부CT|CT|영상검사 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 복부CT|CT|영상검사 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "clinicalqa/cqa_744": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_762": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 촉진",
+    "aug": true,
+    "detail": "request '복부 촉진' hits 2 entries: 복부 진찰|복부|장음|abdomen || 복부 촉진|압통 검사|abdominal palpation"
+   }
+  ],
+  "clinicalqa/cqa_771": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '크론 병'",
+    "where": "history['가족력|어머니|엄마']",
+    "section": "history",
+    "key": "가족력|어머니|엄마",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 복부 진찰|압통|경결|촉진 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "갑상선 촉진",
+    "aug": true,
+    "detail": "request '갑상선 촉진' hits 2 entries: 복부 진찰|압통|경결|촉진 || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_800": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['항핵항체|ana|antinuclear antibody']",
+    "section": "tests",
+    "key": "항핵항체|ana|antinuclear antibody",
+    "aug": true,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 하지|함요부종|부종|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 하지|함요부종|부종|진찰 || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_841": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_848": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 진찰|청진|신체진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 진찰|청진|신체진찰|physical exam || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 진찰|청진|신체진찰|physical exam || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 진찰|청진|신체진찰|physical exam || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 진찰|청진|신체진찰|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   }
+  ],
+  "clinicalqa/cqa_912": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 신체진찰|무릎|관절|외관 || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   }
+  ],
+  "clinicalqa/cqa_928": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'ana' is a substring of unrelated request words: ['analysis', 'anaerobic', 'anaemia', 'banana']",
+    "where": "tests['항핵항체|ana|antinuclear antibody']",
+    "section": "tests",
+    "key": "항핵항체|ana|antinuclear antibody",
+    "aug": true,
+    "token": "ana"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 피부|발진|skin|rash|점상출혈|자반 || 피부 진찰|고트론|헬리오트롭|샤올"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "일반혈액검사",
+    "aug": true,
+    "detail": "request '일반혈액검사' hits 2 entries: 혈액검사|근육효소|CK|LDH|간수치|AST|ALT || 일반혈액검사|일반혈액|일반 혈액|전혈구|cbc|complete blood"
+   }
+  ],
+  "clinicalqa/cqa_940": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_966": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   }
+  ],
+  "clinicalqa/cqa_996": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 3 entries: 외모|진찰|창백|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "인두 진찰",
+    "aug": true,
+    "detail": "request '인두 진찰' hits 2 entries: 외모|진찰|창백|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "흉부 진찰",
+    "aug": true,
+    "detail": "request '흉부 진찰' hits 2 entries: 외모|진찰|창백|physical exam || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "복부 진찰",
+    "aug": true,
+    "detail": "request '복부 진찰' hits 2 entries: 외모|진찰|창백|physical exam || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "피부 진찰",
+    "aug": true,
+    "detail": "request '피부 진찰' hits 2 entries: 외모|진찰|창백|physical exam || 피부|발진|skin|rash|점상출혈|자반"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "신경학적 진찰",
+    "aug": true,
+    "detail": "request '신경학적 진찰' hits 2 entries: 외모|진찰|창백|physical exam || 신경학적|신경학|신경 진찰|신경진찰|신경계|neuro|의식 수준|의식 상"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "관절 진찰",
+    "aug": true,
+    "detail": "request '관절 진찰' hits 2 entries: 외모|진찰|창백|physical exam || 사지|팔다리|부종|하지 진찰|extremit|edema|말초 맥박|곤봉지"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "눈 진찰",
+    "aug": true,
+    "detail": "request '눈 진찰' hits 2 entries: 외모|진찰|창백|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: 외모|진찰|창백|physical exam || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 혈액검사|lab|cbc|lft|renal || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_001": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: ct|씨티|단층 || 복부 ct|복부ct|복부-골반 ct|복부 골반 ct|abdominal c"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 2 entries: 혈액|cbc|피검사 || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_002": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 심장|심음|청진|heart|cardiac || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   }
+  ],
+  "sample/synthetic_003": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 심장|심음|청진|heart|cardiac || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|조영|angio|혈관 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층|조영|angio|혈관 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_004": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 폐|호흡음|청진|lung|chest || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|조영|폐동맥|angio || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층|조영|폐동맥|angio || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_005": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 폐|호흡음|청진|타진|lung|chest|auscult || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "흉부 CT",
+    "aug": true,
+    "detail": "request '흉부 CT' hits 2 entries: 흉부|x-ray|xray|엑스레이|엑스선|cxr|x선 || 흉부 ct|흉부ct|chest ct|지방선|소포|bleb"
+   }
+  ],
+  "sample/synthetic_006": [
+   {
+    "type": "leak",
+    "severity": "soft",
+    "detail": "value names the diagnosis: '역류성 식도염'",
+    "where": "tests['내시경|위내시경|egd|endoscop']",
+    "section": "tests",
+    "key": "내시경|위내시경|egd|endoscop",
+    "aug": false,
+    "origin": "orig"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "경부 림프절 촉진",
+    "aug": true,
+    "detail": "request '경부 림프절 촉진' hits 2 entries: 흉벽|늑연골|누르|압통|촉진|chest wall|palpat || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "갑상선 촉진",
+    "aug": true,
+    "detail": "request '갑상선 촉진' hits 2 entries: 흉벽|늑연골|누르|압통|촉진|chest wall|palpat || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "구강 진찰",
+    "aug": true,
+    "detail": "request '구강 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 구강 진찰|후두 진찰|구강 검사|후두경 검사|oral exam|laryn"
+   }
+  ],
+  "sample/synthetic_007": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'cta' is a substring of unrelated request words: ['lactate']",
+    "where": "tests['혈관조영|cta|angio']",
+    "section": "tests",
+    "key": "혈관조영|cta|angio",
+    "aug": false,
+    "token": "cta"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: 경부|목|강직|수막|neck|kernig|brudzinski || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "뇌 CT",
+    "aug": true,
+    "detail": "request '뇌 CT' hits 2 entries: ct|씨티|단층|뇌영상|brain imaging || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "head ct",
+    "aug": true,
+    "detail": "request 'head ct' hits 2 entries: ct|씨티|단층|뇌영상|brain imaging || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|뇌영상|brain imaging || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층|뇌영상|brain imaging || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_008": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: 경부|목|강직|수막|neck|kernig|brudzinski || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "뇌 CT",
+    "aug": true,
+    "detail": "request '뇌 CT' hits 2 entries: ct|씨티|단층|뇌영상 || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 3 entries: 혈액|cbc|crp|피검사 || 배양|culture || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "head ct",
+    "aug": true,
+    "detail": "request 'head ct' hits 2 entries: ct|씨티|단층|뇌영상 || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "blood culture",
+    "aug": true,
+    "detail": "request 'blood culture' hits 2 entries: 배양|culture || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|뇌영상 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층|뇌영상 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_009": [
+   {
+    "type": "key_substring_hazard",
+    "severity": "soft",
+    "detail": "'cta' is a substring of unrelated request words: ['lactate']",
+    "where": "tests['혈관조영|cta|angio']",
+    "section": "tests",
+    "key": "혈관조영|cta|angio",
+    "aug": false,
+    "token": "cta"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: 경부|목|경동맥|carotid|neck || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "폐 청진",
+    "aug": true,
+    "detail": "request '폐 청진' hits 2 entries: 심장|청진|심음|heart || 폐 청진|폐청진|흉부 청진|흉부청진|호흡음|폐 진찰|흉부 진찰|흉부진찰|"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "장음 청진",
+    "aug": true,
+    "detail": "request '장음 청진' hits 2 entries: 심장|청진|심음|heart || 복부|배 진찰|배 촉진|abdom|장음|간비대|비장비대|간비장"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "뇌신경 검사",
+    "aug": true,
+    "detail": "request '뇌신경 검사' hits 2 entries: 신경|neuro|nihss|근력|뇌신경|감각 || 뇌신경 검사|뇌신경검사|cranial nerve exam|cranial "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "뇌 CT",
+    "aug": true,
+    "detail": "request '뇌 CT' hits 2 entries: ct|씨티|단층|뇌영상 || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "head ct",
+    "aug": true,
+    "detail": "request 'head ct' hits 2 entries: ct|씨티|단층|뇌영상 || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|뇌영상 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층|뇌영상 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_010": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: 인후|폐|청진|호흡음|경부|목|lung || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 인후|폐|청진|호흡음|경부|목|lung || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: 초음파|ultrasound|sono|ct|씨티|영상 || 복부 ct|복부ct|복부-골반 ct|복부 골반 ct|abdominal c"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 2 entries: 혈액|cbc|crp|피검사 || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: 초음파|ultrasound|sono|ct|씨티|영상 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: 초음파|ultrasound|sono|ct|씨티|영상 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_011": [
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: 경부|목|어깨|근육|두피|압통|측두|neck || heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구 "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "뇌 CT",
+    "aug": true,
+    "detail": "request '뇌 CT' hits 2 entries: ct|씨티|단층 || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "head ct",
+    "aug": true,
+    "detail": "request 'head ct' hits 2 entries: ct|씨티|단층 || 뇌 ct|뇌ct|두부 ct|두부ct|머리 ct|head ct|brain "
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층 || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_013": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 초음파",
+    "aug": true,
+    "detail": "request '복부 초음파' hits 2 entries: 초음파|ultrasound|sono|담낭 || 복부 초음파|복부초음파|abdominal ultrasound|abdomi"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 2 entries: 혈액|cbc|피검사|백혈구 || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "abdominal ultrasound",
+    "aug": true,
+    "detail": "request 'abdominal ultrasound' hits 2 entries: 초음파|ultrasound|sono|담낭 || 복부 초음파|복부초음파|abdominal ultrasound|abdomi"
+   }
+  ],
+  "sample/synthetic_014": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|인두|편도|구강|고막|이경|안구 진찰| || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: ct|씨티|단층 || 복부 ct|복부ct|복부-골반 ct|복부 골반 ct|abdominal c"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 2 entries: 혈액|cbc|피검사|백혈구 || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층 || 전해질|electrolyte|나트륨|칼륨|sodium|potassium|"
+   }
+  ],
+  "sample/synthetic_015": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "exam",
+    "request": "심장 청진",
+    "aug": true,
+    "detail": "request '심장 청진' hits 2 entries: 흉부|폐|청진|chest|lung || 심장 진찰|심장 청진|심장진찰|심장청진|심음|심잡음|cardiac exa"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: ct|씨티|단층|초음파|ultrasound || 복부 ct|복부ct|복부-골반 ct|복부 골반 ct|abdominal c"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 2 entries: 혈액|cbc|피검사|백혈구|리파아제|lipase || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|초음파|ultrasound || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   }
+  ],
+  "sample/synthetic_016": [
+   {
+    "type": "key_collision",
+    "severity": "soft",
+    "where": "exam",
+    "request": "두경부 진찰",
+    "aug": true,
+    "detail": "request '두경부 진찰' hits 2 entries: heent|두경부|두부 진찰|결막|공막|인두|편도|구강|고막|이경|안구  || 경부|목 진찰|목 촉진|림프절|lymph|갑상선 촉진|갑상샘 촉진|갑상선"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "복부 CT",
+    "aug": true,
+    "detail": "request '복부 CT' hits 2 entries: ct|씨티|단층|초음파|ultrasound || 복부 ct|복부ct|복부-골반 ct|복부 골반 ct|abdominal c"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "혈액 배양",
+    "aug": true,
+    "detail": "request '혈액 배양' hits 3 entries: 혈액|cbc|피검사|백혈구 || 대변검사|대변 검사|stool test|분변|배양|culture || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "blood culture",
+    "aug": true,
+    "detail": "request 'blood culture' hits 2 entries: 대변검사|대변 검사|stool test|분변|배양|culture || 혈액 배양|혈액배양|blood culture|혈액 균배양"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "liver function test",
+    "aug": true,
+    "detail": "request 'liver function test' hits 2 entries: ct|씨티|단층|초음파|ultrasound || 간기능|간 기능|간수치|간 수치|간효소|lft|liver function"
+   },
+   {
+    "type": "key_collision_orig",
+    "severity": "soft",
+    "where": "tests",
+    "request": "renal function",
+    "aug": true,
+    "detail": "request 'renal function' hits 2 entries: ct|씨티|단층|초음파|ultrasound || sodium|potassium|creatinine|신장 기능|신장기능|콩"
+   }
+  ]
+ },
+ "_note": "Filtered for the public repository: entries for the AgentClinic-MedQA- and DiagnosisArena-derived cases (private evaluation sets, not redistributable) were removed; aggregates computed on the full private set are marked as such. summary_before/summary_after describe the full private set (267 cases); summary_after_public is recomputed from the remaining issues_after entries.",
+ "summary_after_public": {
+  "n_cases": 109,
+  "issues": {
+   "finding_conflict:soft": {
+    "count": 7,
+    "cases": 3
+   },
+   "interpretive:soft": {
+    "count": 1,
+    "cases": 1
+   },
+   "key_collision:soft": {
+    "count": 82,
+    "cases": 75
+   },
+   "key_collision_orig:soft": {
+    "count": 410,
+    "cases": 90
+   },
+   "key_placeholder_token:soft": {
+    "count": 2,
+    "cases": 1
+   },
+   "key_substring_hazard:soft": {
+    "count": 16,
+    "cases": 16
+   },
+   "key_unreachable:soft": {
+    "count": 1,
+    "cases": 1
+   },
+   "leak:soft": {
+    "count": 8,
+    "cases": 8
+   }
+  },
+  "hard_total": 0
+ }
+}

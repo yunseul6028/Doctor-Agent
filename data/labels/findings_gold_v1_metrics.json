@@ -1,0 +1,234 @@
+{
+ "n_items": 173,
+ "n_gold_findings": 301,
+ "parse_ms_per_item": 0.375,
+ "overall": {
+  "concept+polarity": {
+   "precision": 0.956,
+   "recall": 0.94,
+   "f1": 0.948,
+   "tp": 283,
+   "fp": 13,
+   "fn": 18
+  },
+  "concept+polarity+subject+temporality": {
+   "precision": 0.946,
+   "recall": 0.93,
+   "f1": 0.938,
+   "tp": 280,
+   "fp": 16,
+   "fn": 21
+  },
+  "draft_auto_labels (before hand fixes)": {
+   "precision": 0.923,
+   "recall": 0.841,
+   "f1": 0.88,
+   "tp": 253,
+   "fp": 21,
+   "fn": 48
+  }
+ },
+ "by_phenomenon": {
+  "exam_list": {
+   "n_items": 20,
+   "precision": 1.0,
+   "recall": 0.957,
+   "f1": 0.978,
+   "tp": 45,
+   "fp": 0,
+   "fn": 2,
+   "full": 0.978
+  },
+  "family": {
+   "n_items": 10,
+   "precision": 1.0,
+   "recall": 0.9,
+   "f1": 0.947,
+   "tp": 9,
+   "fp": 0,
+   "fn": 1,
+   "full": 0.947
+  },
+  "hedge": {
+   "n_items": 12,
+   "precision": 1.0,
+   "recall": 0.824,
+   "f1": 0.903,
+   "tp": 14,
+   "fp": 0,
+   "fn": 3,
+   "full": 0.774
+  },
+  "hypothetical": {
+   "n_items": 2,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "tp": 0,
+   "fp": 0,
+   "fn": 0,
+   "full": 0.0
+  },
+  "idiom": {
+   "n_items": 19,
+   "precision": 0.92,
+   "recall": 0.852,
+   "f1": 0.885,
+   "tp": 23,
+   "fp": 2,
+   "fn": 4,
+   "full": 0.808
+  },
+  "negation": {
+   "n_items": 65,
+   "precision": 0.958,
+   "recall": 0.92,
+   "f1": 0.939,
+   "tp": 115,
+   "fp": 5,
+   "fn": 10,
+   "full": 0.939
+  },
+  "negation_list": {
+   "n_items": 43,
+   "precision": 0.944,
+   "recall": 0.924,
+   "f1": 0.934,
+   "tp": 85,
+   "fp": 5,
+   "fn": 7,
+   "full": 0.934
+  },
+  "numbers": {
+   "n_items": 20,
+   "precision": 1.0,
+   "recall": 0.976,
+   "f1": 0.988,
+   "tp": 81,
+   "fp": 0,
+   "fn": 2,
+   "full": 0.988
+  },
+  "past": {
+   "n_items": 17,
+   "precision": 0.962,
+   "recall": 0.926,
+   "f1": 0.943,
+   "tp": 25,
+   "fp": 1,
+   "fn": 2,
+   "full": 0.906
+  },
+  "plain": {
+   "n_items": 10,
+   "precision": 0.727,
+   "recall": 1.0,
+   "f1": 0.842,
+   "tp": 8,
+   "fp": 3,
+   "fn": 0,
+   "full": 0.842
+  },
+  "simile": {
+   "n_items": 14,
+   "precision": 0.957,
+   "recall": 0.917,
+   "f1": 0.936,
+   "tp": 22,
+   "fp": 1,
+   "fn": 2,
+   "full": 0.851
+  },
+  "yesno": {
+   "n_items": 44,
+   "precision": 0.959,
+   "recall": 0.979,
+   "f1": 0.969,
+   "tp": 47,
+   "fp": 2,
+   "fn": 1,
+   "full": 0.969
+  }
+ },
+ "by_source": {
+  "patient": {
+   "n_items": 104,
+   "precision": 0.947,
+   "recall": 0.919,
+   "f1": 0.932,
+   "tp": 124,
+   "fp": 7,
+   "fn": 11
+  },
+  "exam": {
+   "n_items": 38,
+   "precision": 0.979,
+   "recall": 0.948,
+   "f1": 0.963,
+   "tp": 92,
+   "fp": 2,
+   "fn": 5
+  },
+  "test": {
+   "n_items": 31,
+   "precision": 0.944,
+   "recall": 0.971,
+   "f1": 0.957,
+   "tp": 67,
+   "fp": 4,
+   "fn": 2
+  }
+ },
+ "vs_old": {
+  "polarity_of_gold_findings": {
+   "clinical_rules.negated": {
+    "accuracy": 0.991,
+    "n": 113
+   },
+   "preconditions._neg": {
+    "accuracy": 0.991,
+    "n": 113
+   },
+   "danger_gate.polarity": {
+    "accuracy": 0.982,
+    "n": 113
+   },
+   "nlp.parse": {
+    "accuracy": 0.973,
+    "n": 113
+   }
+  },
+  "family_not_attributed_to_patient": {
+   "clinical_rules.contains_affirmed (no subject handling)": {
+    "accuracy": 1.0,
+    "n": 8
+   },
+   "preconditions._self_only + _affirmed": {
+    "accuracy": 1.0,
+    "n": 8
+   },
+   "nlp.affirmed (patient only)": {
+    "accuracy": 1.0,
+    "n": 8
+   }
+  },
+  "grounding_claims": {
+   "grounding.is_grounded: correct claim grounded": {
+    "accuracy": 0.846,
+    "n": 267
+   },
+   "grounding.is_grounded: contradicting claim rejected": {
+    "accuracy": 0.996,
+    "n": 267
+   },
+   "nlp.match: correct claim grounded": {
+    "accuracy": 0.914,
+    "n": 267
+   },
+   "nlp.match: contradicting claim rejected": {
+    "accuracy": 0.993,
+    "n": 267
+   }
+  }
+ }
+}
