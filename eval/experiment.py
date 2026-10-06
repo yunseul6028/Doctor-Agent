@@ -1,8 +1,8 @@
 """Standard experiments in one command: profile -> cost estimate -> runs -> compare -> (log) -> viewer + share page.
 
 python eval/experiment.py --profile smoke --doctor-endpoint dummy              # free wiring check (no LLM at all)
-python eval/experiment.py --profile smoke --doctor-endpoint competition        # 5 cases on gpt-oss-20b
-python eval/experiment.py --profile dev --doctor-endpoint competition --yes --log
+python eval/experiment.py --profile smoke --doctor-endpoint local              # 5 cases on gpt-oss-20b (Ollama)
+python eval/experiment.py --profile dev --doctor-endpoint env --yes --log      # DOCTOR_LLM_* from .env
 python eval/experiment.py --profile dev --conditions v6,v5-baseline --estimate-only
 python eval/experiment.py --list-profiles
 python eval/experiment.py --regen-case-lists                                   # rewrite eval/case_lists/*.txt
@@ -185,13 +185,12 @@ def read_dotenv(path: Path) -> dict:
     return out
 
 
-ENDPOINTS = ("env", "competition", "gemini", "local", "dummy")
+ENDPOINTS = ("env", "gemini", "local", "dummy")
 
 
 def doctor_endpoint_env(preset: str, env: dict) -> dict:
     """DOCTOR_LLM_* overrides for a preset, from `env` (os.environ + .env). Raises SystemExit when keys are missing.
 
-    competition: COMPETITION_LLM_{BASE_URL,API_KEY,MODEL}, else DOCTOR_LLM_*; model defaults to openai/gpt-oss-20b
     gemini:      GEMINI_LLM_*, else the shared LLM_*
     local:       LOCAL_LLM_*, else Ollama http://localhost:11434/v1 + gpt-oss:20b
     env / dummy: no overrides (env = whatever .env says; dummy = scripted doctor, no LLM)
@@ -199,11 +198,7 @@ def doctor_endpoint_env(preset: str, env: dict) -> dict:
     g = lambda *keys, default=None: next((env[k] for k in keys if env.get(k)), default)  # noqa: E731
     if preset in ("env", "dummy"):
         return {}
-    if preset == "competition":
-        over = {"DOCTOR_LLM_BASE_URL": g("COMPETITION_LLM_BASE_URL", "DOCTOR_LLM_BASE_URL"),
-                "DOCTOR_LLM_API_KEY": g("COMPETITION_LLM_API_KEY", "DOCTOR_LLM_API_KEY"),
-                "DOCTOR_LLM_MODEL": g("COMPETITION_LLM_MODEL", "DOCTOR_LLM_MODEL", default="openai/gpt-oss-20b")}
-    elif preset == "gemini":
+    if preset == "gemini":
         over = {"DOCTOR_LLM_BASE_URL": g("GEMINI_LLM_BASE_URL", "LLM_BASE_URL"),
                 "DOCTOR_LLM_API_KEY": g("GEMINI_LLM_API_KEY", "LLM_API_KEY"),
                 "DOCTOR_LLM_MODEL": g("GEMINI_LLM_MODEL", "LLM_MODEL")}
@@ -215,8 +210,8 @@ def doctor_endpoint_env(preset: str, env: dict) -> dict:
         raise SystemExit(f"unknown --doctor-endpoint {preset!r}")
     missing = [k for k, v in over.items() if not v]
     if missing:
-        raise SystemExit(f"--doctor-endpoint {preset}: missing {', '.join(missing)} (set them in .env; see "
-                         "docs/experiments.md 'How to run on competition API day')")
+        raise SystemExit(f"--doctor-endpoint {preset}: missing {', '.join(missing)} (set them in .env; "
+                         "see .env.example)")
     return over
 
 
@@ -557,7 +552,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--profile", default="smoke", help="smoke | dev | full (see eval/experiment_profiles.json)")
     ap.add_argument("--conditions", help="comma-separated override, e.g. v6,v6-no-kb,v5-baseline (first = baseline)")
     ap.add_argument("--doctor-endpoint", choices=ENDPOINTS, default="env",
-                    help="DOCTOR_LLM_* preset: competition | gemini | local | dummy | env (= .env as is)")
+                    help="DOCTOR_LLM_* preset: gemini | local | dummy | env (= .env as is)")
     ap.add_argument("--patient", choices=["keyword", "llm"], default="keyword", help="llm = virtual patient LLM (PATIENT_LLM_*)")
     ap.add_argument("--judge", choices=["none", "llm"], default="none", help="llm = LLM judge (JUDGE_LLM_*)")
     ap.add_argument("--llm-cache", choices=["off", "record", "replay", "auto"], default="auto",

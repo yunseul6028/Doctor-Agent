@@ -26,7 +26,7 @@ Tokenizer (dev only, requirements-dev.txt): `tiktoken` encoding `o200k_harmony` 
 into the tiktoken cache). It is the encoding `openai-harmony` uses for gpt-oss and gives identical ids to the
 `openai/gpt-oss-20b` tokenizer.json (Apache-2.0) on our prompts (checked 2026-09-28).
 
-This is a measurement tool: it is not part of the submission and it does not change the agent.
+This is a measurement tool: it is not part of the agent package and it does not change the agent.
 """
 from __future__ import annotations
 
@@ -64,9 +64,9 @@ DEFAULT_DATE = "2026-09-28"  # the template puts today's date in the system mess
 # (offline only; moved here from agent/runtime.py on 2026-09-30: the agent never estimates call times)
 @dataclass(frozen=True)
 class Throughput:
-    """Serving-speed ASSUMPTIONS for gpt-oss-20b on the evaluation server (nothing here is measured or sourced: the
-    server, GPU, batching and prefix caching are unknown until the participant guide). The defaults are deliberately
-    slow so that a budget planned with them has headroom; replace them with numbers measured on API day
+    """Serving-speed ASSUMPTIONS for gpt-oss-20b on a serving endpoint (nothing here is measured or sourced: the
+    server, GPU, batching and prefix caching depend on the deployment). The defaults are deliberately
+    slow so that a budget planned with them has headroom; replace them with numbers measured on the target server
     (GuardedLLM.stats()["latency_main_s"] + the prompt token counts of scripts/token_budget.py).
 
     prefill_tps: prompt tokens processed per second (no prefix-cache credit: the system prompt is re-counted per call)

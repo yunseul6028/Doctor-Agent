@@ -61,7 +61,7 @@ def _generic(name):
 
 
 class Router:
-    """Fake fixed LLM: answers by role (system prompt). Records (kind, messages, opts)."""
+    """Fake doctor LLM: answers by role (system prompt). Records (kind, messages, opts)."""
 
     def __init__(self, step=ASK, review=REVIEW_OK, consult=CONSULT_OK, advocate=ADVOCATE_OK, radiology=RADIOLOGY_OK,
                  raise_for=()):

@@ -2,7 +2,7 @@
 
 Answers only from the case file. The diagnosis and scoring fields are hidden from the patient LLM.
 Personas make the patient harder to interview (vague, anxious, minimizing, poor historian).
-Not included in the submission ZIP (development and evaluation only).
+Development and evaluation only (the agent package never imports this).
 """
 import hashlib
 import json

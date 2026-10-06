@@ -1,4 +1,4 @@
-"""Local results viewer (not a submission artifact). Renders eval/results/*.json into one HTML page and opens it in the browser.
+"""Local results viewer (dev tool, not part of the agent). Renders eval/results/*.json into one HTML page and opens it in the browser.
 
 python eval/viewer.py            # build eval/results/viewer.html + open it
 python eval/viewer.py --no-open  # build only
@@ -84,7 +84,7 @@ details.sets > summary { cursor: pointer; color: var(--muted); font-size: 13px; 
 <body>
 <div class="wrap">
   <h1>진료 기록 뷰어</h1>
-  <div class="sub">로컬 평가 결과를 대화 형태로 보여줍니다 · 제출물 아님</div>
+  <div class="sub">로컬 평가 결과를 대화 형태로 보여줍니다</div>
   <h2>실험 비교</h2>
   <div class="cmp-wrap"><table class="cmp" id="cmp"></table></div>
   <div class="sub" style="margin-top:6px">행을 누르면 아래에 그 실행의 진료 기록이 나옵니다 · 안전성은 지침 기반 확인 목록 기준</div>

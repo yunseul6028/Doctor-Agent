@@ -35,7 +35,7 @@ MAX_DDX = 8
 MAX_RENDER = 300
 # anchoring_check never fires before this many turns. 5 (was 3): from turn 3 it fired on 59% of the replayed
 # trajectories that ended right and 46% of those that ended wrong; from turn 5 on 26% / 35% (eval/offline/
-# eval_triggers.py, runs of non-competition dev models; re-check on gpt-oss-20b). Same default as
+# eval_triggers.py, runs of non-gpt-oss dev models; re-check on gpt-oss-20b). Same default as
 # AgentConfig.anchoring_min_turns (AGENT_ANCHORING_MIN_TURNS), which the policy passes in.
 MIN_TURNS = 5
 EARLY_TURN = 2         # "since early turns": the top candidate was already top at turn <= EARLY_TURN

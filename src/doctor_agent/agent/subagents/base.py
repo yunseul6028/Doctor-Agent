@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 @dataclass
 class SubagentCall:
     name: str                 # e.g. "consult:cardio", "advocate", "radiology"
-    messages: list[dict]      # chat messages for the fixed LLM
+    messages: list[dict]      # chat messages for the doctor LLM
     json_schema: dict | None  # optional structured output
     max_chars_out: int = 600  # cap of the rendered hint
 

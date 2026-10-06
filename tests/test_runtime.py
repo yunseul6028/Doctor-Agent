@@ -226,7 +226,7 @@ def test_time_budget_degrades_then_forces_diagnosis():
     now = [0.0]
     llm = _ClockLLM(now)
     env = _Env()
-    cfg = _cfg(case_time_budget_s=100.0, degrade_at_frac=0.5, final_reserve_s=20.0, submission=True)
+    cfg = _cfg(case_time_budget_s=100.0, degrade_at_frac=0.5, final_reserve_s=20.0, robust=True)
     result = run_case(env, llm, cfg, clock=lambda: now[0])
     rt = result["runtime"]
     assert rt["forced"] == "time_budget" and rt["degraded"]
@@ -241,7 +241,7 @@ def test_time_budget_too_short_for_final_call_uses_top_ddx():
     now = [0.0]
     llm = _ClockLLM(now, per_call=30.0)
     env = _Env()
-    cfg = _cfg(case_time_budget_s=60.0, final_reserve_s=25.0, min_call_s=40.0, submission=True)
+    cfg = _cfg(case_time_budget_s=60.0, final_reserve_s=25.0, min_call_s=40.0, robust=True)
     result = run_case(env, llm, cfg, clock=lambda: now[0])
     assert result["diagnosis"] == "폐렴" and result["runtime"]["forced"] == "time_budget"
     assert env.actions[-1].type == ActionType.DIAGNOSE and llm.call_count >= 1
@@ -330,7 +330,7 @@ def test_view_unchanged_when_under_cap():
 
 
 def test_prompt_sizes_are_logged_in_result():
-    result = run_case(_Env(), _ClockLLM([0.0]), _cfg(max_view_chars=1500, max_turns=8, submission=True))
+    result = run_case(_Env(), _ClockLLM([0.0]), _cfg(max_view_chars=1500, max_turns=8, robust=True))
     rt = result["runtime"]
     assert rt["llm_attempts"] == result["llm_calls"] >= 1 and 0 < rt["prompt_chars_max"] <= rt["prompt_chars_total"]
 
@@ -346,9 +346,9 @@ class _Broken:
         raise ConnectionError("server down")
 
 
-def test_llm_always_failing_still_diagnoses_in_submission_mode():
+def test_llm_always_failing_still_diagnoses_in_robust_mode():
     env, llm = _Env(), _Broken()
-    result = run_case(env, llm, _cfg(submission=True))
+    result = run_case(env, llm, _cfg(robust=True))
     assert result["diagnosis"] == FALLBACK_DIAGNOSIS and env.actions[-1].type == ActionType.DIAGNOSE
     rt = result["runtime"]
     assert rt["forced"] == "llm_unavailable" and rt["llm_disabled"] and not rt["llm_called"]
@@ -357,7 +357,7 @@ def test_llm_always_failing_still_diagnoses_in_submission_mode():
 
 def test_llm_always_failing_is_loud_in_dev_mode():
     with pytest.raises(AssertionError):
-        run_case(_Env(), _Broken(), _cfg(submission=False))
+        run_case(_Env(), _Broken(), _cfg(robust=False))
 
 
 def test_intermittent_llm_failure_recovers():
@@ -373,11 +373,11 @@ def test_intermittent_llm_failure_recovers():
             return json.dumps({"type": "DIAGNOSE", "content": "폐렴", "confidence": 0.9})
 
     env = _Env()
-    result = run_case(env, Flaky(), _cfg(submission=True, max_turns=4))
+    result = run_case(env, Flaky(), _cfg(robust=True, max_turns=4))
     assert result["diagnosis"] and env.actions[-1].type == ActionType.DIAGNOSE and result["llm_calls"] >= 1
 
 
-def test_billing_error_in_submission_mode_does_not_raise():
+def test_billing_error_in_robust_mode_does_not_raise():
     class Billing:
         call_count = 0
 
@@ -385,20 +385,20 @@ def test_billing_error_in_submission_mode_does_not_raise():
             raise BillingError("402")
 
     env = _Env()
-    result = run_case(env, Billing(), _cfg(submission=True))
+    result = run_case(env, Billing(), _cfg(robust=True))
     assert result["diagnosis"] == FALLBACK_DIAGNOSIS and env.actions[-1].type == ActionType.DIAGNOSE
     with pytest.raises(BillingError):
-        run_case(_Env(), Billing(), _cfg(submission=False))
+        run_case(_Env(), Billing(), _cfg(robust=False))
 
 
 def test_env_errors_force_a_diagnosis():
     env = _Env(fail_steps=True)
-    result = run_case(env, _ClockLLM([0.0]), _cfg(submission=True))
+    result = run_case(env, _ClockLLM([0.0]), _cfg(robust=True))
     assert result["runtime"]["forced"] == "env_error" and len(result["runtime"]["env_errors"]) == 3
     assert env.actions[-1].type == ActionType.DIAGNOSE and result["diagnosis"]
 
 
-def test_policy_crash_is_caught_in_submission_mode(monkeypatch):
+def test_policy_crash_is_caught_in_robust_mode(monkeypatch):
     from doctor_agent.agent import policy as policy_mod
 
     def boom(self, state):
@@ -406,11 +406,11 @@ def test_policy_crash_is_caught_in_submission_mode(monkeypatch):
 
     monkeypatch.setattr(policy_mod.Policy, "_hints", boom)
     env, llm = _Env(), _ClockLLM([0.0])
-    result = run_case(env, llm, _cfg(submission=True))
+    result = run_case(env, llm, _cfg(robust=True))
     assert result["runtime"]["forced"] == "policy_error" and env.actions[-1].type == ActionType.DIAGNOSE
     assert llm.call_count == 1  # the final diagnosis call still satisfies the ≥1 LLM call rule
     with pytest.raises(KeyError):
-        run_case(_Env(), _ClockLLM([0.0]), _cfg(submission=False))
+        run_case(_Env(), _ClockLLM([0.0]), _cfg(robust=False))
 
 
 # --- 6. run.py / env adapter ------------------------------------------------------------------------------------------
@@ -456,13 +456,11 @@ def test_run_py_survives_a_crashing_case_and_resumes(tmp_path, monkeypatch):
     assert len(seen) == 1 and set(preds2) == set(preds)
 
 
-def test_official_env_is_a_clear_todo(tmp_path, monkeypatch):
+def test_unknown_env_is_logged_not_raised(tmp_path, monkeypatch):
     from doctor_agent.env.factory import case_source
 
-    with pytest.raises(NotImplementedError):
-        next(case_source("official")())
     with pytest.raises(ValueError):
         case_source("nope")
-    monkeypatch.setenv("DOCTOR_ENV", "official")
+    monkeypatch.setenv("DOCTOR_ENV", "nope")
     run = _load_run()
-    assert run.main(["--out", str(tmp_path / "o.json")]) == {}  # submission mode: logged, no crash
+    assert run.main(["--out", str(tmp_path / "o.json")]) == {}  # robust mode: logged, no crash

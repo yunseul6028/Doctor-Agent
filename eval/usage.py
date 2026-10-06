@@ -1,4 +1,4 @@
-"""Token-usage metering for evaluation runs (eval only; the submitted code never imports this).
+"""Token-usage metering for evaluation runs (eval only; the agent package never imports this).
 
 `OpenAICompatClient` keeps the OpenAI SDK object in `.client` and calls `client.chat.completions.create(...)`. We swap
 that attribute for a thin proxy that forwards every call and adds `resp.usage` to a thread-safe meter. No request is

@@ -1,4 +1,4 @@
-"""One guarded call of the fixed LLM for a sub-agent (docs/architecture.md "Specialist sub-agents").
+"""One guarded call of the doctor LLM for a sub-agent (docs/architecture.md "Specialist sub-agents").
 
 `run` never raises: any failure (LLM error, time-out, budget exhausted, empty or unparseable answer, a bug in the
 content module's parser) comes back as SubagentResult(ok=False) with the reason in raw["error"]."""
@@ -52,7 +52,7 @@ def sanitize(res: object, call: SubagentCall) -> SubagentResult:
 def run(llm, call: SubagentCall, deadline: float | None = None, *,
         parse: Callable[[str], SubagentResult] | None = None, clock: Callable[[], float] = time.monotonic,
         reasoning_effort: str | None = "low") -> SubagentResult:
-    """Calls the fixed LLM once for `call` and parses the answer with the content module's `parse`. Never raises (no
+    """Calls the doctor LLM once for `call` and parses the answer with the content module's `parse`. Never raises (no
     parser: ok=False without a call).
 
     With a client that supports options (OpenAICompatClient, GuardedLLM around it): structured output with

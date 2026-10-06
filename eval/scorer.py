@@ -1,6 +1,6 @@
 """Local score estimate. Owned by eval-simulator.
 
-The official detailed metrics and weights are TBA (before the preliminary round). v0 uses simple proxies:
+Simple proxy metrics (v0):
 - accuracy: LLM judge score when judge_score is given, otherwise string match against the answer/aliases
 - efficiency: 1 - turns used / max turns
 - safety: fraction of the applicable minimum safety checks from safety/protocols.py (guideline-cited) that were done;

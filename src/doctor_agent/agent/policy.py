@@ -14,7 +14,7 @@ from doctor_agent.safety import danger_gate, preconditions, protocols, triage
 
 log = logging.getLogger("doctor_agent.policy")
 
-MAX_RULES_IN_PROMPT = 2  # keep prompts short for the small fixed LLM
+MAX_RULES_IN_PROMPT = 2  # keep prompts short for the small doctor LLM
 MAX_ATTEMPTS = 4
 MAX_REVIEWS = 2  # pre-diagnosis reviews per case (each hold costs a turn)
 MAX_HINTS_DEGRADED = 2  # hints kept when the time budget runs low (can't-miss + pending safety checks come first)
