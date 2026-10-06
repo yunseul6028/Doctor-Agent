@@ -163,7 +163,7 @@ class GuardedLLM:
         try:
             out = _call_with_watchdog(lambda: self.inner.chat(messages, **opts), timeout)
         except BillingError:
-            if not self.cfg.agent.submission:
+            if not self.cfg.agent.robust:
                 raise  # dev: abort the whole evaluation batch
             self.dead = True
             self.errors.append("billing error")

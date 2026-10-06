@@ -77,9 +77,9 @@ def extract_text(resp: object, expect_json: bool = False) -> tuple[str, str, str
 
 
 class OpenAICompatClient:
-    """Client for the fixed LLM gpt-oss-20b (OpenAI-compatible chat completions).
+    """Client for the doctor LLM, by design gpt-oss-20b (OpenAI-compatible chat completions).
 
-    The only endpoint allowed during inference is the fixed LLM on the evaluation server. Never add other external API calls.
+    Inference talks to this one configured model endpoint only. Never add other external API calls.
 
     `chat(messages)` keeps the simple protocol. Extra keyword options (used by the agent runtime):
       json_schema  – request structured output when cfg.structured_output is on (falls back if the server rejects it)

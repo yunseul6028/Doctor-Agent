@@ -1,5 +1,5 @@
 """Calibrate the code-computed confidence (src/doctor_agent/agent/confidence.py) on local result files. Dev only;
-this offline code is not part of the submission (moved out of agent/confidence.py on 2026-09-30).
+this offline code is not part of the agent package (moved out of agent/confidence.py on 2026-09-30).
 
     python scripts/calibrate_confidence.py eval/results/run_*.json            # print the report
     python scripts/calibrate_confidence.py --write eval/results/run_*.json    # also write data/labels/confidence_params.json

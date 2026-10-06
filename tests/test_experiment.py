@@ -119,19 +119,20 @@ def test_estimate_defaults_and_guard(tmp_path):
 
 def test_endpoint_presets_never_leak_keys():
     env = {"LLM_BASE_URL": "https://gem.example/v1/", "LLM_API_KEY": "gem-secret", "LLM_MODEL": "gemini-x",
-           "COMPETITION_LLM_BASE_URL": "https://comp.example/v1", "COMPETITION_LLM_API_KEY": "comp-secret"}
-    comp = ex.doctor_endpoint_env("competition", env)
-    assert comp == {"DOCTOR_LLM_BASE_URL": "https://comp.example/v1", "DOCTOR_LLM_API_KEY": "comp-secret",
-                    "DOCTOR_LLM_MODEL": "openai/gpt-oss-20b"}
+           "LOCAL_LLM_BASE_URL": "https://gpu.example/v1", "LOCAL_LLM_API_KEY": "gpu-secret",
+           "LOCAL_LLM_MODEL": "openai/gpt-oss-20b"}
+    remote = ex.doctor_endpoint_env("local", env)
+    assert remote == {"DOCTOR_LLM_BASE_URL": "https://gpu.example/v1", "DOCTOR_LLM_API_KEY": "gpu-secret",
+                      "DOCTOR_LLM_MODEL": "openai/gpt-oss-20b"}
     gem = ex.doctor_endpoint_env("gemini", {**env, "DOCTOR_LLM_MODEL": "should-be-overridden"})
     assert gem["DOCTOR_LLM_MODEL"] == "gemini-x" and gem["DOCTOR_LLM_API_KEY"] == "gem-secret"
     loc = ex.doctor_endpoint_env("local", {})
     assert loc["DOCTOR_LLM_BASE_URL"].startswith("http://localhost") and loc["DOCTOR_LLM_MODEL"] == "gpt-oss:20b"
     assert ex.doctor_endpoint_env("env", env) == {} and ex.doctor_endpoint_env("dummy", env) == {}
     with pytest.raises(SystemExit):
-        ex.doctor_endpoint_env("competition", {"LLM_API_KEY": "x"})  # no competition URL/key
-    model, host = ex.describe_doctor("competition", {**env, **comp})
-    assert (model, host) == ("openai/gpt-oss-20b", "comp.example") and "secret" not in model + host
+        ex.doctor_endpoint_env("gemini", {"LLM_API_KEY": "x"})  # no Gemini URL/model
+    model, host = ex.describe_doctor("local", {**env, **remote})
+    assert (model, host) == ("openai/gpt-oss-20b", "gpu.example") and "secret" not in model + host
 
 
 def test_parse_env_pairs():

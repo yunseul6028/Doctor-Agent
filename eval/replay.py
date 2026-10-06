@@ -1,4 +1,4 @@
-"""LLM record/replay cache for local experiments (eval only; the submitted code never imports this).
+"""LLM record/replay cache for local experiments (eval only; the agent package never imports this).
 
 Same approach as eval/usage.py: `OpenAICompatClient.client` (the OpenAI SDK object) is swapped for a proxy whose
 `chat.completions.create(**kwargs)` first looks the request up in an on-disk cache. src/ is untouched.

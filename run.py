@@ -1,18 +1,14 @@
-"""Submission entry point (run by the competition server).
+"""Batch entry point: run the doctor agent over a set of cases and write {case_id: diagnosis}.
 
     python run.py --cases data/sample_cases                 # local case files (keyword simulator)
-    python run.py --env official                            # official API adapter (src/doctor_agent/env/official.py)
-    DOCTOR_ENV=official python run.py
+    DOCTOR_ENV=local python run.py
 
 Crash-proof by design:
-  - submission mode (default here; --dev turns it off): run_case never raises, every case ends with a DIAGNOSE
+  - robust mode (default here; --dev turns it off): run_case never raises, every case ends with a DIAGNOSE
   - each case also has an outer guard here: on an unexpected error the case still gets a fallback diagnosis
   - results are written incrementally: one JSON line per case to <out>.jsonl (flushed + fsynced) and the full
     {case_id: diagnosis} map rewritten atomically to <out> after every case, so a crash mid-run keeps prior results
   - --resume skips cases already present in the .jsonl file
-
-TODO(agent-engineer): once the participant guide is published, implement env/official.py and adapt write_outputs() if
-the official output format differs.
 """
 import argparse
 import json
@@ -72,7 +68,7 @@ def run_one(case_id: str, env, llm_kind: str, cfg: Config) -> dict:
                 "llm_calls": result["llm_calls"], "forced": result["runtime"]["forced"],
                 "sec": round(time.monotonic() - t0, 1), "error": None}
     except Exception as e:  # noqa: BLE001 — one case failing must not stop the rest
-        if not cfg.agent.submission:
+        if not cfg.agent.robust:
             raise
         log.exception("[%s] failed", case_id)
         try:  # still hand the environment an answer
@@ -91,13 +87,13 @@ def main(argv: list[str] | None = None) -> dict[str, str | None]:
     ap.add_argument("--jsonl", help="incremental per-case log (default: <out without .json>.jsonl)")
     ap.add_argument("--resume", action="store_true", help="skip cases already in the .jsonl log")
     ap.add_argument("--llm", choices=["openai", "dummy"], default="openai", help="dummy = scripted smoke test")
-    ap.add_argument("--dev", action="store_true", help="dev mode: exceptions propagate (not for submission)")
+    ap.add_argument("--dev", action="store_true", help="dev mode: exceptions propagate (default: robust mode, errors are logged)")
     args = ap.parse_args(argv)
 
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), stream=sys.stderr,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = Config()
-    cfg.agent.submission = not args.dev
+    cfg.agent.robust = not args.dev
     out = Path(args.out)
     jsonl = Path(args.jsonl) if args.jsonl else out.with_suffix(".jsonl")
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -117,7 +113,7 @@ def main(argv: list[str] | None = None) -> dict[str, str | None]:
     try:
         cases = iter(case_source(args.env)(cases=args.cases))
     except Exception:  # noqa: BLE001
-        if not cfg.agent.submission:
+        if not cfg.agent.robust:
             raise
         log.exception("could not open the case source %r", args.env)
         cases = iter(())
@@ -127,7 +123,7 @@ def main(argv: list[str] | None = None) -> dict[str, str | None]:
         except StopIteration:
             break
         except Exception:  # noqa: BLE001 — the case source itself broke: keep what we have
-            if not cfg.agent.submission:
+            if not cfg.agent.robust:
                 raise
             log.exception("case source failed; stopping")
             break

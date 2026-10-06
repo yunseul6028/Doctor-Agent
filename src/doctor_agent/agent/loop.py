@@ -48,7 +48,7 @@ def _forced_diagnosis(state: CaseState, policy: Policy, guard: GuardedLLM, budge
             if action.type == ActionType.DIAGNOSE and action.content.strip():
                 return action
         except Exception as e:  # noqa: BLE001
-            if isinstance(e, BillingError) and not cfg.agent.submission:
+            if isinstance(e, BillingError) and not cfg.agent.robust:
                 raise
             guard.errors.append(f"final: {type(e).__name__}: {e}"[:300])
     return Action(ActionType.DIAGNOSE, _top_ddx(state), "강제 종료: 최상위 감별 진단")
@@ -57,12 +57,12 @@ def _forced_diagnosis(state: CaseState, policy: Policy, guard: GuardedLLM, budge
 def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], float] = time.monotonic) -> dict:
     """Runs one case to the end. State is created inside this function only (case independence).
 
-    Always ends with a DIAGNOSE sent to the environment (unless the environment itself ended the case). In submission
-    mode (cfg.agent.submission) no exception escapes after reset(); in dev mode bugs and billing errors propagate and
-    the "≥1 LLM call per case" rule is asserted."""
+    Always ends with a DIAGNOSE sent to the environment (unless the environment itself ended the case). In robust
+    mode (cfg.agent.robust) no exception escapes after reset(); in dev mode bugs and billing errors propagate and
+    the "≥1 LLM call per case" guarantee is asserted."""
     budget = CaseBudget(cfg.agent.case_time_budget_s, cfg.agent.degrade_at_frac, cfg.agent.final_reserve_s, clock)
     guard = GuardedLLM(llm, cfg, budget)
-    submission = cfg.agent.submission
+    robust = cfg.agent.robust
     calls_before = llm.call_count
     obs = env.reset()
     state = CaseState(initial_info=obs.text, view_max_chars=cfg.agent.max_view_chars)
@@ -86,7 +86,7 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
             forced = "llm_unavailable"
             break
         except Exception as e:  # noqa: BLE001
-            if not submission:
+            if not robust:
                 raise
             log.exception("policy error")
             guard.errors.append(f"policy: {type(e).__name__}: {e}"[:300])
@@ -95,7 +95,7 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
         try:
             obs = env.step(action)
         except Exception as e:  # noqa: BLE001
-            if not submission:
+            if not robust:
                 raise
             log.warning("env.step failed: %s", e)
             env_errors.append(f"{type(e).__name__}: {e}"[:300])
@@ -123,28 +123,28 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
                 obs = env.step(action)
                 state.turns.append(Turn(action, obs.text, list(state.ddx)))
             except Exception as e:  # noqa: BLE001
-                if not submission:
+                if not robust:
                     raise
                 env_errors.append(f"final step: {type(e).__name__}: {e}"[:300])
         diagnosis = clean_diagnosis(action.content)
     diagnosis = diagnosis or FALLBACK_DIAGNOSIS
 
-    # Rule: at least one LLM call per case
+    # Design guarantee: every case calls the LLM at least once with that case's information
     called = llm.call_count > calls_before
     if not called:
-        if not submission:
-            raise AssertionError("Fixed LLM was not called for this case")
-        log.error("rule violation risk: no successful LLM call for this case (attempts=%d)", guard.attempts)
+        if not robust:
+            raise AssertionError("The LLM was not called for this case")
+        log.error("guarantee broken: no successful LLM call for this case (attempts=%d)", guard.attempts)
     try:
         subagents = policy.subagent_summary(state)
     except Exception as e:  # noqa: BLE001 — record-only field
-        if not submission:
+        if not robust:
             raise
         subagents = {"error": str(e)[:200]}
     try:
         normalized = kb_hints.normalize_hint(diagnosis, state.initial_info) if cfg.agent.use_kb else {}
     except Exception as e:  # noqa: BLE001 — record-only field
-        if not submission:
+        if not robust:
             raise
         normalized = {"error": str(e)}
     return {
@@ -162,7 +162,7 @@ def run_case(env: Environment, llm: LLMClient, cfg: Config, clock: Callable[[], 
         # specialist sub-agents: calls by name, ok / fail, skip reasons, 참고 DDx refs (docs/architecture.md)
         "subagents": subagents,
         "llm_calls": llm.call_count - calls_before,
-        # record only: the submitted diagnosis above is not changed
+        # record only: the final diagnosis above is not changed
         "diagnosis_normalized": normalized,
         "runtime": {"elapsed_s": round(budget.elapsed(), 2), "budget_s": budget.budget_s, "degraded": policy.degraded,
                     "forced": forced, "env_errors": env_errors, "llm_called": called, **guard.stats()},

@@ -35,7 +35,7 @@ between calls or cases. CPU only, stdlib only, no LLM calls, never raises (a fai
 
 The offline calibration (refit of bias/weights by L2-regularised logistic regression and of the two thresholds on
 past local result files eval/results/run_*.json) lives in scripts/calibrate_confidence.py, which can write
-data/labels/confidence_params.json (dev only, not shipped: the submission uses DEFAULT_PARAMS below unless
+data/labels/confidence_params.json (dev only, not shipped: the agent uses DEFAULT_PARAMS below unless
 AGENT_CONFIDENCE_PARAMS points to such a JSON file).
 """
 from __future__ import annotations
@@ -60,7 +60,7 @@ MIN_REMAINING = 2  # same as danger_gate.gate: with <= 2 turns left a diagnosis 
 @dataclass
 class ConfidenceParams:
     # Weights act on features in [0, 1]. Values: scripts/calibrate_confidence.py on 11 local runs (226 cases, 1446
-    # decision points, two non-competition dev doctor models, 2026-09-28), rounded; prior = its HAND_SET.
+    # decision points, two non-gpt-oss dev doctor models, 2026-09-28), rounded; prior = its HAND_SET.
     # dangers_unresolved and kb_agreement fitted to 0 (dangers are handled by the must_continue rule instead; KB rank did not separate right from wrong). Re-validate
     # after the switch to gpt-oss-20b. See docs/architecture.md "Confidence and stop rule".
     bias: float = -2.6

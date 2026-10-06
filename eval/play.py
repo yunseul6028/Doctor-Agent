@@ -1,4 +1,4 @@
-"""Interactive test mode (not a submission artifact). Run in a real terminal because it reads keyboard input.
+"""Interactive test mode (dev tool, not part of the agent). Run in a real terminal because it reads keyboard input.
 
 python eval/play.py                 # you are the doctor: ask the virtual patient (LLM) questions and diagnose
 python eval/play.py --role patient  # you are the patient: answer the doctor agent's questions

@@ -1,4 +1,4 @@
-"""LLM-judge diagnosis scoring. Owned by eval-simulator. Not included in the submission ZIP."""
+"""LLM-judge diagnosis scoring. Owned by eval-simulator. Evaluation only (the agent package never imports this)."""
 import json
 import re
 

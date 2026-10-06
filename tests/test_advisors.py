@@ -348,7 +348,7 @@ def test_whole_case_with_every_advisor_raising(monkeypatch):
                          (anchoring, "anchoring_check"), (question_planner, "suggest"), (confidence, "assess")):
         monkeypatch.setattr(target, attr, _boom)
     cfg = Config()
-    assert not cfg.agent.submission
+    assert not cfg.agent.robust
     res = run_case(CaseFileEnvironment.from_file(case), DummyLLM(), cfg)
     assert res["diagnosis"] and res["llm_calls"] >= 1
     assert {e["layer"] for e in res["safety_log"] if e.get("error")} >= {"triage", "anchoring", "planner", "confidence"}

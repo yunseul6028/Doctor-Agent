@@ -1,7 +1,7 @@
 """Environment abstraction.
 
-The official API has not been published yet (participant guide, before 10.12). This file is an assumed interface.
-Once the guide is published, implement an Environment subclass in `official.py` and change nothing else.
+The agent talks to this interface only. To plug in another case source (e.g. a remote patient-simulator API),
+implement an Environment subclass plus an `iter_cases` in a new module and register it in `env/factory.py`.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

@@ -7,7 +7,7 @@ python eval/run_local.py --cases data/cases_clinicalqa data/cases_agentclinic da
 python eval/run_local.py --cases 'data/cases_*' --sample 30 --seed 1   # quick random subset (globs allowed)
 python eval/compare.py --latest 2                         # compare the two newest runs
 python eval/viewer.py                                    # view the results viewer only
-python eval/experiment.py --profile dev --doctor-endpoint competition   # standard profiles + cost guard (wraps this)
+python eval/experiment.py --profile dev --doctor-endpoint local   # standard profiles + cost guard (wraps this)
 
 Real LLM clients are metered (eval/usage.py): doctor token usage per case (`usage`) and per role for the run.
 Exit code 3 when the batch stopped on a billing error.
