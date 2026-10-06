@@ -58,7 +58,7 @@ DEFAULTS = {
 # overrides this table when present. Used for the prompt side when no same-model usage has been recorded yet.
 TOKEN_BUDGET_FILE = RESULTS / "token_budget.json"
 MEASURED_STEP_TOKENS = {1: 987.5, 5: 1582.8, 10: 2019.7, 15: 2489.4, 20: 2901.0, 30: 3713.7, 40: 4283.1, 50: 4702.5,
-                        59: 5082.4}  # 2026-09-28, prompt v6-kb-strict-review, 267 data/cases_aug cases, effort low
+                        59: 5082.4}  # 2026-09-28, prompt v6-kb-strict-review, 267 cases (incl. the private sets), effort low
 MEASURED_SOURCE = "measured gpt-oss tokenizer (scripts/token_budget.py 2026-09-28, 267 cases)"
 # Output side is an assumption until a gpt-oss run records usage: action JSON ≈ 300 tokens (measured on scripted answers
 # with 3-5 DDx entries) + reasoning at the given effort; capped by max_tokens 2048 (a length retry may add more).

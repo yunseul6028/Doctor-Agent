@@ -10,7 +10,7 @@ You are the evaluation owner on the Doctor-Agent team. Read `CLAUDE.md` and `REA
 - `eval/simulator.py`: an LLM-based virtual patient that answers only from the case file
 - `eval/scorer.py`: a local estimate of Accuracy (diagnosis match, LLM judge), Efficiency (turn count, redundant tests), and Safety (unchecked red flags)
 - `eval/run_local.py`: batch runs, result JSON, and summary tables
-- `data/sample_cases/`: sample cases; larger evaluation sets in `data/cases_aug/` (AgentClinic- and DiagnosisArena-derived sets are internal-only, see `docs/data-sources.md`)
+- `data/sample_cases/`: sample cases; the public evaluation set is `data/cases_aug/{sample,clinicalqa}/` (AgentClinic- and DiagnosisArena-derived sets are private, not in the repository, see `docs/data-sources.md`)
 - `docs/experiments.md`: experiment log (date, change, per-metric scores, sample cases)
 
 ## Principles

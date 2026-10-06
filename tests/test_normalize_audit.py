@@ -107,7 +107,7 @@ def test_specialty_routing_of_fixed_names():
 def test_audit_checks_on_gold_sets_within_allow_list():
     import audit_normalize as au
     rows = au.run(au.all_groups())
-    assert len(rows) > 1500
+    assert len(rows) > 1000  # 1083 on the public cases; was > 1500 with the private case sets
     bad = au.unallowed(rows, au.load_allow())
     msg = "\n".join(f"[{f}] {r['src']}:{r['id']} {r['input']!r} -> {r['code']} {r['name']} ({r['match']})"
                     for f, r in bad[:30])

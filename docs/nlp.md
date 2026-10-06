@@ -181,7 +181,7 @@ items), `grounding.is_grounded` right claim .844 → .848 (contradicting rejecte
 top-1/3/10/50 23/33/46/62, MRR .197 (unchanged); dev 52/70/81/87 → 53/69/81/87, MRR .565 → .566. Safety coverage
 over the 267 case files (categories, must-checks, red flags, rule-out status, preconditions, criteria): 2 cases
 changed, both judged right — da_122 (syncope in the chief complaint is no longer negated by a list in the next
-sentence → syncope red flags) and da_14 (the ECG's "동성빈맥 (123회/분)" is now read, Wells rises to 5.5, so a normal
+sentence → syncope red flags) and da_14 (the ECG sinus-tachycardia rate is now read, Wells rises to 5.5, so a normal
 D-dimer alone no longer rules out PE).
 
 ### Fixes 2026-09-30 (reference ranges and look-alike analytes; general rules, no per-case patterns)
@@ -213,7 +213,7 @@ Coordination across a comma with sites ("머리 양쪽이랑 이마, 뒷목까�
 "심박수 120회/분 … 연령에 부합하는 정상 심전도", is read with adult limits); exam "normal attribute" statements without a
 lexicon entry (근력 5/5, 동공 정상, 보행 양호, 정신은 맑습니다); imaging terms not in the lexicon (침윤, 유체 저류, 담도
 확장); diseases not modelled as HX concepts (크론병, 건선); event amnesia vs "기억이 안 나요" (read as uncertainty);
-subject when a relative reports without a proxy tag ("남편이 저를 깨우기 힘들어했어요"); word-start forms inside longer
+subject when a relative reports without a proxy tag (e.g. "아내가 저를 깨우기 어려웠대요"); word-start forms inside longer
 words (경기관지 → 경기 seizure, 피로인산염 → 피로, 눈을 깜빡 → memory loss, 망상 선 → delusion); "잠혈 약양성" not read as
 positive; "T-Bili" not read. Found on the fresh sample and left unfixed so that sample stays held-out. The gold set is a
 dev set, and rules were tuned on the dev sample and after gold review — use the fresh-sample number as the honest

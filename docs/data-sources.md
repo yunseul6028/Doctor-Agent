@@ -129,7 +129,7 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 
 ## 6. 로컬 평가용 증례 변환 (eval-simulator, 2026-09-26)
 
-실행 코드가 읽지 않는 **로컬 평가 전용** 증례. 실행 시 읽는 데이터는 `src`, `data/kb`, `data/lexicon`뿐이다. 원본 다운로드는 `data/external/`(git-ignored)에만 둔다.
+실행 코드가 읽지 않는 **로컬 평가 전용** 증례. 실행 시 읽는 데이터는 `src`, `data/kb`, `data/lexicon`뿐이다. AgentClinic·DiagnosisArena 변환본은 비공개로만 썼고 공개 저장소에는 없다(8장). 원본 다운로드는 `data/external/`(git-ignored)에만 둔다.
 영어 원문은 증례 파일에 넣지 않는다(환자 LLM에 정답이 새지 않도록). 증례에는 `source {dataset, id, license, url}`만 남긴다.
 
 | 출처 | 라이선스 (1차 확인) | 출력 폴더 | 선택 기준 | 변환 스크립트 / 기록 |
@@ -183,7 +183,7 @@ python eval/run_local.py --cases data/cases_agentclinic
 ```
 
 전체 보강과 품질 검사 (2026-09-26~27)
-- `scripts/augment_cases.py --mode full`이 네 세트 전부(sample 16, clinicalqa 95, agentclinic 107, diagnosisarena 49)에 표준 진찰·검사 묶음과 결정적·감별 검사 결과를 정답과 모순 없이 채워 **`data/cases_aug/<세트>/` 267건**을 만들었다. 추가 항목은 `augmented`로 표시하고, 보강 메타데이터는 환자 LLM에게 보이지 않는다(`eval/llm_patient.py`의 `HIDDEN_KEYS`). 기록: `data/labels/augmentation_full_meta.json`. 표준 실험(`eval/experiment.py`)은 이 세트를 쓴다. (`data/cases_clinicalqa_aug/` 40건은 이전의 결정적 검사만 보강한 판이다.)
+- `scripts/augment_cases.py --mode full`이 네 세트 전부(sample 16, clinicalqa 95, agentclinic 107, diagnosisarena 49)에 표준 진찰·검사 묶음과 결정적·감별 검사 결과를 정답과 모순 없이 채워 **`data/cases_aug/<세트>/` 267건**을 만들었다(공개 저장소에는 sample·clinicalqa 111건만 있음, 8장). 추가 항목은 `augmented`로 표시하고, 보강 메타데이터는 환자 LLM에게 보이지 않는다(`eval/llm_patient.py`의 `HIDDEN_KEYS`). 기록: `data/labels/augmentation_full_meta.json`. 표준 실험(`eval/experiment.py`)은 이 세트를 쓴다. (`data/cases_clinicalqa_aug/` 40건은 이전의 결정적 검사만 보강한 판이다.)
 - `scripts/check_cases.py`(LLM 없음)가 정답 누출, 원본과 보강 항목 사이의 모순(활력징후·검사값·단위·발열·있음/없음), 성별·나이에 맞지 않는 검사, 비현실적인 수치, 키워드 시뮬레이터의 검색어 문제를 찾는다. 반드시 0이어야 하는 hard 문제는 48 → 0 (검색어 자리표시자 45, 성별·나이 부적합 검사 2, 활력징후 불일치 1; 15건 57곳 수정). 판단이 애매한 soft 문제 2,278건은 검토 목록으로 남겼다. 기록: `data/labels/case_quality_2026-09-27.json`, 테스트: `tests/test_case_quality.py`.
 - 보강 항목은 LLM이 쓴 것이고 의료진 검토를 받지 않았다. 원본 사실은 고치지 않는다.
 
@@ -337,17 +337,40 @@ python scripts/eval_kb.py --no-write --prev-w 0   # 유병률 사전확률 끈 �
 
 ## 8. 공개 저장소로 만들 때 (재배포 금지 자료)
 
-이 저장소를 공개하기 전에 아래 자료는 **빼야 한다**. 모두 내부 평가용으로만 쓸 수 있는 원천(3장, 6장)에서 나왔고, 변환·보강본도 원문을 옮긴 파생물이라 재배포 근거가 없다. 지금은 지우지 않고 기록만 해 둔다.
+**공개 저장소에 들어 있는 증례**는 두 종류뿐이다.
 
-| 경로 | 내용 | 이유 |
+| 경로 | 개수 | 출처·라이선스 |
 |---|---|---|
-| `data/cases_agentclinic/` (107건), `data/cases_aug/agentclinic/` | AgentClinic-MedQA 증례의 한국어 변환·보강본 | 저장소는 MIT이지만 원 문항(MedQA, USMLE 대비 문제은행)의 권리 근거가 없음 |
-| `data/cases_diagnosisarena/` (49건), `data/cases_aug/diagnosisarena/` | DiagnosisArena 증례의 한국어 변환·보강본 | 원천이 학술지 증례 보고이고, 제작자도 "연구·모델 평가 목적"으로 한정. MIT가 원문 저작권을 해결하는지 불명확 |
-| `data/labels/findings_gold_candidates.jsonl`, `findings_gold_draft.jsonl`, `findings_gold_v1.jsonl`, `findings_gold_fresh_v1.jsonl`, `findings_gold_review.txt`, `findings_gold_corrections.json` | 어휘집 정답 세트. 위 두 세트의 증례 문장을 그대로 담은 줄이 있음 (예: `findings_gold_v1.jsonl` 397줄 중 224줄, `findings_gold_candidates.jsonl` 9,176줄 중 5,720줄) | 위와 같음. 공개할 때는 ClinicalQA·자체 증례 줄만 남긴 판을 따로 만든다 |
-| `data/labels/augmentation_full_meta.json`, `case_quality_2026-09-27.json`, `kb_eval_*.json`, `eval/case_lists/*.txt` | 증례 id·진단명·수정 기록 (원문 일부가 섞인 항목 있음) | 원문 조각은 지우고 id·집계만 남기는 쪽이 안전 |
-| `tests/` 일부 주석 (`ac_…`, `da_…` 증례 문장 조각) | 회귀 시험의 근거 문장 몇 개 | 짧은 인용이지만 공개 전에 바꿔 쓰는 편이 안전 |
+| `data/sample_cases/`, `data/cases_aug/sample/` | 16 | 이 프로젝트가 쓴 합성 연습 증례. 의료진 검토 없음 |
+| `data/cases_clinicalqa/`, `data/cases_clinicalqa_aug/`, `data/cases_aug/clinicalqa/` | 95 (보강 초기판 40) | [snuh/ClinicalQA](https://huggingface.co/datasets/snuh/ClinicalQA), **Apache License 2.0**. 이 프로젝트가 **수정한 파생물**이다: 원 문항을 언어모델로 대화형 한국어 증례로 변환하고(`scripts/convert_clinicalqa.py`), 원문에 없던 진찰·검사 결과를 언어모델로 보강했다(`scripts/augment_cases.py`, `augmented` 표시). 변환·보강 결과는 의료진이 따로 검토하지 않았다. 파일마다 `source {dataset, id, license}`와 `_note`에 출처와 변경 사실을 적었다(Apache-2.0 4조의 변경 고지) |
 
-- 공개해도 되는 증례: `data/sample_cases/`(자체 합성), `data/cases_clinicalqa/`·`data/cases_aug/clinicalqa/`(snuh/ClinicalQA, Apache-2.0 — 변경 사실과 출처를 함께 적어야 함).
+**AgentClinic-MedQA·DiagnosisArena에서 만든 증례는 비공개로 평가에만 썼고, 공개 저장소에는 넣지 않았다.** 두 원천 모두 저장소 라이선스는 MIT이지만, 변환·보강본은 원문을 옮긴 파생물이라 재배포 근거가 없다(3장, 6장).
+
+| 뺀 경로 | 내용 | 이유 |
+|---|---|---|
+| `data/cases_agentclinic/` (107건), `data/cases_aug/agentclinic/` (107건), `data/labels/agentclinic_conversion_meta.json` | AgentClinic-MedQA 증례의 한국어 변환·보강본과 변환 기록 | 원 문항(MedQA, USMLE 대비 문제은행)의 권리 근거가 없음 |
+| `data/cases_diagnosisarena/` (49건), `data/cases_aug/diagnosisarena/` (49건), `data/labels/diagnosisarena_conversion_meta.json` | DiagnosisArena 증례의 한국어 변환·보강본과 변환 기록 | 원천이 학술지 증례 보고이고, 제작자도 "연구·모델 평가 목적"으로 한정. MIT가 원문 저작권을 해결하는지 불명확 |
+
+**두 세트의 줄·항목만 걸러 낸 파일** (ClinicalQA·자체 증례 줄만 남김, 2026-10-06):
+
+| 파일 | 전체 → 공개판 |
+|---|---|
+| `data/labels/findings_gold_candidates.jsonl` | 9,176 → 3,456줄 |
+| `data/labels/findings_gold_draft.jsonl`, `findings_gold_v1.jsonl` | 397 → 173줄 (`label_findings.py freeze`로 다시 만들어도 같음) |
+| `data/labels/findings_gold_fresh_v1.jsonl` | 80 → 34줄 |
+| `data/labels/findings_gold_review.txt`, `findings_gold_corrections.json` | 검토 항목 353 → 129 |
+| `data/labels/findings_dev_ids.json` | 403 → 159 |
+| `data/labels/findings_gold_v1_metrics.json` | 공개판 173줄로 다시 계산 (`label_findings.py metrics`) |
+| `data/labels/augmentation_full_meta.json` | 항목 기록 353 → 146 (프롬프트·검사 묶음 정의는 그대로) |
+| `data/labels/case_quality_2026-09-27.json` | 수정 기록 15 → 3증례, 남은 문제 목록 262 → 109증례. 전체 요약(267건)은 집계로 남기고 공개분 요약 `summary_after_public`을 추가 |
+| `data/labels/kb_eval_2026-09-2*.json` (4개) | 증례별 줄 267 → 111. 세트별·전체 집계는 원문이 없으므로 그대로(비공개 세트 포함 값) |
+| `eval/case_lists/dev.txt`, `smoke.txt` | 공개 111건에서 다시 뽑음 (`eval/experiment.py --regen-case-lists`, 시드 2026: clinicalqa 43 + sample 7 / clinicalqa 4 + sample 1) |
+| `tests/` 일부 | 두 세트의 문장을 옮긴 시험 입력과 주석의 `ac_…`/`da_…` 번호를 같은 뜻의 다른 문장으로 바꿈 |
+| `scripts/check_cases.py` | 두 세트에만 해당하던 수동 수정표(`FIXES`) 3건을 비움 |
+
+- 시험 하한 조정: 증례 품질 검사 대상 ≥ 250 → ≥ 100(공개 111건), 어휘집 정답 세트 크기 ≥ 300 → ≥ 170(F1 하한 0.93은 그대로, 공개판 0.948), 진단명 정규화 감사 이름 수 > 1,500 → > 1,000(공개판 1,083).
+- **README와 문서의 "267증례"·"held-out" 수치는 비공개 세트를 포함해 잰 기록값**이다. 공개 데이터만으로는 dev(= 공개 111건) 쪽만 재현된다.
+- 변환 스크립트(`scripts/convert_english_cases.py`)는 남겼다. 원본을 각 데이터셋의 조건에 따라 직접 내려받으면 로컬에서 다시 만들 수 있다(6장 명령). 만든 파일은 커밋하지 않는다.
 - 지식 베이스(`data/kb/`)는 CC BY 4.0·CC0·공공누리 1유형·미국 정부 저작물·자체 작성만 담고 있어 출처 표기(`data/kb/SOURCES.md`)를 지키면 배포할 수 있다.
-- **git 기록에도 남아 있다**: 위 파일은 이미 커밋돼 있으므로, 파일만 지우고 공개하면 과거 커밋으로 그대로 받을 수 있다. 공개할 때는 새 저장소로 옮기거나 기록에서 지우는 작업이 필요하다.
-- 집계 수치(예: held-out 지식 베이스 순위)는 원문을 담지 않으므로 README에 그대로 둔다.
+- **git 기록**: 위 파일의 이전 판은 과거 커밋에 남아 있으므로, 공개 전에 기록에서 지우거나 새 저장소로 옮긴다.
+- 집계 수치(예: held-out 지식 베이스 순위)와 증례 번호·진단명만 적은 문서 기록은 원문을 담지 않으므로 그대로 둔다.

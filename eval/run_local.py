@@ -2,7 +2,7 @@
 
 python eval/run_local.py                                  # all roles on LLM (reads .env), data/sample_cases
 python eval/run_local.py --doctor dummy --patient keyword --judge none   # smoke test without an LLM
-python eval/run_local.py --cases data/cases_clinicalqa data/cases_agentclinic data/cases_diagnosisarena \
+python eval/run_local.py --cases data/cases_aug/clinicalqa data/cases_aug/sample \
     --workers 8 --label "v5 baseline" --no-view         # multi-set run, 8 cases in parallel
 python eval/run_local.py --cases 'data/cases_*' --sample 30 --seed 1   # quick random subset (globs allowed)
 python eval/compare.py --latest 2                         # compare the two newest runs

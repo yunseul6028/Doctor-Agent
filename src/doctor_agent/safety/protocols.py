@@ -459,7 +459,7 @@ _TRIG_AORTA = ("찢어지", "찢기는", "뜯기는", "등으로", "등까지", 
                "radiat", "back pain", "marfan")
 _TRIG_PE = ("객혈", "다리가 붓", "다리 부종", "종아리", "수술", "부동", "장거리", "비행", "피임약", "호르몬", "혈전",
             "hemoptysis", "leg swelling", "calf", "surgery", "immobil", "long flight", "contracepti", "thrombo")
-# not bare "알레르기": a drug-allergy history ("페니실린 알레르기가 있습니다") is not an allergic reaction (da_858)
+# not bare "알레르기": a drug-allergy history ("페니실린 알레르기가 있습니다") is not an allergic reaction
 _TRIG_ANAPHYLAXIS = ("두드러기", "입술이 붓", "혀가 붓", "얼굴이 붓", "알레르기 반응", "알레르기성 반응", "아나필락시스",
                      "벌에", "땅콩", "새우", "먹고 나서", "주사 맞고", "hives", "urticaria", "allergic reaction",
                      "anaphyla", "angioedema", "bee sting")
