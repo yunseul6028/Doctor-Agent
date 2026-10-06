@@ -3,15 +3,15 @@
 작성: knowledge-rag 에이전트 · 조사일 2026-09-25
 목적: Doctor Agent의 판단 근거를 LLM이 만든 내용이 아니라 **출처를 밝힐 수 있는 검증된 의료 데이터**에 두고, Claude가 작성한 합성 연습 증례보다 나은 증례를 확보하기 위함.
 
-판정 기준 (대회 규칙 기반)
+판정 기준 (이 프로젝트의 설계 원칙)
 - **연구 발표 사용 허용** 라이선스여야 하며 출처를 밝힐 수 있어야 함. 라이선스가 불명확하면 제외.
-- 제출 ZIP에 넣는 것은 **합계 50MB 이하, CPU/RAM만, 추론 시 네트워크 호출 없음**.
+- 실행 코드가 읽는 데이터는 **작게(현재 수 MB), CPU/RAM만, 추론 시 네트워크 호출 없음**.
 - 외부 LLM API(Gemini 등)로 오프라인 가공은 허용. 단 데이터 약관이 제3자 LLM API 전송을 금지하면 불가.
 - 라이선스는 가능한 한 **1차 출처**(저장소 LICENSE, 공식 페이지, HF 데이터셋 메타데이터)에서 확인했고, 확인한 URL을 표에 적었다. 2차 출처에만 근거한 항목은 "미확인"으로 표시했다.
 - 이 문서는 조사 결과이며, 실제 사용 시에는 `docs/licenses.md`에 항목을 추가해야 한다 (이 작업에서는 수정하지 않음).
 
 용어: NC = 비상업, ND = 변경금지, SA = 동일조건변경허락, KOGL = 공공누리.
-NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, 상금이 있는 대회 참가가 "상업적 이용"인지는 판단이 필요하다 (아래 5장).
+NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, 가공본을 공개 저장소에 올리는 것은 따로 판단해야 한다 (아래 5장, 8장).
 
 ---
 
@@ -27,13 +27,13 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 
 보조: 영문 질환 설명이 필요하면 **MedlinePlus Health Topics 요약**(미국 정부 저작물, 공공 도메인, A.D.A.M. 백과사전과 약물 정보는 제외)과 **Disease Ontology**(CC0)를 쓴다. 한국어 설명은 질병관리청 국가건강정보포털(KOGL 4유형, 비상업·변경금지)을 원문 그대로 인용하는 방식으로만 조건부 사용을 권한다.
 
-### 증례 데이터 Top 3 (연습/평가용, 제출물에는 넣지 않음)
+### 증례 데이터 Top 3 (연습/평가용, 실행 코드는 읽지 않음)
 
 | 순위 | 자료 | 라이선스 | 이유 |
 |---|---|---|---|
 | 1 | **AgentClinic-MedQA / MedQA-Extended** (107 → 215 증례) | 저장소 MIT (AgentClinic), 원천 MedQA 저장소도 MIT | 구조가 **병력(환자 역할)·신체검사 소견·검사 결과·정답 진단으로 이미 분리된 OSCE 형식**이라 우리 ASK/EXAM/TEST/DIAGNOSE 스키마로 거의 그대로 변환 가능. 대화형 진단 에이전트 벤치마크 그 자체임 |
 | 2 | **MedR-Bench** (진단 957건, 그중 희귀질환 491건) 및 **MedCaseReasoning** (14,489건) | MedR-Bench: CC BY-SA (LICENSE 파일, 버전 미표기) / MedCaseReasoning: GitHub README는 CC-BY 4.0, HF 메타데이터는 MIT | 실제 PMC Open Access 증례 보고 기반이라 Claude 합성 증례보다 현실적. MedR-Bench는 "기본 정보 → 검사 추천 → 진단"의 다회 턴 평가를 이미 설계해 둠. MedCaseReasoning은 의사가 쓴 감별진단 추론 문장이 있어 Safety/감별 평가 기준 만들기에 좋음 |
-| 3 | **snuh/ClinicalQA** (1,045문항, 한국어) | Apache-2.0 (HF 메타데이터) | **한국어**, 주호소(chief complaint) 기반, 의사 3명 검토. 대회 주최(분당서울대병원)와 같은 서울대병원 계열 자료라 증례 문체가 비슷할 가능성. 단, 초안을 LLM이 생성한 객관식 형식이라 증례로 쓰려면 변환 필요 |
+| 3 | **snuh/ClinicalQA** (1,045문항, 한국어) | Apache-2.0 (HF 메타데이터) | **한국어**, 주호소(chief complaint) 기반, 의사 3명 검토. 한국어 임상 문체를 연습하기에 가장 가까운 공개 자료. 단, 초안을 LLM이 생성한 객관식 형식이라 증례로 쓰려면 변환 필요 |
 
 대안: **DiagnosisArena**(915건, MIT, 필드가 증례 정보/신체검사/검사/최종진단으로 분리되어 스키마 적합도는 가장 높음)는 원천이 저널 증례 보고(JAMA, Cell 등)라 MIT 표기가 원문 저작권까지 해결하는지 불명확 → 내부 평가용으로만 조건부 사용.
 
@@ -42,13 +42,13 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 - **NEJM 기반 증례(AgentClinic-NEJM, NEJM Case Records)**: 원문 저작권이 NEJM에 있고 별도 라이선스 표기가 없음 → 제외.
 - **MedQA 데이터 묶음 안의 영어 교과서 18권**: 상용 교과서 텍스트로 보이며 저작권 해결 근거가 없음 → 문항만 쓰고 교과서는 제외.
 - **대한의사협회 의학용어(term.kma.org)**: 무단 전재·재배포 금지 명시 → 제외.
-- **UMLS / SNOMED CT**: 라이선스 계약 필요, 재배포 제한 → 제출물 포함 불가.
+- **UMLS / SNOMED CT**: 라이선스 계약 필요, 재배포 제한 → 저장소·실행 데이터에 넣을 수 없음.
 
 ---
 
 ## 2. 지식 자료 비교표
 
-| 자료 | 내용 | 규모 | 언어 | 라이선스 (확인 URL) | 연구 발표 | 제출물(≤50MB, CPU) | 외부 LLM API 전송 | 적합도 |
+| 자료 | 내용 | 규모 | 언어 | 라이선스 (확인 URL) | 연구 발표 | 실행 데이터 포함 (소용량, CPU) | 외부 LLM API 전송 | 적합도 |
 |---|---|---|---|---|---|---|---|---|
 | **임상 결정 규칙·점수** (원 논문 기반 자체 구현) | 점수 공식, 임계값, 적용 대상 | 규칙 수십 개, 수 KB | 원문 영어 → 우리가 한국어로 작성 | 공식·방법은 저작권 대상이 아님(사실). 원 논문 인용 필수. **MDCalc 등의 설명문은 복사하지 말 것**. MMSE(PAR 저작권), MoCA(사용 허가 필요) 같은 저작권 설문 도구는 제외 | 가능 | 가능 (코드) | 제한 없음 | **High**: Safety와 검사 선택 근거를 결정적으로 제공 |
 | **DDXPlus 지식 파일** | 질환 49개(ICD-10 코드, 불/영 이름), 근거(증상 110 + 병력 113, 이진/범주/다중선택), 근거별 질문 문구(영/불), 질환별 증상 관계 | JSON 2개, 소용량 (정확한 크기 미확인, 수백 KB~수 MB로 추정) | 영어, 프랑스어 | CC-BY, 버전 미표기 ("We are releasing under the CC-BY licence", https://github.com/mila-iqia/ddxplus README). GitHub에는 LICENSE 파일 없음. figshare 페이지는 접근 차단(403)으로 미확인 | 가능 (출처 표기) | 가능 | 제한 없음 | **High**: 증상-질환 관계와 질문 문구가 구조화됨. 단 호흡기/흉통/이비인후 중심. 원 지식베이스(Dialogue Health Technologies)는 비공개이고 공개된 파일만 CC-BY |
@@ -70,7 +70,7 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 
 ## 3. 증례 데이터 비교표
 
-모두 **연습·평가 전용**이며 제출 ZIP에는 넣지 않는다 (대회 규칙상 제출물에 증례를 넣을 이유가 없고, 교차 증례 정보 사용 금지와도 충돌할 수 있음).
+모두 **연습·평가 전용**이며 실행 코드가 읽는 데이터에는 넣지 않는다 (실행 데이터에 증례를 넣을 이유가 없고, 증례 간 정보를 쓰지 않는다는 설계 원칙과도 충돌할 수 있음).
 
 | 자료 | 내용 | 규모 | 언어 | 라이선스 (확인 URL) | 연구 발표 | 외부 LLM API 전송 | 스키마 적합도 | 적합도 |
 |---|---|---|---|---|---|---|---|---|
@@ -97,23 +97,23 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 | 자료 | 제외 이유 |
 |---|---|
 | NEJM Case Records, AgentClinic-NEJM(-Extended) | NEJM(Massachusetts Medical Society) 저작권. 재사용 라이선스 표기 없음 |
-| AgentClinic-MIMIC-IV, MIMIC-IV-Ext 계열 전반 | PhysioNet 자격 증명 필요 + DUA가 OpenAI API·ChatGPT 등 제3자 전송 금지. 우리 개발 환경의 Gemini API(ai.google.dev)는 PhysioNet이 허용한 서비스(Vertex AI 경유 Gemini 등)가 아님. 제출물 포함도 불가 |
+| AgentClinic-MIMIC-IV, MIMIC-IV-Ext 계열 전반 | PhysioNet 자격 증명 필요 + DUA가 OpenAI API·ChatGPT 등 제3자 전송 금지. 우리 개발 환경의 Gemini API(ai.google.dev)는 PhysioNet이 허용한 서비스(Vertex AI 경유 Gemini 등)가 아님. 저장소 포함도 불가 |
 | MedQA에 포함된 영어 교과서 18권 | 상용 교과서 텍스트로 보이며 재배포 허락 근거가 없음 (문항 데이터와 분리해서 사용하지 말 것) |
 | UMLS Metathesaurus | 라이선스 계약 필요. 하위 집합 포함 재배포 금지(애플리케이션 일부로만 예외), 소스별 추가 제한(Category 3: 내부 연구만, Category 4: 미국 내 한정) (https://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/license_agreement.html) |
-| SNOMED CT | 한국은 SNOMED International 회원국이라 국내 사용은 무료이나 Affiliate License 등록 필요, 제출 ZIP 배포 조건 불명확 (https://www.snomed.org/get-snomed, https://www.snomed.org/members). 우리 과제에 비해 부담이 큼 |
+| SNOMED CT | 한국은 SNOMED International 회원국이라 국내 사용은 무료이나 Affiliate License 등록 필요, 저장소 배포 조건 불명확 (https://www.snomed.org/get-snomed, https://www.snomed.org/members). 우리 과제에 비해 부담이 큼 |
 | 대한의사협회 의학용어위원회 용어 (term.kma.org) | "모든 정보의 저작권은 대한의사협회 의학용어위원회에 있으며" 사전 승인 없는 전재·재배포 금지. 다운로드 제공 없음 |
 | MedlinePlus A.D.A.M. 의학 백과사전, ASHP 약물 정보 | 저작권 보유(MedlinePlus 공식 안내). 공공 도메인인 건강 주제 요약만 사용 |
 | WHO ICD-10 원본 | 라이선스를 1차 출처에서 확인하지 못함. HIRA 상병마스터(KOGL 1유형)로 대체 |
 | MDCalc 등 계산기 사이트의 설명 문구 | 사이트 저작권. 공식은 원 논문에서 직접 가져오고 설명은 직접 작성 |
 | MMSE, MoCA 등 저작권 있는 평가 도구 | 사용 허가·라이선스 필요 |
-| snuh/specialist-level·essential-level_medical_knowledge_dataset_sft | CC-BY-ND-4.0 (HF 메타데이터). AI Hub 데이터에서 파생되고 Qwen3로 추론을 생성한 SFT용 데이터. ND라 가공본 배포 불가이고, 대회는 파인튜닝 금지라 활용처가 적음. 원천 AI Hub 약관(해외 반출·제3자 제공 제한 가능성)도 미확인 |
+| snuh/specialist-level·essential-level_medical_knowledge_dataset_sft | CC-BY-ND-4.0 (HF 메타데이터). AI Hub 데이터에서 파생되고 Qwen3로 추론을 생성한 SFT용 데이터. ND라 가공본 배포 불가이고, 이 프로젝트는 파인튜닝을 하지 않으므로 활용처가 적음. 원천 AI Hub 약관(해외 반출·제3자 제공 제한 가능성)도 미확인 |
 | AI Hub 의료 데이터 (전문 의학지식 등) | 이용 신청·약관 동의가 필요하고, 해외 서버(외부 LLM API) 전송 허용 여부를 확인하지 못함 → 확인 전까지 제외 |
 
 ---
 
 ## 5. 확인 못 한 점
 
-1. **NC 라이선스와 대회 상금**: 상금이 있는 대회 참가가 CC BY-NC / KOGL 4유형의 "비상업"에 해당하는지 대회 측 해석이 없다. KorMedMCQA, PMC-Patients, StatPearls, 국가건강정보포털을 제출물에 넣기 전에 주최 측 FAQ나 참가자 가이드 확인이 필요하다. 연습·평가용(제출물 제외)으로만 쓰면 위험이 낮다.
+1. **NC 라이선스와 공개 저장소**: KorMedMCQA, PMC-Patients, StatPearls, 국가건강정보포털은 비상업(NC)·변경 금지(ND) 조건이 있어, 가공본을 공개 저장소나 실행 데이터에 넣기 전에 조건을 다시 확인해야 한다. 연습·평가용으로만 쓰고 배포하지 않으면 위험이 낮다. (현재 이 자료들은 하나도 쓰지 않는다.)
 2. **DDXPlus 라이선스 버전**: README에 "CC-BY"만 있고 버전이 없으며 GitHub에 LICENSE 파일이 없다. figshare 페이지(원 배포처)는 403으로 열람하지 못했다. 지식 파일의 정확한 크기도 확인하지 못했다.
 3. **MedCaseReasoning 라이선스 불일치**: GitHub README는 CC-BY 4.0, HF 메타데이터는 MIT. 또 PMC OA Subset에는 CC BY-NC 논문도 섞여 있는데(라이선스가 논문마다 다르다고 PMC가 명시), 비상업 논문을 걸러냈는지 확인하지 못했다. MedR-Bench도 같은 문제가 있고 "CC BY-SA"의 버전이 없다.
 4. **MedQA 원문 저작권**: 저장소는 MIT지만 문항은 웹에서 수집한 USMLE 대비 문제은행에서 왔다(논문 기준). 원 문제은행의 권리 관계는 확인하지 못했다. AgentClinic-MedQA도 이 문제를 그대로 물려받는다.
@@ -123,13 +123,13 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 8. **임상 규칙 원 논문 서지**: 규칙 목록은 제안 단계이며, 구현할 때 각 규칙의 원 논문(예: Wells PE Thromb Haemost 2000, HEART Neth Heart J 2008, qSOFA JAMA 2016, Ottawa ankle JAMA 1993, Canadian CT Head Lancet 2001, CURB-65 Thorax 2003 등)을 원문에서 다시 확인해 `docs/licenses.md`에 인용과 함께 기록해야 한다. 이번 조사에서는 원문을 열람하지 않았다.
 9. **규모 수치**: Disease Ontology 용어 수, MedlinePlus 토픽 수, MeSH descriptor 수, HPO 파일 크기, HIRA CSV 실제 용량은 확인하지 못했다(표에 "미확인"으로 표시).
 10. **한국어 임상 진료지침**: 대한의학회 임상진료지침정보센터 등 학회 지침은 학회별 저작권이라 일괄 라이선스를 찾지 못했다. KTAS(한국형 응급환자 분류도구) 같은 한국 도구의 라이선스도 확인하지 못했다.
-11. **대회 증례 언어·형식**: 참가자 가이드가 아직 공개되지 않아 한국어 자료의 우선순위는 가정에 기반한다.
+11. **증례 언어·형식**: 평가 증례는 한국어 대화형을 기본으로 정했다. 다른 언어·형식의 환경에서는 한국어 자료의 우선순위를 다시 봐야 한다.
 
 ---
 
 ## 6. 로컬 평가용 증례 변환 (eval-simulator, 2026-09-26)
 
-제출물에는 넣지 않는 **로컬 평가 전용** 증례. `scripts/package.py`는 허용 목록(`run.py`, `requirements.txt`, `src`, `eval/__init__.py`, `eval/simulator.py`, `data/kb`)만 묶으므로 아래 폴더는 들어가지 않는다. 원본 다운로드는 `data/external/`(git-ignored)에만 둔다.
+실행 코드가 읽지 않는 **로컬 평가 전용** 증례. 실행 시 읽는 데이터는 `src`, `data/kb`, `data/lexicon`뿐이다. 원본 다운로드는 `data/external/`(git-ignored)에만 둔다.
 영어 원문은 증례 파일에 넣지 않는다(환자 LLM에 정답이 새지 않도록). 증례에는 `source {dataset, id, license, url}`만 남긴다.
 
 | 출처 | 라이선스 (1차 확인) | 출력 폴더 | 선택 기준 | 변환 스크립트 / 기록 |
@@ -139,8 +139,8 @@ NC 라이선스는 연구 발표 용도로는 일반적으로 허용되지만, �
 | snuh/ClinicalQA (2차분) | Apache-2.0 | `data/cases_clinicalqa/cqa_<id>.json` (기존 40건은 수정하지 않음) | 진단형 문항 중 정답이 질환인 55건 추가(`EXTRA_IDS`) | `scripts/convert_clinicalqa.py --set extra` / `data/labels/clinicalqa_conversion_meta.json` |
 
 라이선스 주의
-- **AgentClinic-MedQA**: 저장소는 MIT이지만 증례는 MedQA(USMLE형) 문항을 LLM으로 확장한 것이다. MedQA 저장소도 MIT이나 문항 자체는 웹의 USMLE 대비 문제은행에서 수집되어 원 권리자의 허락 근거가 없다 → 출처 논란이 있으므로 발표·제출물에 쓰지 않는다.
-- **DiagnosisArena**: 저널 증례 보고(Cell, JAMA 등)를 각색한 데이터이고 제작자가 일부 저널을 저작권 때문에 뺐다고 적었다. MIT가 원문 저작권까지 해결하는지 불명확 → 내부 평가 전용.
+- **AgentClinic-MedQA**: 저장소는 MIT이지만 증례는 MedQA(USMLE형) 문항을 LLM으로 확장한 것이다. MedQA 저장소도 MIT이나 문항 자체는 웹의 USMLE 대비 문제은행에서 수집되어 원 권리자의 허락 근거가 없다 → 출처 논란이 있으므로 **내부 평가 전용**이다. 발표물에 쓰지 않고, 변환본을 공개 저장소에 올리지 않는다 (8장).
+- **DiagnosisArena**: 저널 증례 보고(Cell, JAMA 등)를 각색한 데이터이고 제작자가 일부 저널을 저작권 때문에 뺐다고 적었다. MIT가 원문 저작권까지 해결하는지 불명확 → **내부 평가 전용**, 변환본 재배포 금지 (8장).
 - MedR-Bench는 이번에 쓰지 않았다(DiagnosisArena로 충분하고, CC BY-SA 버전 미표기).
 
 변환 규칙 (공통)
@@ -191,7 +191,7 @@ python eval/run_local.py --cases data/cases_agentclinic
 
 ## 7. 구축한 지식베이스 (data/kb/, 2026-09-26 구축 · 09-27 검사 연결, Orphanet 빈도·유병률 추가)
 
-`scripts/build_kb.py`가 원자료를 `data/external/kb_raw/`(git 제외)에 내려받아 `data/kb/`(제출 ZIP 포함)를 만든다. 추론 코드는 `src/doctor_agent/knowledge/kb.py` (표준 라이브러리만, CPU, 네트워크 없음, 처음 호출할 때 한 번 적재). 에이전트는 `src/doctor_agent/agent/kb_hints.py`를 통해 **참고용 힌트**로만 쓴다 (`AGENT_USE_KB=0`이면 끔). 인터페이스는 `docs/architecture.md`의 Knowledge base 절 참조.
+`scripts/build_kb.py`가 원자료를 `data/external/kb_raw/`(git 제외)에 내려받아 `data/kb/`(실행 시 읽음)를 만든다. 추론 코드는 `src/doctor_agent/knowledge/kb.py` (표준 라이브러리만, CPU, 네트워크 없음, 처음 호출할 때 한 번 적재). 에이전트는 `src/doctor_agent/agent/kb_hints.py`를 통해 **참고용 힌트**로만 쓴다 (`AGENT_USE_KB=0`이면 끔). 인터페이스는 `docs/architecture.md`의 Knowledge base 절 참조.
 
 ### 7.1 포함한 자료와 재확인 결과
 | 자료 | 라이선스 재확인 | 쓰임 |
@@ -209,7 +209,7 @@ python eval/run_local.py --cases data/cases_agentclinic
 ### 7.2 제외
 - **Human Phenotype Ontology 파일(hp.obo) + phenotype.hpoa**: 여전히 쓰지 않는다 (2026-09-27). 대신 Orphanet이 CC BY 4.0으로 배포하는 HPO 코드 주석을 쓰고, 표현형은 기존 KB 용어(영어 라벨 일치 또는 Wikidata P3841 다리)에 붙인다. 대응이 없는 표현형만 `HP:<id>` 용어가 되며 영어 라벨은 Wikidata 라벨(있으면) 또는 Orphanet이 준 라벨을 **바꾸지 않고** 쓴다. 원래 제외 사유: 라이선스가 "HPO 파일의 내용과 논리적 관계를 어떤 식으로든 변경하지 말 것"을 요구한다 (http://human-phenotype-ontology.github.io/license.html; reusabledata.org는 "restrictive"로 분류). 우리 KB는 재구성·번역한 파생물이라 조건 충족이 불명확하고, 희귀질환 중심이라 가치도 낮아서 제외했다. 주석의 원천인 OMIM도 별도 라이선스가 있다.
 - **Human Symptoms–Disease Network (Zhou 2014, Nat Commun)**: Europe PMC 기준 오픈 액세스 라이선스가 확인되지 않아 제외.
-- NC/ND 자료(StatPearls, 국가건강정보포털 등)는 제출 KB에 넣지 않았다.
+- NC/ND 자료(StatPearls, 국가건강정보포털 등)는 KB에 넣지 않았다.
 - 검사 결과 연결을 만들 때 검토한 자료 (2026-09-27):
 
 | 자료 | 판정 | 이유 |
@@ -332,3 +332,22 @@ python scripts/eval_kb.py --no-write --prev-w 0   # 유병률 사전확률 끈 �
 - **원인별 수정 (kb.py 매처 논리)**: ① 쉼표 이름 "X, Y"의 X를 별칭으로 넣을 때 Y가 순수 수식어이거나 X가 여러 낱말 영어 구·3자 이상 한국어 명사일 때만 ("심장성, 심장 또는 심근부전 NOS" → "심장성", "용혈, 간효소상승 …" → HELLP의 "용혈" 같은 조각 제거). ② KCD 괄호 이름을 2순위 표로 ("상세불명의 두개내출혈(비외상성)" → "두개내출혈", "헤노흐(-쇤라인)자반"). ③ 상위 이름(superstring) 단계에서 외상·유전 아형 낱말은 개념을 바꾸는 것으로 보고, 영어는 낱말 경계에서만 ("ventricular tachycardia" ≠ "supraventricular …"). ④ 퍼지 일치: 한국어는 첫 글자(장기)와 머리 명사가 같아야 하고, 영어는 질의의 각 낱말이 이름에 대부분 있어야 하며, 반대말 형태소(고/저, hyper/hypo, clast/blast)만 다른 이름은 거부. ⑤ 여러 KCD 범주가 같은 표를 받으면 KCD 제목과 프로필 이름의 일치도, 그다음 출처 순서로 고른다 (예전 "짧은 코드→알파벳" 규칙은 혈관염을 I80 정맥염으로 보냈다). ⑥ 문장 속 3자리 코드는 단독·괄호·"KCD" 표시일 때만 코드로 읽는다 ("파르보바이러스 B19" ≠ B19 간염). ⑦ 한국어 하이픈 복합어는 가운데서 자르지 않는다 ("폐-신장 증후군" ≠ 신증후군). ⑧ MedlinePlus 주제 제목 중 과다복용·중독 제목은 중독 코드가 없는 프로필에 색인하지 않는다 ("Opioid Overdose" → F11.1 남용).
 - **문서화된 일회성 표 (kb_curated.py)**: `CONTAINED_BLOCK`(동형이의어 "이식증" = 이식증(異食症) 대 이식(移植)), `NAME_ANTONYMS`, `POISON_CODES`(약물 + 중독 낱말 → T36-T65; 리튬처럼 ICD 약물표에서 코드가 갈리는 것은 제외), `ABBREVIATIONS`/`ABBR_AMBIGUOUS`(ACS가 acrocallosal 증후군, SJS가 쇼그렌으로 가던 문제; HD·PD·MS 같은 다의어 약어는 정규화하지 않음), `NAME_CODES`(급성 관상동맥 증후군 I24.9, 저·고칼슘혈증 E83.5, 당뇨병성 신증 E14.2, 면역 혈소판 감소증 D69.3), `PROFILE_KCD`(혈관염 I77.6), `NAME_SUBS` 추가 철자쌍(다카야수/타카야수, 라이터 증후군, 폐동맥 색전, 뇌수막염/수막염 등).
 - **크기·속도**: `data/kb` 변화 없음. `normalize_diagnosis` 평균 0.96 → 0.99 ms (퍼지 켬), `specialty_of` 0.087 → 0.101 ms, 로드 시간 차이 없음.
+
+---
+
+## 8. 공개 저장소로 만들 때 (재배포 금지 자료)
+
+이 저장소를 공개하기 전에 아래 자료는 **빼야 한다**. 모두 내부 평가용으로만 쓸 수 있는 원천(3장, 6장)에서 나왔고, 변환·보강본도 원문을 옮긴 파생물이라 재배포 근거가 없다. 지금은 지우지 않고 기록만 해 둔다.
+
+| 경로 | 내용 | 이유 |
+|---|---|---|
+| `data/cases_agentclinic/` (107건), `data/cases_aug/agentclinic/` | AgentClinic-MedQA 증례의 한국어 변환·보강본 | 저장소는 MIT이지만 원 문항(MedQA, USMLE 대비 문제은행)의 권리 근거가 없음 |
+| `data/cases_diagnosisarena/` (49건), `data/cases_aug/diagnosisarena/` | DiagnosisArena 증례의 한국어 변환·보강본 | 원천이 학술지 증례 보고이고, 제작자도 "연구·모델 평가 목적"으로 한정. MIT가 원문 저작권을 해결하는지 불명확 |
+| `data/labels/findings_gold_candidates.jsonl`, `findings_gold_draft.jsonl`, `findings_gold_v1.jsonl`, `findings_gold_fresh_v1.jsonl`, `findings_gold_review.txt`, `findings_gold_corrections.json` | 어휘집 정답 세트. 위 두 세트의 증례 문장을 그대로 담은 줄이 있음 (예: `findings_gold_v1.jsonl` 397줄 중 224줄, `findings_gold_candidates.jsonl` 9,176줄 중 5,720줄) | 위와 같음. 공개할 때는 ClinicalQA·자체 증례 줄만 남긴 판을 따로 만든다 |
+| `data/labels/augmentation_full_meta.json`, `case_quality_2026-09-27.json`, `kb_eval_*.json`, `eval/case_lists/*.txt` | 증례 id·진단명·수정 기록 (원문 일부가 섞인 항목 있음) | 원문 조각은 지우고 id·집계만 남기는 쪽이 안전 |
+| `tests/` 일부 주석 (`ac_…`, `da_…` 증례 문장 조각) | 회귀 시험의 근거 문장 몇 개 | 짧은 인용이지만 공개 전에 바꿔 쓰는 편이 안전 |
+
+- 공개해도 되는 증례: `data/sample_cases/`(자체 합성), `data/cases_clinicalqa/`·`data/cases_aug/clinicalqa/`(snuh/ClinicalQA, Apache-2.0 — 변경 사실과 출처를 함께 적어야 함).
+- 지식 베이스(`data/kb/`)는 CC BY 4.0·CC0·공공누리 1유형·미국 정부 저작물·자체 작성만 담고 있어 출처 표기(`data/kb/SOURCES.md`)를 지키면 배포할 수 있다.
+- **git 기록에도 남아 있다**: 위 파일은 이미 커밋돼 있으므로, 파일만 지우고 공개하면 과거 커밋으로 그대로 받을 수 있다. 공개할 때는 새 저장소로 옮기거나 기록에서 지우는 작업이 필요하다.
+- 집계 수치(예: held-out 지식 베이스 순위)는 원문을 담지 않으므로 README에 그대로 둔다.

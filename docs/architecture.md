@@ -3,7 +3,7 @@
 Current as of 2026-09-28 (prompt `v9-subagents`). When an interface changes, update this file first.
 
 ```
-run.py ──> case source (env/factory.py: local | official)          ← official.py is a TODO until the guide is out
+run.py ──> case source (env/factory.py: local)                      ← new environments = new adapters
              │  env.reset() / env.step(action)
              ▼
         run_case (agent/loop.py) ── CaseBudget + GuardedLLM (agent/runtime.py) ── LLM client (llm/)
@@ -23,10 +23,10 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 
 | Path | Role |
 |---|---|
-| `run.py` | Submission entry point. Picks the case source, runs every case in submission mode, writes results incrementally. |
+| `run.py` | Batch entry point. Picks the case source, runs every case in robust mode, writes results incrementally. |
 | `src/doctor_agent/config.py` | `LLMConfig` (per-role env: `DOCTOR_LLM_*` → `LLM_*` → defaults) and `AgentConfig` (turn cap, KB switch, runtime knobs). |
-| `env/interface.py` | `Action`, `ActionType` (ASK/EXAM/TEST/DIAGNOSE), `Observation`, `Environment` — the only environment dependency. Assumed format until the guide is published. |
-| `env/factory.py`, `env/local.py`, `env/official.py` | Case sources: `local` = case files through the keyword simulator (`eval/simulator.py`); `official` = placeholder adapter that raises a clear "not published yet" error. |
+| `env/interface.py` | `Action`, `ActionType` (ASK/EXAM/TEST/DIAGNOSE), `Observation`, `Environment` — the only environment dependency. Any other patient environment plugs in as an adapter. |
+| `env/factory.py`, `env/local.py` | Case sources: `local` = case files through the keyword simulator (`eval/simulator.py`). |
 | `agent/loop.py` | `run_case`: one case end to end, never-crash wrapper, forced final diagnosis, result record. |
 | `agent/policy.py` | Next-action decision: hints, LLM call, post-processing rules, structured pre-diagnosis review. |
 | `agent/state.py`, `agent/ledger.py` | Per-case state; `FindingsLedger` (양성/음성/결과없음) and `DdxLedger` (p, status 유력/위험/배제, for/against) merged across turns; capped prompt view. |
@@ -34,7 +34,7 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 | `agent/text.py` | Char-bigram similarity, history-question detection, DDx name-variant matching (`same_dx`). |
 | `agent/prompts.py` | All prompts (`SYSTEM`, `REVIEW_SYSTEM`, final prompt, `LOW_TIME_HINT`, advisor wording `TRIAGE_ALERT` / `CONFIDENCE_PUSHBACK`). Version changes → `docs/experiments.md`. |
 | `agent/confidence.py`, `agent/anchoring.py`, `agent/question_planner.py`, `safety/triage.py` | Advisors (code only): confidence score + stop rule, starting DDx + anchoring check, information-gain next-action planner, unstable-patient triage. Wiring: "Advisors wired into the policy". |
-| `agent/subagents/` | Specialist sub-agents (same fixed LLM, other role): `base.py` contract, `runner.py` one never-raising call, `orchestrator.py` triggers/caps/logs; content modules `consult.py`, `advocate.py` (+ `knowledge/specialty.py`). See "Specialist sub-agents". |
+| `agent/subagents/` | Specialist sub-agents (same doctor LLM, other role): `base.py` contract, `runner.py` one never-raising call, `orchestrator.py` triggers/caps/logs; content modules `consult.py`, `advocate.py` (+ `knowledge/specialty.py`). See "Specialist sub-agents". |
 | `agent/kb_hints.py` | KB → short hints (candidates, discriminators, diagnosis normalisation). Fail-safe: any KB error = no hint. |
 | `agent/runtime.py` | `CaseBudget` (wall clock), `GuardedLLM` (failure cap, watchdog, deadlines, gpt-oss options, prompt-size stats). |
 | `agent/parser.py` | `find_json` (the one JSON extractor: harmony split, reasoning-tag strip, optional code-fence strip and truncation repair) used by the step/final action, the review and every sub-agent reader; `parse_action`, `as_list`. |
@@ -56,8 +56,8 @@ run.py ──> case source (env/factory.py: local | official)          ← offic
 4. No diagnosis yet (budget, LLM unavailable, policy/env errors, turn cap) → `_forced_diagnosis`: one final LLM call
    if time allows (always tried when the case has made no LLM call yet), else the top DDx, else "진단 불가".
 5. The result records diagnosis, turns (action, reason, DDx, response), ledgers, reviews, `llm_calls`,
-   `diagnosis_normalized` (KB name + KCD code, record only — the submitted text is unchanged) and `runtime` stats.
-   Dev mode asserts the "≥1 LLM call per case" rule; submission mode logs it.
+   `diagnosis_normalized` (KB name + KCD code, record only — the answered diagnosis text is unchanged) and `runtime` stats.
+   Dev mode asserts the "≥1 LLM call per case" invariant; robust mode logs it.
 
 ## Policy decision order (`Policy.next_action`)
 
@@ -207,24 +207,24 @@ Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-tu
 - `render_for_prompt(suggestions) -> str`: "추천 다음 행동 (참고): 1) [검사] 심전도 (감별: …) …" ≤ 300 chars.
 - Offline check (cases_aug, 267 cases, no LLM, DDx seeded from KB candidates ± gold dx): see the planner commit message.
 
-## Runtime (competition robustness)
+## Runtime (robustness)
 
-- **Entry point** `run.py`: case source by `--env local|official` or `DOCTOR_ENV`. Submission mode by default
+- **Entry point** `run.py`: case source by `--env local` or `DOCTOR_ENV` (only `local` exists). Robust mode (`cfg.agent.robust`) by default
   (`--dev` turns it off). Output is incremental: one JSON line per case in `<out>.jsonl` (flushed + fsynced) and the
   `{case_id: diagnosis}` map rewritten atomically after each case; `--resume` skips finished cases. A second per-case
   guard in `run.py` still sends a fallback DIAGNOSE if `run_case` ever raises.
 - **Never crash, always answer**: the policy talks to a per-case `GuardedLLM`. A failed LLM call returns "" (treated as
   a parse failure); after `max_llm_failures` (3) consecutive failures the LLM is dropped for that case; env errors are
-  tolerated up to `max_env_failures` (3). Every case ends with a DIAGNOSE. In submission mode no exception leaves
+  tolerated up to `max_env_failures` (3). Every case ends with a DIAGNOSE. In robust mode no exception leaves
   `run_case`; dev mode (the eval harness default) raises on bugs and billing errors.
-- **Time budget**: `AGENT_CASE_TIME_BUDGET_S` (0 = unlimited; set below the official limit once known). Past
+- **Time budget**: `AGENT_CASE_TIME_BUDGET_S` (0 = unlimited; set it from measured call latency). Past
   `AGENT_DEGRADE_AT_FRAC` (0.6): no review / safety pushback, first 2 hints + `LOW_TIME_HINT`, reasoning effort "low".
   When `AGENT_FINAL_RESERVE_S` (45 s, at most half the budget) is left: forced final diagnosis (skipped below
   `min_call_s` = 5 s → top DDx). Exploratory calls get a deadline that leaves the reserve untouched; every call also has
   a watchdog thread; the OpenAI SDK's own retries are off (ours are deadline-aware). `GuardedLLM` records every call's
   latency on the budget clock (main vs sub-agent); sub-agent calls get a pre-call time check (see "Time budget for
   sub-agent calls"). Offline, `scripts/token_budget.py:estimate_call_s(prompt, output, Throughput)` predicts a call's
-  wall time from token counts under stated (unmeasured) throughput assumptions (not part of the submission).
+  wall time from token counts under stated (unmeasured) throughput assumptions (offline only, not loaded at runtime).
 - **gpt-oss responses** (`llm/client.py`, `llm/harmony.py`): content preferred; harmony markers
   (`<|channel|>analysis/final<|message|>…`, `analysis…assistantfinal…`) stripped; reasoning read from
   `reasoning_content`/`reasoning`; if an action prompt's content has no JSON the reasoning is appended as
@@ -237,14 +237,14 @@ Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-tu
   oldest part of ledger lines → hard cut keeping the initial info. Prompt sizes and runtime events are recorded in
   `result["runtime"]` (`prompt_chars_max/total`, `forced`, `degraded`, `llm_errors`, …).
 
-## Evaluation harness (not packaged)
+## Evaluation harness (offline, not part of the runtime)
 
 `eval/simulator.py` (keyword patient; also used by `env/local.py`), `eval/llm_patient.py` (LLM patient with hidden
 answer fields and personas standard / vague / anxious / minimizer / poor_historian / mixed), `eval/scorer.py`
 (accuracy via judge or string match, efficiency = 1 − turns/60, safety = share of applicable protocol checks done),
 `eval/judge.py`, `eval/run_local.py` (multi-set, parallel, usage metering), `eval/experiment.py` (profiles, cost
 guard), `eval/compare.py`, `eval/viewer.py` (viewer + share page), `eval/play.py` (interactive). See
-`docs/experiments.md` for the API-day procedure.
+`docs/experiments.md` for the procedure to measure on gpt-oss-20b.
 
 ## Design principles
 - **Budget**: at most 60 turns; Efficiency counts, so a soft target of 20 turns and diagnosis at sufficient confidence.
@@ -253,9 +253,9 @@ guard), `eval/compare.py`, `eval/viewer.py` (viewer + share page), `eval/play.py
 - **Independence**: all state is created per case; no cross-case cache (the KB is static data).
 - **Small-model friendly**: the code keeps the memory (ledgers) and decides verdicts; the LLM fills fixed fields.
 
-## Open interfaces (confirm after the participant guide is published)
-- Action/response format, diagnosis format (free text vs. code such as ICD/KCD), per-case time limit, LLM endpoint.
-- `env/interface.py` is an assumption; add only an adapter in `env/official.py` (and adapt `run.py` output if needed).
+## Open interfaces
+- Action/response format, diagnosis format (free text vs. code such as ICD/KCD) and per-case time limit are our own choices (`env/interface.py`, `AGENT_CASE_TIME_BUDGET_S`).
+- Another patient environment (a different simulator, a benchmark harness) needs only an adapter behind `env/interface.py` (and, if needed, a different `run.py` output format).
 
 ## Safety layers wired into the policy (2026-09-27)
 Order inside `Policy.next_action` for each proposed action:
@@ -445,7 +445,7 @@ Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_inter
    when an alert is shown; `{"layer": "result_interp", "error"}` on any exception (the case goes on as if off).
 
 ## Specialist sub-agents (2026-09-28, prompt `v9-subagents`)
-Runtime "specialists" under the main doctor LLM: the **same fixed gpt-oss-20b** through the same `GuardedLLM`, with a
+Runtime "specialists" under the main doctor LLM: the **same gpt-oss-20b doctor model** through the same `GuardedLLM`, with a
 different role prompt and a different evidence slice, called **only when triggered**. They never pick the action; their
 output is a short hint for the next main prompt, "참고" DDx candidates and log entries. The "≥ 1 LLM call per case with
 case information" rule stays satisfied by the main loop; sub-agent calls are extra.
@@ -456,7 +456,7 @@ case information" rule stays satisfied by the main loop; sub-agent calls are ext
 @dataclass
 class SubagentCall:
     name: str                 # e.g. "consult:cardio", "advocate", "radiology"
-    messages: list[dict]      # chat messages for the fixed LLM
+    messages: list[dict]      # chat messages for the doctor LLM
     json_schema: dict | None  # optional structured output
     max_chars_out: int = 600  # cap of the rendered hint
 
@@ -481,7 +481,7 @@ Content modules (owned by the content branches):
 
 Framework (pipeline branch):
 - `agent/subagents/runner.py`: `run(llm, call, deadline=None, *, parse=None, clock=time.monotonic) -> SubagentResult`.
-  One call of the fixed LLM with `json_schema`, `expect_json=True`, `reasoning_effort=AgentConfig.
+  One call of the doctor LLM with `json_schema`, `expect_json=True`, `reasoning_effort=AgentConfig.
   subagent_reasoning_effort` ("low") and the deadline (GuardedLLM also applies the case budget deadline; the earlier
   one wins). `parse` defaults to a generic JSON reader (`parser._json_objects` on the harmony-cleaned text: keys
   `hint_ko`/`hint`/`summary`, `ddx_add`, `suggested_actions`, `red_flags`); every result is sanitised (types, lengths,
@@ -508,7 +508,7 @@ moment code already suspects anchoring; (b) is the last chance before a low-conf
 existing review (it cannot add turns: the review is skipped with ≤ 3 turns left or in low-time mode). The cap is one
 advocate call per case, whichever comes first.
 
-Trigger calibration (2026-09-29, `eval/offline/eval_triggers.py`, replay of 224 trajectories of non-competition dev
+Trigger calibration (2026-09-29, `eval/offline/eval_triggers.py`, replay of 224 trajectories of non-gpt-oss dev
 models; docs/experiments.md "trigger calibration"): the old numbers fired the anchoring check on 58%, the routed consult
 on 75% and the advocate on 75% of trajectories, with no more (anchoring: fewer) fires on those that ended wrong. Now:
 anchoring and routed consult start at turn 5 (27% / 36%, lift 1.3 / 1.2 in sample, no better than random across runs);
