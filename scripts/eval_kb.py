@@ -7,7 +7,8 @@ For every case in data/cases_aug/{sample,clinicalqa,agentclinic,diagnosisarena}:
   2. rank the gold diagnosis (diagnosis + aliases resolved in the KB) in kb.candidates(findings, k=50).
 Reports top-1/3/10/50 hit rates and MRR overall and per set, KB coverage of gold diagnoses, and a
 normalize_diagnosis() benchmark on gold names + aliases. Split: dev = sample + clinicalqa (tune here only),
-held-out = agentclinic + diagnosisarena (report only).
+held-out = agentclinic + diagnosisarena (report only). The held-out sets are private (not redistributable, not in the
+public repository); without them the held-out rows are empty (n=0).
 
     python scripts/eval_kb.py                 # prints a summary, writes data/labels/kb_eval_<date>.json
     python scripts/eval_kb.py --no-write --show-misses 20

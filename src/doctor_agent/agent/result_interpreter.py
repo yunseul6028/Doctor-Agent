@@ -636,7 +636,7 @@ _STATED = re.compile(r"^[^,]*?(?:소견|관찰됨|관찰되며|보임|보이며|
 
 
 def _own_statement(pol: str, cue: str, masked: str, part: tuple[int, int], e: int) -> str:
-    """A list item that states itself ("복수 및 좌측 흉수 소견, 장기들은 전반적으로 정상") keeps its own (present)
+    """A list item that states itself (e.g. "복수와 왼쪽 흉수가 보이고, 그 밖의 장기는 정상") keeps its own (present)
     reading instead of the predicate of the next comma part."""
     a, b = part
     tail = masked[e:b]

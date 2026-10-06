@@ -8,3 +8,6 @@ eval/results/
 data/external/
 .claude/worktrees/
 eval/cache/
+.env.*
+!.env.example
+.pytest_cache/

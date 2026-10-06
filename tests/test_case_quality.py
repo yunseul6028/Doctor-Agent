@@ -29,7 +29,7 @@ def _hard(results, types=None):
 
 
 def test_all_cases_checked(results):
-    assert len(results) >= 250
+    assert len(results) >= 100  # 111 public cases (clinicalqa + sample); was >= 250 on the 267-case private set
 
 
 def test_no_answer_leaks(results):

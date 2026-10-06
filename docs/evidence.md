@@ -2,6 +2,7 @@
 
 README가 길어져, 항목별로 긴 표(근거 목록, 설정값, 측정 세부)를 이 문서로 **그대로 옮겼습니다**(내용·수치는 README에 있던 그대로). 각 절의 요약과 맥락은 README의 같은 번호 절에 있습니다.
 링크의 절 번호(예: 4.9)는 [README](../README.md)의 장·절 번호입니다. 수치를 언제·어떻게 다시 쟀는지는 [`measurements.md`](measurements.md)에 있습니다.
+- **증례 세트 주의**: "267증례"·"held-out"으로 적힌 측정은 비공개 세트(AgentClinic·DiagnosisArena 변환 156건)를 포함한 값입니다. 공개 저장소에는 111건(ClinicalQA 변환 + 합성)만 있습니다([`data-sources.md` 8장](data-sources.md#8-공개-저장소로-만들-때-재배포-금지-자료)).
 
 ## 목차
 

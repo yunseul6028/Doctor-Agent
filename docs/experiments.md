@@ -3,6 +3,7 @@
 - Safety = share of the guideline-based checklist (`safety/protocols.py`) completed. Chief-complaint categories are detected from the initial info only (since 2026-09-25; earlier results were rescored).
 - Patient/judge LLM: gemini-3.6-flash. The doctor model is listed per row.
 - Local scores only reflect **relative change**. They are not an absolute performance estimate.
+- Runs and offline numbers on "267 cases" / "held-out" include the private AgentClinic- and DiagnosisArena-derived sets (156 cases), which are not in the public repository; the public set is 111 cases (ClinicalQA-derived + synthetic). See `docs/data-sources.md` ch. 8.
 
 | Date | Change | Prompt version | Doctor model | Cases | Patient type | Accuracy | Efficiency | Safety | Avg turns | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|

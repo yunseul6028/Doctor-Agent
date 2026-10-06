@@ -15,6 +15,10 @@ Translation is done by the LLM in CONVERT_LLM_* (.env; falls back to LLM_*), onl
 The English original is never copied into the case; the case keeps only source {dataset, id, license, url}.
 Output: data/cases_agentclinic/ac_<id>.json, data/cases_diagnosisarena/da_<id>.json.
 Reproducibility record: data/labels/<source>_conversion_meta.json. Needs pyarrow for DiagnosisArena.
+
+These outputs were used privately for evaluation and are NOT part of the public repository (the converted cases are
+derivatives of MedQA questions / published case reports with no redistribution grant; see docs/data-sources.md
+chapter 8). Download the raw data yourself under the datasets' own terms to regenerate them locally.
 """
 import argparse
 import datetime as dt

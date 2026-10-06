@@ -21,8 +21,9 @@ Overview and evidence: `README.md`. Architecture: `docs/architecture.md`.
   with a DIAGNOSE.
 - **Licenses**: every external data source, model and tool has an entry in `docs/licenses.md` before it is used.
   Unclear, NC or ND licenses stay out of anything the runtime loads.
-- **Internal-only data**: the AgentClinic- and DiagnosisArena-derived case sets (and gold labels quoting them) are
-  for internal evaluation only and must not be redistributed (`docs/data-sources.md`, "공개 저장소로 만들 때").
+- **Private evaluation data**: the AgentClinic- and DiagnosisArena-derived case sets (and gold-label rows quoting
+  them) are not redistributable and are not in this repository. Never add them back to tracked files; keep them local
+  only (`docs/data-sources.md`, "공개 저장소로 만들 때").
 - **Reproducibility**: self-labelling code, prompts and model versions are kept (`data/labels/` + generation scripts).
 
 ## Team agents (`.codex/agents/`)

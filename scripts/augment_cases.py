@@ -15,7 +15,7 @@ Output: data/cases_clinicalqa_aug/cqa_<id>.json. Reproducibility record: data/la
 Full mode (routine panel + decisive/differential tests, for every evaluation set):
 
     python scripts/augment_cases.py --mode full                              # all sets → data/cases_aug/<set>/
-    python scripts/augment_cases.py --mode full --in data/cases_agentclinic --out data/cases_aug/agentclinic --ids ac_0
+    python scripts/augment_cases.py --mode full --in data/cases_clinicalqa --out data/cases_aug/clinicalqa --ids 181
     python scripts/augment_cases.py --mode measure                           # keyword-match rate of common requests, before/after
 
 Full mode adds a standard exam/lab panel (vitals, HEENT, heart, lungs, abdomen, neuro, CBC, BMP, LFT, CRP/ESR, UA, CXR,
@@ -151,8 +151,12 @@ def augment_one(path: Path, client: OpenAICompatClient) -> dict:
 
 # ─────────────────────────────────────────────── full mode ───────────────────────────────────────────────
 FULL_ROOT = ROOT / "data/cases_aug"
-FULL_SETS = {"sample": ROOT / "data/sample_cases", "clinicalqa": ROOT / "data/cases_clinicalqa",
-             "agentclinic": ROOT / "data/cases_agentclinic", "diagnosisarena": ROOT / "data/cases_diagnosisarena"}
+# agentclinic / diagnosisarena: private evaluation sets (not redistributable, not in the public repository); they are
+# only used when present locally (scripts/convert_english_cases.py).
+FULL_SETS = {name: path for name, path in {
+    "sample": ROOT / "data/sample_cases", "clinicalqa": ROOT / "data/cases_clinicalqa",
+    "agentclinic": ROOT / "data/cases_agentclinic", "diagnosisarena": ROOT / "data/cases_diagnosisarena",
+}.items() if path.is_dir()}
 FULL_META = ROOT / "data/labels/augmentation_full_meta.json"
 FULL_MAX_WORKERS = 3  # the API quota is shared with other runs
 FULL_EXTRA_LIMIT = {"exam": 4, "tests": 8}
@@ -550,7 +554,7 @@ def main() -> None:
                          "measure: keyword-match rate of common requests before/after full augmentation")
     ap.add_argument("--in", dest="in_dir", help="full mode: input case dir (default: all sets in FULL_SETS)")
     ap.add_argument("--out", dest="out_dir", help="full mode: output case dir (required with --in)")
-    ap.add_argument("--ids", nargs="*", help="case ids, e.g. 181 521 or ac_0 (default: all)")
+    ap.add_argument("--ids", nargs="*", help="case ids, e.g. 181 521 (default: all)")
     ap.add_argument("--overwrite", action="store_true")
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
