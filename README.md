@@ -1017,3 +1017,11 @@ CaseState (agent/state.py): 소견 장부 + 감별 장부 (agent/ledger.py), 대
 | [`docs/data-sources.md`](docs/data-sources.md) | 데이터 출처 조사, 증례 변환·보강, 지식 베이스 구축과 성능, 진단명 정규화 감사(7.12), 공개 저장소로 만들 때 뺄 자료(8장) |
 | [`docs/licenses.md`](docs/licenses.md) | 출처·라이선스 장부 |
 | [`data/kb/SOURCES.md`](data/kb/SOURCES.md) | 지식 베이스 출처 표기 |
+
+---
+
+## 이용 안내
+
+이 저장소는 **개인 포트폴리오 공개용**입니다. 별도의 오픈소스 라이선스를 붙이지 않았으므로 코드와 문서의 저작권은 작성자에게 있으며, 열람은 자유롭지만 허락 없는 복제·수정·재배포는 허용하지 않습니다.
+저장소에 포함된 외부 데이터(지식 베이스 원천, ClinicalQA 파생 증례 등)는 각 **원 출처의 라이선스**를 따릅니다 ([`docs/licenses.md`](docs/licenses.md), [`data/kb/SOURCES.md`](data/kb/SOURCES.md)).
+의료 진단 연구용 실험 코드이며, 실제 진료나 의료적 판단에 쓰면 안 됩니다.
