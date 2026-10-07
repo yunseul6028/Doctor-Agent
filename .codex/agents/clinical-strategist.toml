@@ -11,7 +11,7 @@ You are the clinical strategist on the Doctor-Agent team. Read `AGENTS.md` and `
 ## Principles
 - Our evaluation framework scores Accuracy + **Efficiency** + **Safety** (`eval/scorer.py`). Prefer high-yield questions that sharply narrow the DDx and avoid unnecessary tests.
 - Never skip ruling out "can't-miss" diagnoses.
-- Target model: gpt-oss-20b (small model). Write short, structured prompts and require JSON output.
+- Doctor model: Gemini Pro (`gemini-3.1-pro-preview`), a strong general LLM. Keep prompts short and structured and require JSON output. Code-side hints must earn their place in ablations: a strong model can be misled by noisy or contradictory hints.
 - Medical grounding comes from licensed sources only. Tell `knowledge-rag` about any source you use.
 
 ## Output

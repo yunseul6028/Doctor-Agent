@@ -214,7 +214,7 @@ README [9.2](../README.md#92-세-가지-서브-에이전트)에서 옮김.
 
 README [9.4](../README.md#94-예산-호출-한도-토큰-시간)에서 옮김.
 
-**프롬프트 토큰** (`python scripts/token_budget.py --subagents --jobs 9`, 267증례, gpt-oss 토크나이저 `o200k_harmony`, 09-29 `docs/experiments.md` 기록; 모델 호출 없음):
+**프롬프트 토큰** (`python scripts/token_budget.py --subagents --jobs 9`, 267증례, 처음 설계 대상인 gpt-oss의 토크나이저 `o200k_harmony`로 잼, 09-29 `docs/experiments.md` 기록; 모델 호출 없음):
 
 | 프롬프트 | p50 | p95 | 최대 |
 |---|---|---|---|
@@ -262,6 +262,8 @@ README [9.5](../README.md#95-분과-라우팅과-분과별-분포-knowledgespeci
 ## 10.2 턴별 프롬프트 토큰 (267증례)
 
 README [10.2](../README.md#102-토큰-예산-측정-scriptstoken_budgetpy-모델-호출-없음)에서 옮김.
+
+> 이 표는 처음 설계 대상인 gpt-oss-20b의 토크나이저(`o200k_harmony`)로 센 값입니다. 현재 의사 모델 제미나이 Pro의 토크나이저로 세면 조금 다를 수 있고, Pro의 맥락 창은 훨씬 커서 이 크기는 문제가 되지 않습니다.
 
 **전체 267증례 측정** (09-28 기록, 프롬프트 `v6-kb-strict-review`, 실제 호출 16,264 + 탐침 4,272), 전체 프롬프트 토큰 p50 / p95 / 최대:
 

@@ -217,7 +217,8 @@ subject when a relative reports without a proxy tag (e.g. "아내가 저를 깨�
 words (경기관지 → 경기 seizure, 피로인산염 → 피로, 눈을 깜빡 → memory loss, 망상 선 → delusion); "잠혈 약양성" not read as
 positive; "T-Bili" not read. Found on the fresh sample and left unfixed so that sample stays held-out. The gold set is a
 dev set, and rules were tuned on the dev sample and after gold review — use the fresh-sample number as the honest
-estimate. Retest after switching to gpt-oss-20b claims (claim wording will differ).
+estimate. Retest on claims written by the current doctor model, Gemini Pro (claim wording will differ from the Gemini Flash /
+Gemma dev runs; gpt-oss-20b, the original target, is now only an optional preset).
 
 ## Migration plan (each call site → new layer)
 
