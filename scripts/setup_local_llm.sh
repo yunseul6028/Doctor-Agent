@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs gpt-oss-20b locally with Ollama (dev only).
+# Optional: runs gpt-oss-20b locally with Ollama (dev only; not the default doctor model, which is Gemini Pro —
+# use it via eval/experiment.py --doctor-endpoint local).
 # 16GB Mac: ~13GB model, so close other apps before running. The Ollama build is a quantised conversion, so its
 # outputs can differ slightly from the Hugging Face weights served by vLLM.
 set -euo pipefail

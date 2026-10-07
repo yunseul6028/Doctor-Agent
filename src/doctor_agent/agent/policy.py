@@ -366,7 +366,7 @@ class Policy:
         for f in _interp_findings(interp, turn):
             state.findings.add(f)
         called = None
-        if reasons:  # optional extra gpt-oss reading (radiology sub-agent, prompts.RESULT_INTERPRETER_PROMPT)
+        if reasons:  # optional extra doctor-LLM reading (radiology sub-agent, prompts.RESULT_INTERPRETER_PROMPT)
             try:
                 called = self.subagents.radiology(state, turn, interp.test_name or t.action.content, t.response, line,
                                                   interp)

@@ -3,7 +3,7 @@
 Owned by clinical-strategist. The framework (when to call, how to merge the result) lives elsewhere; this module only
 builds one `SubagentCall` and parses the model's answer into a `SubagentResult` (interface in `base.py`).
 
-Same fixed gpt-oss-20b model, different role: a consultant who reads the grounded findings ledger and the current DDx
+Same doctor LLM, different role: a consultant who reads the grounded findings ledger and the current DDx
 and returns strict JSON (assessment, extra differentials, dangerous diagnoses not yet excluded, up to 3 next actions).
 
 Content rules

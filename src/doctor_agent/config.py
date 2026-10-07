@@ -18,21 +18,35 @@ def _env(prefix: str, key: str, default: str) -> str:
     return os.getenv(f"{prefix}_{key}") or os.getenv(f"LLM_{key}") or default
 
 
+# Default endpoint and models (Gemini, OpenAI-compatible API). Only names: no key is needed until a call is made, so the
+# dummy / keyword / smoke paths work without a .env. Swap providers via env vars (.env) only; see .env.example.
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+DEFAULT_DOCTOR_MODEL = "gemini-3.1-pro-preview"  # pinned preview name, not a -latest alias
+DEFAULT_HELPER_MODEL = "gemini-3.6-flash"  # virtual patient and judge (cheaper)
+# model default per role prefix when neither <PREFIX>_MODEL nor LLM_MODEL is set
+_ROLE_DEFAULT_MODEL = {"DOCTOR_LLM": DEFAULT_DOCTOR_MODEL, "PATIENT_LLM": DEFAULT_HELPER_MODEL,
+                       "JUDGE_LLM": DEFAULT_HELPER_MODEL}
+
+
 @dataclass
 class LLMConfig:
-    # Defaults: local Ollama gpt-oss-20b. Swap providers via env vars (.env) only; see .env.example.
-    base_url: str = "http://localhost:11434/v1"
-    api_key: str = "EMPTY"
-    model: str = "gpt-oss:20b"
-    reasoning_effort: str = "low"  # "none" means the parameter is not sent
+    # Defaults target a thinking model behind an OpenAI-compatible endpoint (Gemini Pro for the doctor). Any other
+    # OpenAI-compatible server works the same way (e.g. the optional local gpt-oss preset in eval/experiment.py).
+    base_url: str = GEMINI_BASE_URL
+    api_key: str = "EMPTY"  # placeholder so the SDK client can be built without a key; calls fail until it is set
+    model: str = DEFAULT_DOCTOR_MODEL
+    reasoning_effort: str = "low"  # "none" means the parameter is not sent (provider default)
     temperature: float = 0.2
-    max_tokens: int = 2048
-    timeout_s: float = 60.0
+    # Thinking models count their reasoning in the output budget, so leave room for it on top of the action JSON.
+    max_tokens: int = 8192
+    # Per-request timeout. ASSUMPTION (not measured): a Pro thinking model with an 8k output budget can take well over
+    # a minute per call, so 60 s (the old small-model default) would cut off normal answers.
+    timeout_s: float = 180.0
     max_retries: int = 2
-    # gpt-oss may spend the whole max_tokens on reasoning (finish_reason="length", empty content): retry once with
-    # max_tokens * length_retry_factor (capped) and reasoning_effort="low"
+    # A thinking model may spend the whole max_tokens on reasoning (finish_reason="length", empty content): retry once
+    # with max_tokens * length_retry_factor (capped at max_tokens_cap) and reasoning_effort="low"
     length_retry_factor: float = 2.0
-    max_tokens_cap: int = 8192
+    max_tokens_cap: int = 16384
     # "off" | "json_schema" (OpenAI response_format) | "guided_json" (vLLM extra_body). Only used when the caller passes
     # a schema; disabled for the rest of the run if the server rejects it (HTTP 400).
     structured_output: str = "off"
@@ -43,7 +57,7 @@ class LLMConfig:
         return cls(
             base_url=_env(prefix, "BASE_URL", d.base_url),
             api_key=_env(prefix, "API_KEY", d.api_key),
-            model=_env(prefix, "MODEL", d.model),
+            model=_env(prefix, "MODEL", _ROLE_DEFAULT_MODEL.get(prefix, d.model)),
             reasoning_effort=_env(prefix, "REASONING_EFFORT", d.reasoning_effort),
             temperature=float(_env(prefix, "TEMPERATURE", str(d.temperature))),
             max_tokens=int(_env(prefix, "MAX_TOKENS", str(d.max_tokens))),
@@ -97,8 +111,9 @@ class AgentConfig:
     # reasoning effort of sub-agent calls ("none" = parameter not sent)
     subagent_reasoning_effort: str = field(
         default_factory=lambda: os.getenv("AGENT_SUBAGENT_REASONING_EFFORT", "low").strip().lower() or "low")
-    # Trigger thresholds: calibrated on replayed trajectories of non-gpt-oss dev models (eval/offline/eval_triggers.py,
-    # docs/experiments.md "trigger calibration"); re-check on gpt-oss-20b runs before trusting them.
+    # Trigger thresholds: calibrated on replayed trajectories of earlier dev doctor models (Gemini Flash / Gemma;
+    # eval/offline/eval_triggers.py, docs/experiments.md "trigger calibration"); re-check on runs of the current doctor
+    # model (Gemini Pro) before trusting them.
     # routed consult: from consult_min_turns turns on, when one specialty holds >= consult_min_share of the top-DDx mass
     consult_min_turns: int = field(default_factory=lambda: int(_num("AGENT_CONSULT_MIN_TURNS", 5)))
     consult_min_share: float = field(default_factory=lambda: _num("AGENT_CONSULT_MIN_SHARE", 0.6))

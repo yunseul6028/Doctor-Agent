@@ -1,5 +1,5 @@
-"""Per-case runtime guards: wall-clock budget, LLM call wrapper (timeouts, failure cap, gpt-oss options, prompt-size
-logging). Everything here is created fresh per case (case independence)."""
+"""Per-case runtime guards: wall-clock budget, LLM call wrapper (timeouts, failure cap, structured-output / reasoning-
+effort options, prompt-size logging). Everything here is created fresh per case (case independence)."""
 import logging
 import math
 import threading

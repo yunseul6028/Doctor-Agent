@@ -1,6 +1,6 @@
 """'반대 의견 담당' (devil's advocate) sub-agent: a diagnostic time-out before the diagnosis is submitted.
 
-Owned by clinical-strategist. Same gpt-oss model, one call: given the proposed diagnosis and the grounded case summary,
+Owned by clinical-strategist. Same doctor LLM, one call: given the proposed diagnosis and the grounded case summary,
 it names the two best alternative explanations, the positive findings the leading diagnosis does not explain, the one
 result that would refute it, and dangerous diagnoses not yet excluded. It never decides; the framework decides what to
 do with the result (interface in `base.py`).

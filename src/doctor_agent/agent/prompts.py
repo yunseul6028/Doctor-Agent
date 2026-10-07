@@ -45,8 +45,8 @@ JSON 한 줄로만 출력하세요:
 
 # Result interpreter (agent/result_interpreter.py). The code reading is wired into the policy (RESULT_HINT,
 # RESULT_CRITICAL_ALERT below). This LLM prompt is used by the "radiology" sub-agent (agent/subagents/orchestrator.py,
-# since v9-subagents): one extra gpt-oss call when result_interpreter.needs_llm(interp) is true (long / serial /
-# unmapped reports), at most AgentConfig.max_llm_radiology per case. The code reading is passed as a draft so the small
+# since v9-subagents): one extra doctor-LLM call when result_interpreter.needs_llm(interp) is true (long / serial /
+# unmapped reports), at most AgentConfig.max_llm_radiology per case. The code reading is passed as a draft so the
 # model only corrects it. Separate role from the diagnosing doctor: it must not diagnose.
 RESULT_INTERPRETER_PROMPT = """당신은 검사 결과 판독 보조입니다. 진단하지 말고, 결과 글에 적힌 소견만 정리하세요.
 규칙:

@@ -112,7 +112,9 @@ def test_estimate_defaults_and_guard(tmp_path):
     assert not ex.needs_confirmation(ex.estimate([5], st, margin=1.0), max_calls=300, max_cost=None)
     priced = ex.estimate([5], st, margin=1.0, price_in=1e6, price_out=0.0)
     assert any("KRW" in r for r in ex.needs_confirmation(priced, max_calls=10_000, max_cost=100.0))
-    assert "TOTAL" in ex.format_estimate(est, ["v6", "v6-no-kb"])
+    text = ex.format_estimate(est, ["v6", "v6-no-kb"])
+    assert "TOTAL" in text and "price unknown" in text and "EXPERIMENT_PRICE_IN_PER_M" in text and "KRW" not in text
+    assert "KRW" in ex.format_estimate(priced, ["v6"]) and "price unknown" not in ex.format_estimate(priced, ["v6"])
 
 
 # ---------------------------------------------------------------- endpoints
@@ -124,13 +126,25 @@ def test_endpoint_presets_never_leak_keys():
     remote = ex.doctor_endpoint_env("local", env)
     assert remote == {"DOCTOR_LLM_BASE_URL": "https://gpu.example/v1", "DOCTOR_LLM_API_KEY": "gpu-secret",
                       "DOCTOR_LLM_MODEL": "openai/gpt-oss-20b"}
+    # gemini preset: Pro doctor, Flash patient/judge; the shared LLM_MODEL (flash in .env.example) is not the doctor
     gem = ex.doctor_endpoint_env("gemini", {**env, "DOCTOR_LLM_MODEL": "should-be-overridden"})
-    assert gem["DOCTOR_LLM_MODEL"] == "gemini-x" and gem["DOCTOR_LLM_API_KEY"] == "gem-secret"
+    assert gem["DOCTOR_LLM_MODEL"] == "gemini-3.1-pro-preview" and gem["DOCTOR_LLM_API_KEY"] == "gem-secret"
+    assert gem["DOCTOR_LLM_BASE_URL"] == "https://gem.example/v1/"
+    for role in ("PATIENT", "JUDGE"):
+        assert gem[f"{role}_LLM_MODEL"] == "gemini-3.6-flash" and gem[f"{role}_LLM_API_KEY"] == "gem-secret"
+        assert gem[f"{role}_LLM_BASE_URL"] == "https://gem.example/v1/"
+    gem = ex.doctor_endpoint_env("gemini", {"LLM_API_KEY": "k", "GEMINI_DOCTOR_LLM_MODEL": "gemini-pro-x",
+                                            "GEMINI_PATIENT_LLM_MODEL": "flash-x", "JUDGE_LLM_MODEL": "my-judge"})
+    assert gem["DOCTOR_LLM_MODEL"] == "gemini-pro-x" and gem["PATIENT_LLM_MODEL"] == "flash-x"
+    assert gem["DOCTOR_LLM_BASE_URL"].startswith("https://generativelanguage.googleapis.com/")
+    assert not any(k.startswith("JUDGE_") for k in gem)  # an explicit per-role model is kept
+    assert ex.doctor_endpoint_env("gemini", {"LLM_API_KEY": "k", "GEMINI_LLM_MODEL": "legacy"})["DOCTOR_LLM_MODEL"] == "legacy"
     loc = ex.doctor_endpoint_env("local", {})
     assert loc["DOCTOR_LLM_BASE_URL"].startswith("http://localhost") and loc["DOCTOR_LLM_MODEL"] == "gpt-oss:20b"
     assert ex.doctor_endpoint_env("env", env) == {} and ex.doctor_endpoint_env("dummy", env) == {}
     with pytest.raises(SystemExit):
-        ex.doctor_endpoint_env("gemini", {"LLM_API_KEY": "x"})  # no Gemini URL/model
+        ex.doctor_endpoint_env("gemini", {"LLM_MODEL": "x"})  # no API key
+    assert ex.describe_doctor("env", {}) == ("gemini-3.1-pro-preview", "generativelanguage.googleapis.com")
     model, host = ex.describe_doctor("local", {**env, **remote})
     assert (model, host) == ("openai/gpt-oss-20b", "gpu.example") and "secret" not in model + host
 
