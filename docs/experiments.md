@@ -2,6 +2,20 @@
 
 - Safety = share of the guideline-based checklist (`safety/protocols.py`) completed. Chief-complaint categories are detected from the initial info only (since 2026-09-25; earlier results were rescored).
 - Patient/judge LLM: gemini-3.6-flash. The doctor model is listed per row.
+- **Model setup (2026-10-07)**: the doctor is now Gemini Pro (`gemini-3.1-pro-preview`, pinned) via the OpenAI-compatible
+  Gemini endpoint; patient and judge stay on `gemini-3.6-flash`. `openai/gpt-oss-20b` (local Ollama,
+  `--doctor-endpoint local`) was the original design target and is now an optional preset. **Every scored row below
+  used a Gemini Flash / Flash-Lite / Gemma doctor — none used Gemini Pro, and none used gpt-oss-20b.** Thresholds
+  (confidence 0.3 / 0.4, turn 5, share 0.6) were calibrated on those trajectories and must be re-checked on Pro.
+  Dated entries below that say "measure on gpt-oss-20b" are kept as written; read them as "measure on the doctor
+  model" (now Gemini Pro). Keep Pro rows separate from the earlier models.
+- Open question for the Pro runs: does code verification still help a strong model, or do the hints become noise?
+  An earlier review found code hints ≈ 43% of the prompt, with some contradictions. Answer it with the ablation
+  conditions (`v6-no-kb`, `v6-no-safety`, `v6-no-advisors`, `v6-no-interp`, `v6-no-subagents`).
+- The token-budget sections (2026-09-28/29) were measured with the gpt-oss tokenizer for the original target. Character
+  counts and shares carry over; Gemini token counts may differ somewhat. Gemini Pro's context is far larger than
+  gpt-oss-20b's 131k, so the 12,000-char view cap is conservative; but Pro is a thinking model (slower, more output
+  tokens), so the throughput assumptions of the time model do not apply and time estimates must be re-measured on Pro.
 - Local scores only reflect **relative change**. They are not an absolute performance estimate.
 - Runs and offline numbers on "267 cases" / "held-out" include the private AgentClinic- and DiagnosisArena-derived sets (156 cases), which are not in the public repository; the public set is 111 cases (ClinicalQA-derived + synthetic). See `docs/data-sources.md` ch. 8.
 
@@ -19,7 +33,7 @@
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
 
 Prompt `v6-kb-strict-review` (KB hints, code-decided review, evidence-gated renaming) has **no LLM run yet**.
-The first rows for it should come from `eval/experiment.py` on gpt-oss-20b (see "How to measure on gpt-oss-20b" below).
+The first rows for it should come from `eval/experiment.py` with the Gemini Pro doctor (see "How to measure" below).
 
 ### 2026-09-28 · prompt `v6-kb-strict-review` → `v7-advisors` (no LLM run yet)
 The four advisor modules are wired into the policy (`docs/architecture.md` "Advisors wired into the policy"): triage
@@ -103,32 +117,40 @@ clinicalqa 111, held-out = agentclinic + diagnosisarena 156; `data/labels/kb_eva
 Latency 8.8 ms mean / 10.1 ms p95 per `candidates()` call, KB load 0.32 s. Diagnosis normalisation (held-out): KCD
 code for 56.4% of primary names. Details: `docs/data-sources.md` (knowledge base section).
 
-## How to measure on gpt-oss-20b
+## How to measure
 
 One command runs a standard profile, estimates cost first, compares conditions, and rebuilds the viewer + share page
 (`eval/experiment.py`; profiles in `eval/experiment_profiles.json`; fixed case lists in `eval/case_lists/`).
 
-1. Point the doctor at a gpt-oss-20b endpoint (any OpenAI-compatible server: vLLM, Ollama, a hosted API; keys stay
-   in `.env`, the script never prints them): `DOCTOR_LLM_BASE_URL=…`, `DOCTOR_LLM_API_KEY=…`,
-   `DOCTOR_LLM_MODEL=openai/gpt-oss-20b` with `--doctor-endpoint env` (the default), or `--doctor-endpoint local`
-   (`LOCAL_LLM_*` or Ollama `gpt-oss:20b`). `--doctor-endpoint gemini` uses `GEMINI_LLM_*` or the shared `LLM_*`.
+The doctor is Gemini Pro (`gemini-3.1-pro-preview`, pinned); patient and judge are `gemini-3.6-flash`.
+
+0. Top up API credits first: Pro costs more than Flash, and a billing error stops the batch (see the guard below).
+1. Point the doctor at the endpoint (keys stay in `.env`, the script never prints them): `--doctor-endpoint gemini`
+   (`GEMINI_LLM_*`, else the shared `LLM_*`; the preset uses Pro for the doctor), or `--doctor-endpoint env` with
+   `DOCTOR_LLM_BASE_URL=…`, `DOCTOR_LLM_API_KEY=…`, `DOCTOR_LLM_MODEL=…` (any OpenAI-compatible server).
+   Optional preset: `--doctor-endpoint local` (`LOCAL_LLM_*` or Ollama `gpt-oss:20b`, the original design target).
 2. Free wiring check: `python eval/experiment.py --profile smoke --doctor-endpoint dummy --no-view`
-3. Plan + cost only: `python eval/experiment.py --profile dev --doctor-endpoint env --estimate-only`
+3. Plan + cost only: `python eval/experiment.py --profile dev --doctor-endpoint gemini --estimate-only`
    (add `--price-in/--price-out` in KRW per 1M tokens, or `EXPERIMENT_PRICE_{IN,OUT}_PER_M`, to get a KRW figure).
-4. Smoke on the real model (5 cases, ~50 doctor calls): `python eval/experiment.py --profile smoke --doctor-endpoint env`
-   → check `usage:` lines (real tokens/call) before anything bigger; later estimates use them automatically.
-5. Dev comparison (50 cases × v6 / v6-no-kb, ~900 calls, needs `--yes`):
-   `python eval/experiment.py --profile dev --doctor-endpoint env --yes --log --note "first gpt-oss run"`
+4. Connection check on the real model (5 cases, ~50 doctor calls): `python eval/experiment.py --profile smoke --doctor-endpoint gemini`
+   → check `usage:` lines (real tokens/call, including thinking tokens), latency and parse failures before anything
+   bigger; later estimates use them automatically. Pro is a thinking model: fit the time model
+   (`result["runtime"]["latency_main_s"]`) and set `AGENT_CASE_TIME_BUDGET_S` from these calls.
+5. Dev comparison and ablations (50 cases × v6 / v6-no-kb / v6-no-safety / v6-no-advisors, needs `--yes`):
+   `python eval/experiment.py --profile dev --doctor-endpoint gemini --yes --log --note "first Gemini Pro run"`
+   Then `--conditions v6,v6-no-subagents,v6-no-interp`. Drop components that do not raise Accuracy or Safety.
+6. Re-calibrate on the Pro runs: confidence weights and the 0.3 / 0.4 thresholds (`scripts/calibrate_confidence.py`),
+   sub-agent triggers (`python eval/offline/eval_triggers.py --results <Pro result folder>`).
    Optional: `--conditions v6,v5-baseline` (v5 runs in a temporary git worktree at `c3ddecd`, rescored with the current
    scorer), `--env AGENT_CASE_TIME_BUDGET_S=240`, `--env DOCTOR_LLM_STRUCTURED_OUTPUT=guided_json`, `--compare-with FILE`.
-6. `full` (267 cases) only when a dev result justifies it.
+7. `full` (111 public cases) only when a dev result justifies it.
 
 Defaults are the cheapest mode: keyword patient + no judge, so only the doctor spends API budget
 (`--patient llm --judge llm` opt in; those use `PATIENT_LLM_*`/`JUDGE_LLM_*`, i.e. Gemini). Guard: `--yes` is required
 above `--max-calls` (300 doctor calls) or `--max-cost` (5,000 KRW, when prices are given). A billing error (402 /
 credits depleted on a paid endpoint) stops the running batch and skips the remaining conditions (exit code 3).
 Cost estimate = cases × doctor calls/case (mean of past result files, else 12) × tokens/call, all × margin 1.3.
-Tokens/call: recorded usage of the same doctor model; else, for gpt-oss, the **measured** prompt tokens (see "Prompt
+Tokens/call: recorded usage of the same doctor model; else, for gpt-oss (optional preset), the **measured** prompt tokens (see "Prompt
 token budget" below; mean step prompt over a case of the past mean length) + an assumed 1,000 / 1,800 / 2,048 output
 tokens at effort low / medium / high; else usage of any other model; else 3,000 in / 1,000 out. Doctor token usage is recorded per case
 (`usage` in each row) and per run by wrapping the SDK client in `eval/usage.py` (src untouched).

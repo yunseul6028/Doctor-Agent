@@ -14,6 +14,6 @@ You are the knowledge/RAG owner on the Doctor-Agent team. Read `CLAUDE.md` first
 
 ## Constraints
 - Keep the runtime data small (`data/kb` + `data/lexicon` are a few MB today). Budget the index and model size.
-- The GPU belongs to the LLM. Retrieval runs on CPU/RAM, and load time and query latency must fit the per-case time budget.
+- Helpers run on CPU/RAM and never call a model; the only model call at runtime is the doctor endpoint. Load time and query latency must fit the per-case time budget.
 - Use only licenses that permit research publication and redistribution of what we ship. Anything unclear is excluded.
 - External LLMs may be used only in the offline build step. They must not be called from inference code.

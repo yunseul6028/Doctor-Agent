@@ -1,13 +1,21 @@
 # Architecture
 
-Current as of 2026-09-28 (prompt `v9-subagents`). When an interface changes, update this file first.
+Current as of 2026-09-28 (prompt `v9-subagents`; model framing updated 2026-10-07). When an interface changes, update this file first.
+
+**Models.** The doctor LLM is Gemini Pro (`gemini-3.1-pro-preview`, pinned) behind the OpenAI-compatible Gemini
+endpoint; the virtual patient and the judge use `gemini-3.6-flash`. `openai/gpt-oss-20b` on local Ollama remains an
+optional preset (`--doctor-endpoint local`); the harmony handling below exists for it. The design was first built
+around gpt-oss-20b under fixed-model constraints (hence ledgers, a capped view and code verdicts). Every LLM-scored run
+so far (latest 2026-09-26) used Gemini Flash / Flash-Lite / Gemma doctors, never Pro; thresholds calibrated on those
+trajectories must be re-checked on Pro. Open question measured with the ablation switches: does code verification
+still help a strong model, or do the hints become noise?
 
 ```
 run.py ──> case source (env/factory.py: local)                      ← new environments = new adapters
              │  env.reset() / env.step(action)
              ▼
         run_case (agent/loop.py) ── CaseBudget + GuardedLLM (agent/runtime.py) ── LLM client (llm/)
-             │                                                                    OpenAI-compatible, gpt-oss aware
+             │                                                                    OpenAI-compatible (+ gpt-oss)
              ▼
         Policy.next_action (agent/policy.py)
              │ hints ◄── safety/protocols.py        can't-miss dx + pending minimum checks (26 categories)
@@ -225,7 +233,7 @@ Next-question planner (`agent/question_planner.py`, wired 2026-09-28 as a per-tu
   latency on the budget clock (main vs sub-agent); sub-agent calls get a pre-call time check (see "Time budget for
   sub-agent calls"). Offline, `scripts/token_budget.py:estimate_call_s(prompt, output, Throughput)` predicts a call's
   wall time from token counts under stated (unmeasured) throughput assumptions (offline only, not loaded at runtime).
-- **gpt-oss responses** (`llm/client.py`, `llm/harmony.py`): content preferred; harmony markers
+- **gpt-oss responses** (optional local preset; `llm/client.py`, `llm/harmony.py`): content preferred; harmony markers
   (`<|channel|>analysis/final<|message|>…`, `analysis…assistantfinal…`) stripped; reasoning read from
   `reasoning_content`/`reasoning`; if an action prompt's content has no JSON the reasoning is appended as
   `<analysis>…</analysis>` so the parser can fall back to JSON written there. `finish_reason=length` with no answer →
@@ -244,14 +252,19 @@ answer fields and personas standard / vague / anxious / minimizer / poor_histori
 (accuracy via judge or string match, efficiency = 1 − turns/60, safety = share of applicable protocol checks done),
 `eval/judge.py`, `eval/run_local.py` (multi-set, parallel, usage metering), `eval/experiment.py` (profiles, cost
 guard), `eval/compare.py`, `eval/viewer.py` (viewer + share page), `eval/play.py` (interactive). See
-`docs/experiments.md` for the procedure to measure on gpt-oss-20b.
+`docs/experiments.md` for the measurement procedure (Gemini Pro doctor; gpt-oss-20b optional).
 
 ## Design principles
 - **Budget**: at most 60 turns; Efficiency counts, so a soft target of 20 turns and diagnosis at sufficient confidence.
 - **Safety**: rule out can't-miss diagnoses with questions and tests before diagnosing (pushback + review).
 - **Robustness**: parse failures retry, then fall back; the time limit is never exceeded; every case gets an answer.
 - **Independence**: all state is created per case; no cross-case cache (the KB is static data).
-- **Small-model friendly**: the code keeps the memory (ledgers) and decides verdicts; the LLM fills fixed fields.
+- **Code verifies what can be checked**: the code keeps the memory (ledgers), checks facts and safety, and decides
+  verdicts; the LLM reasons and fills fixed fields. Reasons: verifiability, reproducibility, safety guarantees and
+  cited sources (originally motivated by small-model limits; whether it still pays off on Gemini Pro is measured by
+  ablation).
+- **Helpers on CPU, one model**: KB, lexicon, interpreter, routing and safety run on CPU with the standard library;
+  the only model the runtime calls is the doctor endpoint.
 
 ## Open interfaces
 - Action/response format, diagnosis format (free text vs. code such as ICD/KCD) and per-case time limit are our own choices (`env/interface.py`, `AGENT_CASE_TIME_BUDGET_S`).
@@ -312,7 +325,7 @@ never raises, nothing kept between calls or cases).
 - 2026-09-28 calibration (11 runs, 226 cases, 1446 decision points, Gemini/Gemma doctors): final-diagnosis AUC
   (correct vs. not) 0.745 hand-set → 0.796 leave-one-run-out; `margin` alone 0.747. `dangers_unresolved` and
   `kb_agreement` fitted to weight 0. Replay (leave-one-run-out, stop at the first "diagnose"): accuracy 0.885 → 0.876,
-  mean turns 6.40 → 6.08. Earlier labels are a name-matching proxy (`same_disease`). **Re-validate on gpt-oss-20b.**
+  mean turns 6.40 → 6.08. Earlier labels are a name-matching proxy (`same_disease`). **Re-validate on Gemini Pro.**
 
 ## Broad starting DDx and anchoring check (`agent/anchoring.py`, 2026-09-28; wired, see "Advisors")
 Two pure functions for the policy (the lead wires them in; no state kept between calls or cases):
@@ -445,7 +458,7 @@ Switch `AGENT_USE_RESULT_INTERPRETER` (default on; `AgentConfig.use_result_inter
    when an alert is shown; `{"layer": "result_interp", "error"}` on any exception (the case goes on as if off).
 
 ## Specialist sub-agents (2026-09-28, prompt `v9-subagents`)
-Runtime "specialists" under the main doctor LLM: the **same gpt-oss-20b doctor model** through the same `GuardedLLM`, with a
+Runtime "specialists" under the main doctor LLM: the **same doctor model** (Gemini Pro; the single-model design dates from the gpt-oss-20b target) through the same `GuardedLLM`, with a
 different role prompt and a different evidence slice, called **only when triggered**. They never pick the action; their
 output is a short hint for the next main prompt, "참고" DDx candidates and log entries. The "≥ 1 LLM call per case with
 case information" rule stays satisfied by the main loop; sub-agent calls are extra.
@@ -508,12 +521,12 @@ moment code already suspects anchoring; (b) is the last chance before a low-conf
 existing review (it cannot add turns: the review is skipped with ≤ 3 turns left or in low-time mode). The cap is one
 advocate call per case, whichever comes first.
 
-Trigger calibration (2026-09-29, `eval/offline/eval_triggers.py`, replay of 224 trajectories of non-gpt-oss dev
-models; docs/experiments.md "trigger calibration"): the old numbers fired the anchoring check on 58%, the routed consult
+Trigger calibration (2026-09-29, `eval/offline/eval_triggers.py`, replay of 224 trajectories of Gemini Flash / Flash-Lite /
+Gemma dev doctors; docs/experiments.md "trigger calibration"): the old numbers fired the anchoring check on 58%, the routed consult
 on 75% and the advocate on 75% of trajectories, with no more (anchoring: fewer) fires on those that ended wrong. Now:
 anchoring and routed consult start at turn 5 (27% / 36%, lift 1.3 / 1.2 in sample, no better than random across runs);
 the advocate only fires before review at code confidence < 0.4 (33%, lift 1.6 in sample, 1.5–1.6 out of sample) — moment
-(a) is off because it did not pick out wrong cases. **Re-check on gpt-oss-20b trajectories** (fire rates differed by up
+(a) is off because it did not pick out wrong cases. **Re-check on Gemini Pro trajectories** (fire rates differed by up
 to 10× between dev models).
 
 ### Global guards and budget
@@ -566,7 +579,7 @@ assumptions (offline only).
 ## Specialist sub-agent content (`agent/subagents/consult.py`, `advocate.py`, 2026-09-28; content only, not wired)
 
 Owned by clinical-strategist. Kept separate from the framework section (when to call, merging, budgets), which the
-framework owner writes. Interface: `agent/subagents/base.py` (`SubagentCall`, `SubagentResult`). Same gpt-oss-20b,
+framework owner writes. Interface: `agent/subagents/base.py` (`SubagentCall`, `SubagentResult`). Same doctor model,
 one call each; nothing here calls an LLM.
 
 **Consult** — `build_consult(state, specialty, resources=None) -> SubagentCall`, `parse_consult(text, specialty="",
