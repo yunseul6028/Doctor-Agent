@@ -1,7 +1,8 @@
 """Standard experiments in one command: profile -> cost estimate -> runs -> compare -> (log) -> viewer + share page.
 
 python eval/experiment.py --profile smoke --doctor-endpoint dummy              # free wiring check (no LLM at all)
-python eval/experiment.py --profile smoke --doctor-endpoint local              # 5 cases on gpt-oss-20b (Ollama)
+python eval/experiment.py --profile smoke --doctor-endpoint gemini             # 5 cases, doctor gemini-3.1-pro-preview
+python eval/experiment.py --profile smoke --doctor-endpoint local              # optional: gpt-oss-20b via Ollama/vLLM
 python eval/experiment.py --profile dev --doctor-endpoint env --yes --log      # DOCTOR_LLM_* from .env
 python eval/experiment.py --profile dev --conditions v6,v5-baseline --estimate-only
 python eval/experiment.py --list-profiles
@@ -49,10 +50,11 @@ CACHE_DIR = ROOT / "eval/cache"
 DEFAULTS = {
     "doctor_calls_per_case": 12.0,      # observed 4.7-12.2 on Gemini/Gemma (2026-09-25..26); reviewer adds calls
     "prompt_tokens_per_call": 3000.0,   # prompt 1.2-2k chars at turn 1, capped at AGENT_MAX_VIEW_CHARS=12000 chars
-    "completion_tokens_per_call": 1000.0,  # gpt-oss reasoning (low effort) + action JSON; max_tokens 2048
+    "completion_tokens_per_call": 1000.0,  # reasoning (low effort) + action JSON; an assumption, not measured
     "patient_calls_per_case": 10.0,     # one patient answer per non-diagnosis turn
 }
-# Measured gpt-oss prompt tokens (scripts/token_budget.py; see docs/experiments.md "Prompt token budget"): mean tokens
+# Measured gpt-oss prompt tokens (historical; used for the optional local gpt-oss preset only; scripts/token_budget.py;
+# see docs/experiments.md "Prompt token budget"): mean tokens
 # of the step prompt at turn t, full harmony prompt (system + developer + user wrappers), tokenizer o200k_harmony.
 # eval/results/token_budget.json (written by `scripts/token_budget.py --json-out eval/results/token_budget.json`)
 # overrides this table when present. Used for the prompt side when no same-model usage has been recorded yet.
@@ -64,6 +66,9 @@ MEASURED_SOURCE = "measured gpt-oss tokenizer (scripts/token_budget.py 2026-09-2
 # with 3-5 DDx entries) + reasoning at the given effort; capped by max_tokens 2048 (a length retry may add more).
 ASSUMED_COMPLETION_TOKENS = {"low": 1000.0, "medium": 1800.0, "high": 2048.0}
 DEFAULT_MARGIN = 1.3
+# No built-in price table: prices change and are not verified here. Set them per run (KRW per 1M tokens of the
+# doctor model) with EXPERIMENT_PRICE_IN_PER_M / EXPERIMENT_PRICE_OUT_PER_M or --price-in / --price-out.
+PRICE_UNKNOWN = "  (price unknown — set EXPERIMENT_PRICE_IN_PER_M / EXPERIMENT_PRICE_OUT_PER_M)"
 DEFAULT_MAX_CALLS = 300  # doctor calls above which --yes is required
 DEFAULT_MAX_COST = 5000.0  # KRW (10% of the ~50,000 KRW credits) above which --yes is required (when prices are known)
 
@@ -191,17 +196,27 @@ ENDPOINTS = ("env", "gemini", "local", "dummy")
 def doctor_endpoint_env(preset: str, env: dict) -> dict:
     """DOCTOR_LLM_* overrides for a preset, from `env` (os.environ + .env). Raises SystemExit when keys are missing.
 
-    gemini:      GEMINI_LLM_*, else the shared LLM_*
-    local:       LOCAL_LLM_*, else Ollama http://localhost:11434/v1 + gpt-oss:20b
+    gemini:      doctor GEMINI_DOCTOR_LLM_MODEL (else GEMINI_LLM_MODEL, else gemini-3.1-pro-preview); endpoint
+                 GEMINI_LLM_BASE_URL (else LLM_BASE_URL, else the Gemini OpenAI-compatible URL); key GEMINI_LLM_API_KEY
+                 (else LLM_API_KEY). Patient and judge get the same endpoint and key with GEMINI_PATIENT_LLM_MODEL /
+                 GEMINI_JUDGE_LLM_MODEL (else gemini-3.6-flash), unless PATIENT_LLM_MODEL / JUDGE_LLM_MODEL are set.
+    local:       optional; LOCAL_LLM_*, else Ollama http://localhost:11434/v1 + gpt-oss:20b (doctor only)
     env / dummy: no overrides (env = whatever .env says; dummy = scripted doctor, no LLM)
     """
+    from doctor_agent.config import DEFAULT_DOCTOR_MODEL, DEFAULT_HELPER_MODEL, GEMINI_BASE_URL
+
     g = lambda *keys, default=None: next((env[k] for k in keys if env.get(k)), default)  # noqa: E731
     if preset in ("env", "dummy"):
         return {}
     if preset == "gemini":
-        over = {"DOCTOR_LLM_BASE_URL": g("GEMINI_LLM_BASE_URL", "LLM_BASE_URL"),
-                "DOCTOR_LLM_API_KEY": g("GEMINI_LLM_API_KEY", "LLM_API_KEY"),
-                "DOCTOR_LLM_MODEL": g("GEMINI_LLM_MODEL", "LLM_MODEL")}
+        base = g("GEMINI_LLM_BASE_URL", "LLM_BASE_URL", default=GEMINI_BASE_URL)
+        key = g("GEMINI_LLM_API_KEY", "LLM_API_KEY")
+        over = {"DOCTOR_LLM_BASE_URL": base, "DOCTOR_LLM_API_KEY": key,
+                "DOCTOR_LLM_MODEL": g("GEMINI_DOCTOR_LLM_MODEL", "GEMINI_LLM_MODEL", default=DEFAULT_DOCTOR_MODEL)}
+        for role in ("PATIENT", "JUDGE"):
+            if not env.get(f"{role}_LLM_MODEL"):  # an explicit per-role model wins over the preset
+                over |= {f"{role}_LLM_BASE_URL": base, f"{role}_LLM_API_KEY": key,
+                         f"{role}_LLM_MODEL": g(f"GEMINI_{role}_LLM_MODEL", default=DEFAULT_HELPER_MODEL)}
     elif preset == "local":
         over = {"DOCTOR_LLM_BASE_URL": g("LOCAL_LLM_BASE_URL", default="http://localhost:11434/v1"),
                 "DOCTOR_LLM_API_KEY": g("LOCAL_LLM_API_KEY", default="EMPTY"),
@@ -219,8 +234,10 @@ def describe_doctor(preset: str, env: dict) -> tuple[str, str]:
     """(model, host) for display. Never includes keys."""
     if preset == "dummy":
         return "dummy", "-"
-    model = env.get("DOCTOR_LLM_MODEL") or env.get("LLM_MODEL") or "gpt-oss:20b"
-    base = env.get("DOCTOR_LLM_BASE_URL") or env.get("LLM_BASE_URL") or "http://localhost:11434/v1"
+    from doctor_agent.config import DEFAULT_DOCTOR_MODEL, GEMINI_BASE_URL
+
+    model = env.get("DOCTOR_LLM_MODEL") or env.get("LLM_MODEL") or DEFAULT_DOCTOR_MODEL
+    base = env.get("DOCTOR_LLM_BASE_URL") or env.get("LLM_BASE_URL") or GEMINI_BASE_URL
     return model, urlparse(base).netloc or base
 
 
@@ -272,7 +289,8 @@ def measured_prompt_tokens_per_call(n_turns: float, curve: dict) -> float | None
 
 
 def _is_gpt_oss(model: str | None) -> bool:
-    return model is None or "gpt-oss" in model.lower()
+    """The measured-token fallback below is gpt-oss specific (optional local preset); other models use recorded usage."""
+    return model is not None and "gpt-oss" in model.lower()
 
 
 def history_stats(dirs: list[Path], doctor_model: str | None = None, *, measured: dict | None = None,
@@ -280,7 +298,7 @@ def history_stats(dirs: list[Path], doctor_model: str | None = None, *, measured
     """Per-case doctor calls / tokens and patient turns from past result files (dummy runs ignored).
 
     Calls and turns are model-independent enough to pool. Tokens per call, in order of preference: recorded usage of
-    runs with the same doctor model; for a gpt-oss doctor (or unknown model) the measured gpt-oss prompt tokens
+    runs with the same doctor model; for a gpt-oss doctor (optional local preset) the measured gpt-oss prompt tokens
     (`measured`, default load_measured(), evaluated at the mean case length) and ASSUMED_COMPLETION_TOKENS[effort];
     usage of runs with any other model; DEFAULTS."""
     calls, turns, tok_same, tok_any, files = [], [], [], [], 0
@@ -335,7 +353,7 @@ def history_stats(dirs: list[Path], doctor_model: str | None = None, *, measured
 def estimate(n_cases: list[int], stats: dict, *, doctor: str = "llm", patient: str = "keyword", judge: str = "none",
              margin: float = DEFAULT_MARGIN, price_in: float | None = None, price_out: float | None = None) -> dict:
     """Estimated doctor calls/tokens (the credit-consuming part) and patient/judge calls, per condition and total.
-    Every per-case number gets `margin` on top (past means are from Gemini/Gemma; gpt-oss may take more turns)."""
+    Every per-case number gets `margin` on top (past means are from Gemini Flash/Gemma; another doctor model may take more turns)."""
     pick = lambda k: stats.get(k) if stats.get(k) else DEFAULTS[k]  # noqa: E731
     cpc = pick("doctor_calls_per_case") * margin
     pin, pout = pick("prompt_tokens_per_call") * margin, pick("completion_tokens_per_call") * margin
@@ -381,7 +399,7 @@ def format_estimate(est: dict, names: list[str]) -> str:
     t = est["total"]
     lines.append(f"  {'TOTAL':<14} cases={t['cases']:<4} doctor_calls~{t['doctor_calls']:<6} "
                  f"tokens~{t['prompt_tokens']:,} in / {t['completion_tokens']:,} out"
-                 + (f"  ~{est['cost']:.0f} KRW" if est["cost"] is not None else "  (no prices given: --price-in/--price-out)"))
+                 + (f"  ~{est['cost']:.0f} KRW" if est["cost"] is not None else PRICE_UNKNOWN))
     return "\n".join(lines)
 
 

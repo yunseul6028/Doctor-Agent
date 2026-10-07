@@ -1,5 +1,10 @@
 """Measure the real gpt-oss token counts of the doctor prompts offline (no LLM or API calls).
 
+HISTORICAL / optional: a gpt-oss-tokenizer measurement tool from when gpt-oss-20b was the doctor model. The default
+doctor is now Gemini Pro (src/doctor_agent/config.py), whose tokenizer this does not model; the numbers stay a rough
+size guide for prompts and remain exact for the optional local gpt-oss preset (eval/experiment.py --doctor-endpoint
+local). The output budget below is the gpt-oss setting of that time (GPT_OSS_MAX_TOKENS), not LLMConfig's default.
+
 Cases are replayed through the real `Policy` (hints, ledgers, capped view, safety layers, KB hints) with a scripted
 doctor that never diagnoses early, so every case runs the full 60 turns against the keyword patient. Every prompt the
 policy builds is captured (step prompts including retries, the forced final prompt at turn 60), and at checkpoint turns
@@ -57,6 +62,10 @@ CHECKPOINTS = (1, 5, 10, 20, 40, 60)
 # --max-model-len, Ollama num_ctx), so the report also checks smaller budgets.
 CONTEXT_WINDOW = 131_072
 BUDGETS = (4096, 8192, 16384)
+# gpt-oss output settings this tool reports against (the LLMConfig defaults of that time; now Gemini-oriented)
+GPT_OSS_MAX_TOKENS = 2048
+GPT_OSS_MAX_TOKENS_CAP = 8192
+GPT_OSS_REASONING_EFFORT = "low"
 DEFAULT_DATE = "2026-09-28"  # the template puts today's date in the system message; the digit count is what matters
 
 
@@ -1019,7 +1028,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--cases", default="data/cases_aug", help="case dir (recursive) or one case file")
     ap.add_argument("--limit", type=int, help="first N cases only")
     ap.add_argument("--tokenizer", default="tiktoken", help="tiktoken | tiktoken:<encoding> | hf:<tokenizer.json> | chars")
-    ap.add_argument("--effort", default=LLMConfig().reasoning_effort, help="reasoning effort written in the system message")
+    ap.add_argument("--effort", default=GPT_OSS_REASONING_EFFORT, help="reasoning effort written in the system message")
     ap.add_argument("--turns", default=",".join(map(str, CHECKPOINTS)), help="checkpoint turns")
     ap.add_argument("--max-view-chars", type=int, help="override AGENT_MAX_VIEW_CHARS for the replay")
     ap.add_argument("--json-out", help="write the summary JSON here (eval/experiment.py reads eval/results/token_budget.json)")
@@ -1070,9 +1079,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"\nwrote {out}")
         return 0
     rows = measure(cases, counter, effort=args.effort, cfg=cfg, checkpoints=checkpoints, progress=True)
-    llm = LLMConfig()
-    summary = summarize(rows, checkpoints=checkpoints, max_view_chars=cfg.max_view_chars, max_tokens=llm.max_tokens,
-                        retry_tokens=min(int(llm.max_tokens * llm.length_retry_factor), llm.max_tokens_cap))
+    summary = summarize(rows, checkpoints=checkpoints, max_view_chars=cfg.max_view_chars, max_tokens=GPT_OSS_MAX_TOKENS,
+                        retry_tokens=min(int(GPT_OSS_MAX_TOKENS * LLMConfig().length_retry_factor),
+                                         GPT_OSS_MAX_TOKENS_CAP))
     summary["meta"] = {"tokenizer": counter.name, "effort": args.effort, "cases": len(cases), "source": args.cases,
                        "max_view_chars": cfg.max_view_chars, "prompt_version": prompts.PROMPT_VERSION,
                        "date": time.strftime("%Y-%m-%d"), "seconds": round(time.time() - t0, 1)}

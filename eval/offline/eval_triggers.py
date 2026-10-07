@@ -24,7 +24,7 @@ here is noisy: read differences under ~5 wrong cases as ties.
 
 CURRENT names the rules before the 2026-09-29 calibration, CHOSEN the ones now in the code (config.AgentConfig
 defaults); results and reasoning: docs/experiments.md "trigger calibration". Calibrated on Gemini/Gemma runs only:
-re-run on gpt-oss-20b result files (--results) before trusting the thresholds.
+re-run on result files of the current doctor model (Gemini Pro; --results) before trusting the thresholds.
 
 Paths are relative to the repo root (this file's grandparent's parent).
 """

@@ -77,7 +77,8 @@ def extract_text(resp: object, expect_json: bool = False) -> tuple[str, str, str
 
 
 class OpenAICompatClient:
-    """Client for the doctor LLM, by design gpt-oss-20b (OpenAI-compatible chat completions).
+    """Client for the doctor LLM (any OpenAI-compatible chat-completions endpoint; default Gemini Pro, see config.py).
+    Also handles gpt-oss harmony output and reasoning returned in `reasoning_content` (see extract_text).
 
     Inference talks to this one configured model endpoint only. Never add other external API calls.
 

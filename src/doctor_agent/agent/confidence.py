@@ -60,9 +60,10 @@ MIN_REMAINING = 2  # same as danger_gate.gate: with <= 2 turns left a diagnosis 
 @dataclass
 class ConfidenceParams:
     # Weights act on features in [0, 1]. Values: scripts/calibrate_confidence.py on 11 local runs (226 cases, 1446
-    # decision points, two non-gpt-oss dev doctor models, 2026-09-28), rounded; prior = its HAND_SET.
+    # decision points, two earlier dev doctor models (Gemini Flash / Gemma), 2026-09-28), rounded; prior = its
+    # HAND_SET.
     # dangers_unresolved and kb_agreement fitted to 0 (dangers are handled by the must_continue rule instead; KB rank did not separate right from wrong). Re-validate
-    # after the switch to gpt-oss-20b. See docs/architecture.md "Confidence and stop rule".
+    # on runs of the current doctor model (Gemini Pro). See docs/architecture.md "Confidence and stop rule".
     bias: float = -2.6
     weights: dict = field(default_factory=lambda: {
         "margin": 4.3, "verified_support": 0.45, "contradictions": -0.85, "confirmatory_test": 0.6,

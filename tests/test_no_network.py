@@ -7,7 +7,8 @@ from the syntax tree.
 - imports: only the standard library, the project's own packages, and `openai` (the one allowed client; it only
   talks to the configured LLM endpoint) — no HTTP/socket libraries, provider SDKs, model runtimes or .env loaders;
 - calls: no os.system/os.popen/os.exec*/os.spawn*, no eval/exec/__import__, no load_dotenv;
-- string literals: URLs only for the local default endpoint and citation links (displayed, never fetched).
+- string literals: URLs only for the local endpoint, citation links (displayed, never fetched) and, in config.py
+  only, the host of the default doctor-LLM endpoint (the one allowed endpoint; used only through the client).
 """
 import ast
 import re
@@ -29,6 +30,8 @@ FORBIDDEN_MODULES = {
 }
 FORBIDDEN_CALLS = ("os.system", "os.popen", "os.exec", "os.spawn")
 ALLOWED_URL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "doi.org", "pubmed.ncbi.nlm.nih.gov"}
+# the default doctor-LLM endpoint (Gemini OpenAI-compatible API) may be named in the config defaults only
+ALLOWED_URL_HOSTS_BY_FILE = {"src/doctor_agent/config.py": {"generativelanguage.googleapis.com"}}
 URL = re.compile(r"https?://([A-Za-z0-9.\-]+|\{[^}]*\})")
 
 
@@ -55,6 +58,7 @@ def _dotted(node):
 
 def _problems(path: Path) -> list[str]:
     rel = path.relative_to(ROOT)
+    allowed_hosts = ALLOWED_URL_HOSTS | ALLOWED_URL_HOSTS_BY_FILE.get(rel.as_posix(), set())
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(rel))
     out = []
     for mod, line in _imports(tree):
@@ -77,9 +81,19 @@ def _problems(path: Path) -> list[str]:
             strings += [v.value for v in node.values if isinstance(v, ast.Constant) and isinstance(v.value, str)]
         for s in strings:
             for host in URL.findall(s):
-                if host and not host.startswith("{") and host.lower() not in ALLOWED_URL_HOSTS:
+                if host and not host.startswith("{") and host.lower() not in allowed_hosts:
                     out.append(f"{rel}:{node.lineno}: non-allowlisted URL host {host!r}")
     return out
+
+
+def test_llm_endpoint_host_allowed_only_in_config(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "ROOT", tmp_path)
+    for rel in ("src/doctor_agent/config.py", "src/doctor_agent/other.py"):
+        f = tmp_path / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text('URL = "https://generativelanguage.googleapis.com/v1beta/openai/"\n', encoding="utf-8")
+    assert _problems(tmp_path / "src/doctor_agent/config.py") == []
+    assert _problems(tmp_path / "src/doctor_agent/other.py")
 
 
 def test_runtime_files_found():

@@ -1186,7 +1186,7 @@ def llm_reasons(interp: Interpretation) -> list[str]:
 
 
 def needs_llm(interp: Interpretation) -> bool:
-    """True when the report is too long or complex for the code reading alone (future hook: one extra gpt-oss call
+    """True when the report is too long or complex for the code reading alone (future hook: one extra doctor-LLM call
     with prompts.RESULT_INTERPRETER_PROMPT; nothing is called here)."""
     return bool(llm_reasons(interp))
 
