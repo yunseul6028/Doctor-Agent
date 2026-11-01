@@ -33,6 +33,17 @@
         "v6"
       ],
       "workers": 8
+    },
+    "mini": {
+      "description": "15 public cases (subset of dev), 3 conditions (all on / no safety / no advisors): minimal Gemini Pro ablation.",
+      "cases_file": "eval/case_lists/mini.txt",
+      "size": 15,
+      "conditions": [
+        "v6",
+        "v6-no-safety",
+        "v6-no-advisors"
+      ],
+      "workers": 4
     }
   },
   "conditions": {

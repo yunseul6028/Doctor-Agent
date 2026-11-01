@@ -42,7 +42,7 @@ class LLMConfig:
     # Per-request timeout. ASSUMPTION (not measured): a Pro thinking model with an 8k output budget can take well over
     # a minute per call, so 60 s (the old small-model default) would cut off normal answers.
     timeout_s: float = 180.0
-    max_retries: int = 2
+    max_retries: int = 4  # Gemini Pro preview has tight per-minute limits; 429s get a 30s backoff (see client.chat)
     # A thinking model may spend the whole max_tokens on reasoning (finish_reason="length", empty content): retry once
     # with max_tokens * length_retry_factor (capped at max_tokens_cap) and reasoning_effort="low"
     length_retry_factor: float = 2.0

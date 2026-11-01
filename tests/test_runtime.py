@@ -145,6 +145,17 @@ def test_billing_error_is_not_retried():
     assert len(fake.calls) == 1
 
 
+def test_rate_limit_429_is_retried_not_billing():
+    # Gemini's 429 body mentions "billing details" but is a rate limit, not depletion: retry, don't abort the batch.
+    err = RuntimeError("Error code: 429 - You exceeded your current quota, check your plan and billing details. "
+                       "status: RESOURCE_EXHAUSTED")
+    c, fake = _client(err)
+    with pytest.raises(RuntimeError) as ei:
+        c.chat([{"role": "user", "content": "x"}])
+    assert not isinstance(ei.value, BillingError)
+    assert len(fake.calls) == c.cfg.max_retries + 1  # first try + retries, all rate-limited
+
+
 def test_deadline_stops_retries_and_caps_timeout():
     now = [0.0]
     fake = _FakeOpenAI(RuntimeError("503"))

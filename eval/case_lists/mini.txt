@@ -1,0 +1,16 @@
+# mini profile: 15 public cases (clinicalqa 12 + sample 3), subset of dev.txt, for a minimal Pro ablation
+data/cases_aug/clinicalqa/cqa_113.json
+data/cases_aug/clinicalqa/cqa_128.json
+data/cases_aug/clinicalqa/cqa_148.json
+data/cases_aug/clinicalqa/cqa_157.json
+data/cases_aug/clinicalqa/cqa_227.json
+data/cases_aug/clinicalqa/cqa_231.json
+data/cases_aug/clinicalqa/cqa_234.json
+data/cases_aug/clinicalqa/cqa_238.json
+data/cases_aug/clinicalqa/cqa_245.json
+data/cases_aug/clinicalqa/cqa_285.json
+data/cases_aug/clinicalqa/cqa_3.json
+data/cases_aug/clinicalqa/cqa_330.json
+data/cases_aug/sample/synthetic_002.json
+data/cases_aug/sample/synthetic_003.json
+data/cases_aug/sample/synthetic_004.json

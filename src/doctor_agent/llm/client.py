@@ -18,8 +18,15 @@ class LLMTimeout(RuntimeError):
 
 
 def _is_billing_error(e: Exception) -> bool:
-    msg = str(e)
-    return "402" in msg or "credits are depleted" in msg or "billing" in msg.lower() and "RESOURCE_EXHAUSTED" in msg
+    """Fatal, do-not-retry: credits/billing are actually exhausted (HTTP 402).
+
+    A 429 RESOURCE_EXHAUSTED is a *rate limit*, not depletion, even though Gemini's 429 body says
+    "check your plan and billing details" — it is retryable (see the 429 backoff in chat()), so it must NOT land here.
+    """
+    msg = str(e).lower()
+    if "429" in msg or "resource_exhausted" in msg:
+        return False
+    return "402" in msg or "credits are depleted" in msg or "billing has not been enabled" in msg
 
 
 def _is_bad_request(e: Exception) -> bool:
