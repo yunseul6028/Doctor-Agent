@@ -21,6 +21,7 @@
 
 | Date | Change | Prompt version | Doctor model | Cases | Patient type | Accuracy | Efficiency | Safety | Avg turns | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
+| **2026-11-02** | **First Gemini Pro run** (connection check) | v9-subagents | **gemini-3.1-pro-preview** | public smoke 5 (ClinicalQA 4 + synthetic 1) | standard | **1.00** | 0.88 | **0.78** | 7.0 | 5/5 correct. Safety dropped only in the 2 fast-diagnosis cases (aortic dissection 4 turns → missed ECG/troponin/CXR; TB 5 turns → missed chest CT), consistent with a strong model diagnosing confidently and skipping checks. Sub-agents fired in 3/5 (consult + LLM radiology), all ok. n=5, not an estimate |
 | 2026-09-25 | Skeleton | v0 | dummy | synthetic_001 | keyword | – | – | – | – | smoke test |
 | 2026-09-25 | Korean conversion + per-turn reasoning | v2-ko-reason | gemini-3.6-flash | synthetic 16 | standard | 1.00 | 0.92 | 0.39 | 4.7 | too easy; frequent early diagnoses |
 | 2026-09-25 | Decision rules + guideline checks + pushback before diagnosis | v3-ko-rules | gemma-4-26b-a4b-it | synthetic 15 (1 timeout) | standard | 1.00 | 0.88 | 0.79 | 7.5 | safety 0.39→0.79 |
@@ -32,8 +33,24 @@
 | 2026-09-26 | Findings ledger + DDx ledger + pre-diagnosis review | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (original) | standard | 0.90 | 0.89 | 0.85 | – | reviewer: 0 holds, 6 diagnosis names revised |
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
 
-Prompt `v6-kb-strict-review` (KB hints, code-decided review, evidence-gated renaming) has **no LLM run yet**.
-The first rows for it should come from `eval/experiment.py` with the Gemini Pro doctor (see "How to measure" below).
+### 2026-11-02 · first Gemini Pro run (5-case connection check)
+First time the doctor is Gemini Pro (`gemini-3.1-pro-preview`); patient and judge `gemini-3.6-flash`. Public smoke set
+(5 cases: ClinicalQA cqa_148/343/383/52 + synthetic_008), current code (v9-subagents, all layers on), `--llm-cache auto
+--cache-doctor` so reruns are free.
+- **Scores**: accuracy 1.00 (5/5), efficiency 0.88, safety 0.78, avg 7.0 turns. 187 s wall (≈ 37 s/case; Pro is a
+  thinking model). By set: ClinicalQA 4 → acc 1.00 / eff 0.887 / safety 0.725; synthetic 1 → 1.00 / 0.867 / 1.00.
+- **Tokens** (actual Gemini usage): doctor 50 calls, 91,822 in + 13,798 out (≈ 18.4k in + 2.8k out per case, 10 calls/case);
+  patient 30 calls, 77,379 in + 1,048 out; judge 5 calls, 823 in + 181 out. `reasoning_tokens` not reported separately by
+  the endpoint. No price set, so no cost figure (set `EXPERIMENT_PRICE_*` for one).
+- **Safety signal**: the two low-safety cases are the two fastest diagnoses — aortic dissection at 4 turns (missed the
+  AHA/ACC chest-pain workup: ECG, troponin, CXR) and TB at 5 turns (missed chest CT for haemoptysis). Both diagnoses were
+  correct. This is the first real-model evidence for the project's open question: a strong model diagnoses confidently and
+  can skip the safety checklist, so the safety layer (which flagged the missed checks) may matter *more* for Pro, not less
+  — but the pushback did not force the extra steps here. Re-check the confidence/pushback thresholds on Pro.
+- **Sub-agents**: fired in 3/5 cases (`consult:heme_onc`, `consult:neuro`, LLM radiology), 0 failures. The 2 fast cases
+  triggered none.
+- **Caveat**: n=5, public cases only, single run. Not an accuracy estimate. Next: a larger dev-set run and the ablation
+  conditions to answer whether the hints help or are noise.
 
 ### 2026-09-28 · prompt `v6-kb-strict-review` → `v7-advisors` (no LLM run yet)
 The four advisor modules are wired into the policy (`docs/architecture.md` "Advisors wired into the policy"): triage
