@@ -78,3 +78,15 @@ def test_safety_layers_never_crash(monkeypatch):
     st = CaseState(initial_info="26세 여성. 주호소: 복통")
     act = Policy(Scripted([_step("TEST", "복부 CT")]), _cfg()).next_action(st)
     assert act.content == "복부 CT" and st.safety_log[-1].get("error")
+
+
+def test_safety_pushback_is_logged():
+    # chest pain → pending protocol checks; diagnosing immediately triggers the one-time pushback, which must be logged.
+    st = CaseState(initial_info="61세 남성. 주호소: 30분 전부터 시작된 가슴 통증")
+    review = json.dumps({"key_findings": [], "contradicting": [], "confirmation": "", "unresolved_danger": []},
+                        ensure_ascii=False)
+    # danger gate + confidence off so the retry's DIAGNOSE is returned; the pushback (step 6) still fires and logs.
+    Policy(Scripted([_step("DIAGNOSE", "급성 관상동맥 증후군"), review]),
+           _cfg(use_danger_gate=False, use_confidence=False)).next_action(st)
+    assert any(e["layer"] == "safety_pushback" and e.get("kind") == "pushback" for e in st.safety_log)
+    assert st.safety_pushback is True

@@ -96,6 +96,9 @@ class Policy:
                 if pending:
                     # one pushback per case: diagnose anyway only with a stated reason
                     state.safety_pushback = True
+                    state.safety_log.append({"turn": state.turn_count + 1, "layer": "safety_pushback",
+                                             "kind": "pushback", "proposed": action.content,
+                                             "msg": "진단 전 안전 확인 되묻기(증례당 1회): " + ", ".join(c.name for c in pending)})
                     hints = hints + ["진단 전에 아직 안 한 필수 안전 확인이 있습니다: " + ", ".join(c.name for c in pending)
                                      + ". 이 중 하나를 먼저 하세요. 정말 불필요하면 reason에 그 이유를 쓰고 진단하세요."]
                     continue

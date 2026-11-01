@@ -49,8 +49,29 @@ First time the doctor is Gemini Pro (`gemini-3.1-pro-preview`); patient and judg
   — but the pushback did not force the extra steps here. Re-check the confidence/pushback thresholds on Pro.
 - **Sub-agents**: fired in 3/5 cases (`consult:heme_onc`, `consult:neuro`, LLM radiology), 0 failures. The 2 fast cases
   triggered none.
-- **Caveat**: n=5, public cases only, single run. Not an accuracy estimate. Next: a larger dev-set run and the ablation
-  conditions to answer whether the hints help or are noise.
+- **Caveat**: n=5, public cases only, single run. Not an accuracy estimate.
+
+### 2026-11-02 · aborted mini ablation + variance warning (budget-limited)
+Tried a 15-case × 3-condition ablation and then a 5-case × 2-condition one; stopped early for cost. Two lessons, no
+conclusion on the ablation itself:
+- **Variance is large at n=5.** A second run of the *same* v6 config on the same 5 cases gave accuracy 0.70 / safety 0.46
+  (vs 1.00 / 0.78 on the first run). cqa_343 flipped from a correct "비타민 B12 결핍" to a wrong "크로이츠펠트-야콥병";
+  several cases diagnosed in far fewer turns (cqa_383 2 vs 5, synthetic_008 3 vs 8). Cause: Gemini Pro at temperature > 0
+  plus an LLM patient. **Do not draw ablation conclusions from 5-case runs.** A meaningful component comparison needs tens
+  of cases and ideally repeats — more budget than available now.
+- **Reproducible qualitative finding (both runs):** Pro diagnoses fast and confidently and skips the safety checklist on
+  the fastest cases (TB at 2 turns → 0 of the haemoptysis-protocol checks; aortic dissection at 4 turns → missed ECG /
+  troponin / CXR, with code confidence 0.97 → must_continue). The safety layer correctly *flags* the gaps, but the
+  **one-time** safety pushback and the danger gate (which lets a confirmed danger-as-diagnosis through) do not *force* the
+  chief-complaint checks. This is the project's open question answered in one direction: for a strong model the soft
+  nudges are too weak; harder enforcement (repeat the pushback, or make the gate require the chief-complaint protocol) is
+  the lever — but changing it needs LLM validation (budget) and is left as future work.
+- **Code fix made now (no behaviour change, free):** the safety pushback fired but was never written to `safety_log`, so
+  the viewer showed nothing for these cases. Added a `safety_pushback` log entry (policy.py); dummy smoke unchanged.
+- **Rate-limit fix (from the aborted run):** a Gemini 429 RESOURCE_EXHAUSTED was misclassified as credit depletion and
+  aborted the whole batch; now only 402 is fatal, 429 is retried (see the client change, 2026-11-02).
+
+### 2026-09-28 · prompt `v6-kb-strict-review` → `v7-advisors` (no LLM run yet)
 
 ### 2026-09-28 · prompt `v6-kb-strict-review` → `v7-advisors` (no LLM run yet)
 The four advisor modules are wired into the policy (`docs/architecture.md` "Advisors wired into the policy"): triage
