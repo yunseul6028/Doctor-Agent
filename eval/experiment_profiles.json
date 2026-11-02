@@ -44,6 +44,16 @@
         "v6-no-advisors"
       ],
       "workers": 4
+    },
+    "mini2": {
+      "description": "5 public smoke cases, 2 conditions (all on / no safety): minimal Pro ablation on the safety layer.",
+      "cases_file": "eval/case_lists/smoke.txt",
+      "size": 5,
+      "conditions": [
+        "v6",
+        "v6-no-safety"
+      ],
+      "workers": 1
     }
   },
   "conditions": {

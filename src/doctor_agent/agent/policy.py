@@ -290,6 +290,12 @@ class Policy:
             return "", None
         try:
             ddx = anchoring.initial_differential(state.initial_info)
+            # drop dangers already shown in the "반드시 배제할 위험 질환" hint (same prompt): keep the common causes,
+            # which is where the starting DDx adds value. Lossless — the danger stays in the cant-miss hint.
+            cant = set(protocols.cant_miss_for(state.initial_info))
+            ddx = [d for d in ddx if not (d.get("tag") == "위험" and str(d.get("dx")) in cant)]
+            if not ddx:
+                return "", None
             names = [str(d.get("dx")) for d in ddx]
             return anchoring.render_for_prompt(ddx), {"turn": 1, "layer": "anchoring", "kind": "initial_ddx",
                                                       "ddx": names, "msg": "초기 감별 목록: " + ", ".join(names)}
