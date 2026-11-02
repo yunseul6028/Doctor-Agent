@@ -205,6 +205,21 @@ gap), a bare "포화도" is a transferrin saturation only in an iron panel (a ca
 side as direction ("ferritin_low" present = "low", was "high"). Tests: `tests/test_refrange.py`. Gold metrics
 unchanged (findings gold .945 F1; result-interpreter gold 1.00 / 1.00).
 
+A **body-fluid analysis** (CSF/뇌척수액/요추천자, 흉수/pleural, 복수/ascites, 관절액/활액/synovial) is its own context: its
+numbers are fluid cell counts and fluid chemistries, never blood values. `result_interpreter` derives the fluid kind
+from the test name + text (`kb_tests.fluid_context`) and passes it as `parse(..., context={"fluid": …})`, which
+`findings.py` also reads from the text itself. In that context a blood-only analyte (`Finding.blood_only`:
+`glucose_very_high`, `hba1c_high`, `uric_high`) and a blood count / blood glucose (`_BLOOD_LABS` = wbc/hb/plt/glu,
+`_BLOOD_CONCEPTS`) are not read off the fluid value — a blood glucose counts only where its own value is stated
+("동시 혈당 105" / "혈청 glucose 52"), so a normal simultaneous blood glucose stops a wrong hypoglycaemia reading of a low
+CSF glucose, while a truly low one is still read. The gonorrhea/organism Gram-stain rules get the fluid word (via
+each `Finding.not_if`), so "그람음성 쌍구균" in CSF is meningococcus, not gonorrhoea. The CSF / joint-fluid *report*
+findings (`csf_bacterial`, `csf_lymphocytic`, `synovial_wbc_high`, `synovial_pus`; `Finding.fluid_report`) still fire
+even when the fluid word sits only in the test name (detect prepends it). Sweep over all case + run result texts: 126
+wrong blood readings removed, 29 correct fluid-report readings added, zero polarity/direction/critical regressions.
+Tests: `tests/test_kb_tests.py::test_body_fluid_context_suppresses_blood_analytes`,
+`tests/test_result_interpreter.py::test_csf_result_not_read_as_blood_values` (+ synovial / blood-marked analogues).
+
 ## Known gaps
 
 Coordination across a comma with sites ("머리 양쪽이랑 이마, 뒷목까지 … 아파요") and elided heads ("간 및 비장 종대

@@ -275,6 +275,35 @@ def test_prompt_template():
     assert "JSON" in prompts.RESULT_INTERPRETER_PROMPT and "우하엽 경화" in msgs[1]["content"]
 
 
+def test_csf_result_not_read_as_blood_values():
+    """A CSF (lumbar puncture) result: the CSF glucose is not blood hypoglycaemia (especially when a normal blood
+    glucose is stated alongside), the CSF cell count is not a blood WBC, and gram-negative diplococci are meningococcus
+    rather than gonorrhoea. The bacterial-meningitis reading (neutrophils / low CSF glucose) must still fire."""
+    name = "요추천자 (뇌척수액 압력, 세포수, 단백질, 포도당, 그람염색, 배양)"
+    text = ("개방압 32 cmH2O, 혼탁, 백혈구 2,400/μL(호중구 92%), 단백 245 mg/dL, "
+            "당 18 mg/dL(동시 혈당 105 mg/dL), 그람염색: 그람음성 쌍구균")
+    it = interpret(name, text)
+    concepts = {i.concept for i in it.items if i.polarity == "present"}
+    assert "LAB:glucose_low" not in concepts       # CSF glucose is not blood hypoglycaemia
+    assert "LAB:wbc_low" not in concepts            # CSF cell count is not a blood leukopenia
+    assert "LAB:gonorrhea_pos" not in concepts      # gram-negative diplococci in CSF = N. meningitidis
+    assert "LAB:csf_bacterial" in concepts          # bacterial meningitis still read
+    assert not any(i.concept == "LAB:glucose_low" and i.critical for i in it.items)
+
+
+def test_blood_glucose_still_read_in_csf_test_when_truly_low():
+    # a blood glucose stated with its own value inside a CSF test is a real reading (hypoglycaemia here)
+    it = interpret("요추천자(뇌척수액)", "당 18 mg/dL (동시 혈당 52 mg/dL)")
+    assert pol(it, "LAB:glucose_low") == {"present"} and item(it, "LAB:glucose_low").value == 52
+
+
+def test_synovial_fluid_count_not_a_blood_wbc():
+    # joint-fluid WBC in a septic-arthritis work-up: the fluid count is read as synovial leukocytosis, not blood
+    it = interpret("무릎 관절천자 (관절액 세포수, 그람염색, 결정)", "백혈구 85,000/μL(다형핵 90%), 그람염색 양성")
+    assert "LAB:wbc_high" not in {i.concept for i in it.items if i.polarity == "present"}
+    assert pol(it, "LAB:synovial_wbc_high") == {"present"}
+
+
 def test_gold_sets_score_at_least_the_recorded_floor():
     """Offline gold sets (eval/offline/eval_result_interp.py): guard against regressions."""
     import importlib.util

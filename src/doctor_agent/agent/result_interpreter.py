@@ -228,6 +228,16 @@ def _test_region(test_name: str) -> str:
     return next((name for name, rx in _TEST_REGION_RX if rx.search(t)), "")
 
 
+def _fluid_context(text: str) -> str:
+    """"csf"/"pleural"/"ascitic"/"joint" if this is a body-fluid analysis (knowledge/kb_tests holds the patterns),
+    else "". The parser works without the KB module."""
+    try:
+        from doctor_agent.knowledge import kb_tests
+    except Exception:  # noqa: BLE001
+        return ""
+    return kb_tests.fluid_context(text)
+
+
 def _regions_in(text: str) -> list[tuple[int, int, str]]:
     out = []
     for name, rx in _REGION_RX:
@@ -746,6 +756,10 @@ class _Reader:
             age = F.age_from_text(ctx.get("initial_info") or "") if ctx.get("initial_info") else None
         self.age = float(age) if isinstance(age, (int, float)) else None
         self.source = "exam" if self.kind == "exam" else "test"
+        # CSF / pleural / ascitic / joint-fluid analysis: the fluid word is usually in the test name only ("요추천자
+        # (뇌척수액 …)"), so derive it from name + text and pass it down the parse path (blood analytes are not read off
+        # fluid values; the CSF/joint report findings still fire)
+        self.fluid = _fluid_context((self.test_name + " " + self.raw))
         self.interp = Interpretation(self.test_name, self.kind, text_len=len(self.raw))
         self.normal_seen = False
 
@@ -815,7 +829,12 @@ class _Reader:
                                              and len(ptext) <= 40 and not re.search(r"\d", ptext)):
                 self.normal_seen = True
         regions = _regions_in(sent)
-        ctx = {"age_years": self.age} if self.age is not None else None
+        ctx: dict = {}
+        if self.age is not None:
+            ctx["age_years"] = self.age
+        if self.fluid:
+            ctx["fluid"] = self.fluid  # CSF / body-fluid analysis (from the test name): no blood reading of fluid values
+        ctx = ctx or None
         out: list[Item] = []
         taken: list[tuple[int, int]] = []
         imaging = self.kind in ("imaging", "ecg")

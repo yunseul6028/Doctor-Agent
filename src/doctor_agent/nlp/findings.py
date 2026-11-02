@@ -306,11 +306,38 @@ _LABS: list[tuple[str, str, str | None, float | None, str | None, float | None]]
     ("eos", r"호산구|(?<![a-z])(?:eos|eosinophils?)(?![a-z])", "LAB:eos_high", 7, None, None),
 ]
 _LAB_RX = [(k, re.compile(p), hi, th, lo, tl) for k, p, hi, th, lo, tl in _LABS]
+# blood counts / blood glucose that must not be read off a body-fluid (CSF / pleural / ascitic / joint) value: CSF
+# pleocytosis is knowledge/kb_tests' csf_bacterial/csf_lymphocytic, not a blood WBC, and CSF glucose is not blood glucose
+_BLOOD_LABS = frozenset({"wbc", "hb", "plt", "glu"})
+# the concepts those blood labs map to: in a body-fluid analysis a qualitative mention of one of these (no measured
+# value) is a fluid finding, not a blood reading, so it is dropped (run()).
+_BLOOD_CONCEPTS = frozenset({"LAB:wbc_high", "LAB:wbc_low", "LAB:hb_low", "LAB:plt_high", "LAB:plt_low",
+                             "LAB:glucose_high", "LAB:glucose_low", "LAB:glucose_very_high"})
 _VALUE = re.compile(r"[^\d<>≤≥\n,;]{0,14}?([<>≤≥]=?\s*)?(\d+(?:\.\d+)?)\s*(만|천)?\s*((?:x|×)\s?10\s?\^?\s?[0-9³]|k)?\s*"
                     r"(%|[a-zμ/.³^0-9]+(?:/[a-zμ.0-9]+)?)?")
 _REF = re.compile(r"^\s*\(([^()]*?)\)")  # a parenthesis right after a value; read by knowledge/refrange.py
 _QUAL_NORMAL = re.compile(r"^[^\d,;]{0,10}?(?:정상|음성|normal|negative|wnl|이상\s?없|범위\s?내)")
 _URINE_CTX = re.compile(r"소변|요검사|요\s?분석|urinalysis|u/a|요침사|hpf|비중|요\s?배양")
+# a cerebrospinal- or body-fluid analysis: its numbers are fluid cell counts / fluid chemistries, not blood values. The
+# context word usually sits in the test name ("요추천자 (뇌척수액 …)"), which the caller passes in context["fluid"]; the
+# words are also matched in the text itself (knowledge/kb_tests.fluid_context holds the authoritative patterns).
+_FLUID_CTX = re.compile(r"뇌척수액|척수액|요추\s?천자|csf|cerebrospinal|lumbar punctur|수막염|뇌수막염|meningitis"
+                        r"|흉수|흉막\s?액|늑막\s?액|pleural (?:fluid|effusion)|흉강\s?천자|thoracentesis"
+                        r"|복수(?!\s?화)|복막\s?액|ascit|복강\s?천자|관절\s?액|활액|synovial|관절\s?천자|arthrocentesis")
+# a normal blood glucose stated alongside a fluid glucose ("CSF 당 18 (동시 혈당 105)"): the fluid glucose is not a blood
+# hypo-/hyperglycaemia, and the stated blood glucose is the one to read
+_BLOOD_GLU = re.compile(r"(?:동시|혈청|혈장|serum|plasma|blood)\s?(?:혈당|glucose|당)\s?(?:[:=]?\s?)(\d{2,3})")
+_FLUID_KINDS = [
+    ("csf", re.compile(r"뇌척수액|척수액|요추\s?천자|csf|cerebrospinal|lumbar punctur|수막염|뇌수막염|meningitis")),
+    ("pleural", re.compile(r"흉수|흉막\s?액|늑막\s?액|pleural (?:fluid|effusion)|흉강\s?천자|thoracentesis")),
+    ("ascitic", re.compile(r"복수(?!\s?화)|복막\s?액|ascit|복강\s?천자")),
+    ("joint", re.compile(r"관절\s?액|활액|synovial|관절\s?천자|arthrocentesis")),
+]
+
+
+def _fluid_kind(text: str) -> str:
+    low = (text or "").lower()
+    return next((k for k, rx in _FLUID_KINDS if rx.search(low)), "")
 _URINE_ITEMS = [
     ("LAB:urine_blood", re.compile(r"(?:잠혈|occult blood|(?<![a-z])blood)\s*:?\s*(음성|양성|negative|positive|trace|미량|\+{1,4}|[1-4]\+)")),
     ("LAB:proteinuria", re.compile(r"(?:(?<![가-힣])단백(?:질)?|요단백|protein)\s*:?\s*(음성|양성|negative|positive|trace|미량|\+{1,4}|[1-4]\+)")),
@@ -498,6 +525,10 @@ class _Parser:
         # a relative or partner speaking for the patient ("(남편) 아내가 헛소리를 해요"): the person word for the patient
         # is the patient, the speaker's "저" is someone else
         self.proxy_patient = _proxy_patient(self.t)
+        # CSF / pleural / ascitic / joint-fluid analysis: the caller (result_interpreter) passes context["fluid"] from
+        # the test name; the fluid words are also read from this text. In that context a blood analyte (glucose, CBC) is
+        # not read off the fluid value.
+        self.fluid = self.ctx.get("fluid") or (_fluid_kind(self.t) if _FLUID_CTX.search(self.t) else "")
 
     def _subject_marks(self, sent: str) -> list[tuple[int, str]]:
         """(position, "family"|"other"|"self") of the person words in a sentence, plus family-history headings without
@@ -525,6 +556,11 @@ class _Parser:
             out += self._sentence(sent, a, is_q)
         if self.ctx.get("question") and self.source == "patient":
             out += self._yes_no(out)
+        if self.fluid:
+            # a body-fluid analysis: a blood-count / blood-glucose concept that is only a qualitative mention (no
+            # measured value) describes the fluid, not blood ("관절액 당 ... 혈당 대비 감소"). A value-backed blood reading
+            # has already been kept/suppressed in _labs (a blood glucose stated with its own number survives).
+            out = [f for f in out if not (f.concept in _BLOOD_CONCEPTS and f.value is None)]
         return _dedupe(out, self.lex, self.source)
 
     # -------------------------------------------------------------- per sentence
@@ -793,9 +829,17 @@ class _Parser:
     def _labs(self, ctext: str, coff: int, clause: str, sent: str) -> list[Finding]:
         out: list[Finding] = []
         urine = bool(_URINE_CTX.search(sent))
+        # a CSF / pleural / ascitic / joint-fluid analysis: its WBC / glucose / Hb / platelet numbers are fluid values,
+        # not blood counts or blood glucose. Read a blood glucose only where it is explicitly marked as such
+        # ("동시 혈당 105", "혈청 glucose"); a bare glucose / cell count in the fluid is left unread (no wrong blood finding).
+        fluid = bool(self.fluid)
         for key, rx, hi, th, lo, tl in _LAB_RX:
             for m in rx.finditer(ctext):
                 after = ctext[m.end():m.end() + 60]
+                if fluid and key in _BLOOD_LABS:
+                    before = ctext[max(0, m.start() - 8):m.start()]
+                    if not (key == "glu" and re.search(r"동시|혈청|혈장|serum|plasma|blood", before)):
+                        continue  # a fluid cell count / fluid glucose, not a blood value
                 if key in ("wbc",) and urine and re.match(r"[^\d]{0,6}\d+(?:\s*-\s*\d+)?\s*/\s*hpf", after):
                     continue
                 if re.match(r"\s?(?:수치(?:가|는)?\s?)?(?:상승|증가|높|감소|저하|낮|↑|↓)", after):
@@ -880,7 +924,7 @@ class _Parser:
         out = []
         for c in clauses:
             ctext = sent[c.start:c.end]
-            for fid, (pol, by_value) in kb_tests.detect(ctext).items():
+            for fid, (pol, by_value) in kb_tests.detect(ctext, fluid=self.fluid).items():
                 cids = self.lex.by_kb("TF:" + fid)
                 if not cids:
                     continue

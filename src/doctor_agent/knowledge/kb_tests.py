@@ -217,6 +217,12 @@ class Finding:
     need_value: bool = False       # hi/lo: only a measured value can make it abnormal ("혈당이 높다" ≠ glucose ≥ 250)
     cutoff: bool = False           # hi/lo: the finding is an absolute cut-off ("AST > 1000"), not "outside the reference
                                    # range": a printed range can only make the value normal, never abnormal by itself
+    blood_only: bool = False       # the analyte is a *blood* value (plasma glucose, HbA1c, serum uric acid, ...): it must
+                                   # not be read off a cerebrospinal- / body-fluid value (CSF, pleural, ascitic, joint
+                                   # fluid). detect(..., fluid=...) suppresses it in that context.
+    fluid_report: str = ""         # a body-fluid report finding ("csf"/"pleural"/"ascitic"/"joint"): its pattern opens
+                                   # with the fluid word, which often sits only in the test name. When detect() is told
+                                   # that fluid, the word is prepended to the clause so the finding can still fire.
 
     def parsed_links(self) -> list[tuple[str, int, bool, str]]:
         out = []
@@ -601,12 +607,13 @@ FINDINGS: list[Finding] = [
       "cppd:3:cppd"),
     F("chondrocalcinosis", "X선: 연골석회화", "X-ray: chondrocalcinosis", "kw", r"연골\s*석회|chondrocalcinosis", "cppd:2:cppd"),
     F("uric_high", "요산 상승", "elevated serum uric acid", "hi", r"(?<!소변\s)요산(?!\s*(나트륨|염|결정))|uric acid",
-      "gout:1:gout2015", thr=7.0),
+      "gout:1:gout2015", thr=7.0, blood_only=True),
     F("synovial_wbc_high", "관절액 백혈구 증가(>50,000)", "synovial fluid WBC > 50,000/µL", "hi",
-      r"(관절액|활액|synovial).{0,30}(백혈구|wbc|세포\s*수|cell count)", "septic_arthritis:3:septic_arthritis", thr=50000, need_value=True),
+      r"(관절액|활액|synovial).{0,30}(백혈구|wbc|세포\s*수|cell count)", "septic_arthritis:3:septic_arthritis",
+      thr=50000, need_value=True, fluid_report="joint"),
     F("synovial_pus", "관절액: 혼탁·그람염색/배양 양성", "synovial fluid: purulent / Gram stain or culture positive", "kw",
       r"(관절액|활액|synovial).{0,40}(그람|gram|배양|culture).{0,25}(양성|구균|간균|검출|성장|positive|cocci)|(관절액|활액).{0,15}(농|고름|탁한|혼탁|purulent|turbid)",
-      "septic_arthritis:3:septic_arthritis"),
+      "septic_arthritis:3:septic_arthritis", fluid_report="joint"),
     F("ck_high", "CK 현저한 상승", "markedly elevated creatine kinase", "hi",
       r"(?<![a-z])c[p]?k(?![a-z-])|크레아틴\s*(포스포)?\s*키나[아]?제|creatine (phospho)?kinase",
       "polymyositis:2:myositis dermatomyositis:2:myositis nms:1:textbook", thr=1000, need_value=True),
@@ -628,10 +635,10 @@ FINDINGS: list[Finding] = [
     # ---------------- endocrine
     F("hba1c_high", "당화혈색소 ≥6.5%", "HbA1c ≥ 6.5%", "hi",
       r"hb\s*a1c|당화\s*(혈색소|헤모글로빈)|(?<![a-z])a1c(?![a-z])|glycated h[ae]moglobin|glycosylated",
-      "dm:3R:ada2024 t2dm:2:ada2024 t1dm:1:ada2024", thr=6.4),
+      "dm:3R:ada2024 t2dm:2:ada2024 t1dm:1:ada2024", thr=6.4, blood_only=True),
     F("glucose_very_high", "혈당 현저한 상승(≥250)", "plasma glucose ≥ 250 mg/dL", "hi",
       r"혈당|glucose|(?<![a-z])fbs(?![a-z])|blood sugar|(?<![a-z])bst(?![a-z])|포도당",
-      "dm:2:ada2024 dka:1:dka t1dm:1:ada2024", thr=249, units={"mmol": 18.0}, need_value=True),
+      "dm:2:ada2024 dka:1:dka t1dm:1:ada2024", thr=249, units={"mmol": 18.0}, need_value=True, blood_only=True),
     F("ketone_pos", "케톤 양성", "ketones positive (serum or urine)", "pos",
       r"케톤|ketone|하이드록시\s*부티르산|hydroxybutyrate|(?<![a-z])bhb(?![a-z])", "dka:3R:dka t1dm:1:dka"),
     F("anion_gap_high", "음이온차 증가", "high anion gap", "hi", r"음이온\s*차|anion gap",
@@ -788,10 +795,10 @@ FINDINGS: list[Finding] = [
       "gbs:2:gbs"),
     F("csf_bacterial", "뇌척수액: 호중구 증가·당 감소(세균성)", "CSF: neutrophilic pleocytosis / low glucose", "kw",
       r"(뇌척수액|csf|요추\s*천자|척수액).{0,80}(호중구|다형핵|neutrophil|polymorph|혼탁|탁한|cloudy|turbid|포도당\s*(감소|저하|낮)|glucose\s*(low|decreas)|그람\s*(양성|음성)|gram[- ](positive|negative))",
-      "bacterial_meningitis:3R:mening meningitis:2:mening"),
+      "bacterial_meningitis:3R:mening meningitis:2:mening", fluid_report="csf"),
     F("csf_lymphocytic", "뇌척수액: 림프구 우세 세포 증가", "CSF: lymphocytic pleocytosis", "kw",
       r"(뇌척수액|csf|척수액).{0,80}(림프구|lymphocyt|단핵구|mononuclear)",
-      "viral_meningitis:2:mening meningitis:1:mening encephalitis:1:textbook viral_encephalitis:1:textbook crypto_meningitis:1:textbook"),
+      "viral_meningitis:2:mening meningitis:1:mening encephalitis:1:textbook viral_encephalitis:1:textbook crypto_meningitis:1:textbook", fluid_report="csf"),
     F("hsv_pcr_pos", "뇌척수액 HSV PCR 양성", "CSF HSV PCR positive", "pos",
       r"((?<![a-z])hsv|herpes simplex|단순\s*포진).{0,20}(pcr|dna)", "encephalitis:3:textbook viral_encephalitis:3:textbook"),
     F("crypto_pos", "크립토콕쿠스 항원·묵즙 양성", "cryptococcal antigen / India ink positive", "pos",
@@ -961,6 +968,33 @@ _LIMIT_ONLY = re.compile(r"^\s*(?:(?:[<>≤≥]|<=|>=|=<|=>)\s*|(?:less than|low
                          r"|more than|higher than|at least)\s+)?" + _N + r"(?:[-~–]\s*" + _N + r")?"
                          r"(?:미만|이하|이상|초과|or (?:less|more|below|above|lower|higher|greater))?\s*$")
 _SEG = re.compile(r"[;\n]|,\s+|,(?=[^\d\s])|\s/\s|\s-\s|·")
+
+# A cerebrospinal- or body-fluid analysis: numbers in it are fluid cell counts / fluid chemistries, never blood values.
+# The context word usually sits in the *test name* ("요추천자 (뇌척수액 …)", "흉수 천자"), which is clause-split away from the
+# result sentence, so detect() takes it as a `fluid` argument the caller derives from the test name + whole text.
+_FLUID_WORDS = {
+    "csf": r"뇌척수액|척수액|요추\s*천자|csf|lumbar punctur|spinal fluid|cerebrospinal|수막염|뇌수막염|meningitis",
+    "pleural": r"흉수|흉막\s*액|늑막\s*액|pleural (?:fluid|effusion)|흉강\s*천자|thoracentesis",
+    "ascitic": r"복수(?!\s*화)|복막\s*액|ascit|paracentesis|복강\s*천자",
+    "joint": r"관절\s*액|활액|synovial|joint fluid|관절\s*천자|arthrocentesis",
+}
+# a plain keyword per fluid that any fluid-aware not_if (e.g. gonorrhea_pos' "뇌척수액|csf|수막") will match; detect()
+# appends it to the clause so a rule suppresses on the fluid context even when the fluid word is only in the test name
+_FLUID_TAG = {"csf": "뇌척수액 csf 수막", "pleural": "흉수 pleural", "ascitic": "복수 ascites", "joint": "관절액 synovial"}
+# the single plain word a fluid-report regex opens with, prepended to a clause whose fluid word is only in the test name
+_FLUID_LEAD = {"csf": "뇌척수액 ", "pleural": "흉수 ", "ascitic": "복수 ", "joint": "관절액 "}
+_FLUID_CTX = re.compile("|".join(_FLUID_WORDS.values()))
+
+
+def fluid_context(text: str) -> str:
+    """"csf" / "pleural" / "ascitic" / "joint" if `text` (a test name and/or its result) is a body-fluid analysis,
+    else "". Used to suppress blood-analyte readings of fluid values (see Finding.blood_only) and to let the CSF
+    report findings fire when the fluid word is only in the test name."""
+    low = (text or "").lower()
+    for kind, pat in _FLUID_WORDS.items():
+        if re.search(pat, low):
+            return kind
+    return ""
 
 
 def _unit_norm(u: str) -> str:
@@ -1176,32 +1210,48 @@ def _polarity(f: Finding, seg: str, s: int, e: int, refs) -> tuple[int, bool]:
     return (1 if v < f.thr else -1), True
 
 
-def detect(text: str, context: int = 1) -> dict[str, tuple[int, bool]]:
+def detect(text: str, context: int = 1, fluid: str = "") -> dict[str, tuple[int, bool]]:
     """Test findings in one finding text → {finding id: (polarity, value_based)}.
 
     context: +1 for a finding reported as present (a bare analyte name in a very short text counts as abnormal),
-    -1 for one reported as absent/normal (every detected finding is normal unless a measured value says otherwise)."""
+    -1 for one reported as absent/normal (every detected finding is normal unless a measured value says otherwise).
+    fluid: "" / "csf" / "pleural" / "ascitic" / "joint" (fluid_context() of the test name + whole result). In a
+    body-fluid analysis a blood-only analyte (Finding.blood_only) is not read off the fluid value, and the fluid
+    context word -- usually in the test name, not this clause -- is made visible to each finding's not_if so a rule
+    such as gonorrhea_pos (not_if=뇌척수액|csf|수막) suppresses correctly on a CSF Gram stain."""
     low = (text or "").lower()
     if not low or len(low) > 600:
         low = low[:600]
     # a text reported absent that itself says what is normal ("케톤 음성", "담관 확장 없음") keeps its own polarity;
     # one that does not ("트로포닌 상승" marked absent) is normal as a whole
     flip = context < 0 and not re.search(_NEG_W, low)
+    # the fluid word the caller found (CSF/pleural/...): append it so not_if and the CSF report findings see the
+    # context even when it lives only in the test name
+    fluid_tag = _FLUID_TAG.get(fluid, "")
     out: dict[str, tuple[int, bool]] = {}
     for seg in _SEG.split(low):
         seg = seg.strip()
         if len(seg) < 2:
             continue
         seg, refs = _ref_ranges(seg)
+        not_if_seg = seg + (" " + fluid_tag if fluid_tag else "")
         for f, pat, not_if in _COMPILED:
-            m = analyte_match(f, seg, low, pat)
-            if not m or (not_if and not_if.search(seg)):
+            if fluid and f.blood_only:
+                continue  # a blood analyte is not a fluid value
+            mseg, moff = seg, 0
+            if f.fluid_report and f.fluid_report == fluid and not re.search(_FLUID_CTX, seg):
+                # the fluid word is only in the test name: prepend it so the report regex ("뇌척수액 … 호중구") can fire
+                prefix = _FLUID_LEAD[fluid]
+                mseg, moff = prefix + seg, len(prefix)
+            m = analyte_match(f, mseg, low, pat)
+            if not m or (not_if and not_if.search(not_if_seg)):
                 continue
-            pol, by_value = _polarity(f, seg, m.start(), m.end(), refs)
+            ms, me = max(0, m.start() - moff), max(0, m.end() - moff)
+            pol, by_value = _polarity(f, seg, ms, me, refs)
             if context < 0 and not by_value and (flip or pol == 0):
                 pol = -1
             elif pol == 0 and context > 0 and f.mode != "kw" and not f.need_value \
-                    and len(seg) <= (m.end() - m.start()) + 6:
+                    and len(seg) <= (me - ms) + 6:
                 pol = 1
             if pol == 0:
                 continue

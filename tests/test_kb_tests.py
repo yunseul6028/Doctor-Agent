@@ -85,6 +85,24 @@ def test_detect_false_positives(text, fid):
     assert fid not in kb_tests.detect(text), kb_tests.detect(text)
 
 
+def test_body_fluid_context_suppresses_blood_analytes():
+    """A CSF / body-fluid analysis: blood-only analytes are not read off the fluid value, the gonorrhea Gram-stain
+    rule is suppressed (gram-negative diplococci in CSF = meningococcus), and the CSF report findings still fire even
+    though the fluid word ("뇌척수액") sits only in the test name (detect receives it as `fluid`)."""
+    assert kb_tests.fluid_context("요추천자 (뇌척수액 압력, 세포수, 포도당, 그람염색)") == "csf"
+    assert kb_tests.fluid_context("혈액검사 CBC") == ""
+    csf = ("개방압 32 cmH2O, 혼탁, 백혈구 2,400/μL(호중구 92%), 단백 245 mg/dL, "
+           "당 18 mg/dL(동시 혈당 105 mg/dL), 그람염색: 그람음성 쌍구균")
+    plain = kb_tests.detect(csf)
+    assert plain.get("gonorrhea_pos", (0,))[0] == 1  # without the fluid context it misreads
+    got = kb_tests.detect(csf, fluid="csf")
+    assert "gonorrhea_pos" not in got           # gram-negative diplococci in CSF are not gonorrhea
+    assert "glucose_very_high" not in got        # a blood glucose analyte is not read off a CSF glucose
+    assert got.get("csf_bacterial", (0,))[0] == 1  # neutrophilic pleocytosis / low glucose still read
+    # a gonorrhea Gram stain that really is a urethral/cervical swab is unaffected
+    assert kb_tests.detect("임균 PCR 양성").get("gonorrhea_pos", (0,))[0] == 1
+
+
 def test_negative_context():
     # a finding reported absent with no negation wording of its own → normal
     assert kb_tests.detect("트로포닌 상승", context=-1)["troponin_high"][0] == -1

@@ -577,6 +577,31 @@ of young flank pain without an aortopathy clue — unchanged from before, now ju
   fires only with the clue), febrile murmur cases (IE blood cultures), infant bilious vomiting, HHS cases with HCO3
   15-17; compare Safety (missed must-checks) and turns with the previous commit.
 
+### 2026-11-02 · body-fluid context: blood analytes not read off CSF / fluid values (`nlp/findings.py`, `knowledge/kb_tests.py`, `agent/result_interpreter.py`; code only, no LLM)
+No case run, so no Accuracy / Efficiency / Safety row. Expected effect on **Accuracy** (no false blood hypoglycaemia /
+leukopenia / gonorrhoea from a CSF or joint-fluid result) and **Safety** (bacterial-meningitis / septic-arthritis
+readings now surface even when the fluid word is only in the test name). Triggered by a Gemini Pro run that read one
+CSF result ("당 18 mg/dL(동시 혈당 105)", "백혈구 2,400/μL", "그람음성 쌍구균") as `glucose_low` critical + `wbc_low` +
+`gonorrhea_pos`. Same class as the 포화도 / AG / 천공 context fixes: a blood-analyte concept firing on a body-fluid value.
+- General rule (docs/nlp.md): a CSF / pleural / ascitic / joint-fluid analysis is its own context, derived from the
+  test name + text (`kb_tests.fluid_context`, passed as `parse(context={"fluid": …})`). Blood-only analytes
+  (`Finding.blood_only`), blood counts and blood glucose (`_BLOOD_LABS` / `_BLOOD_CONCEPTS`) are not read off the fluid
+  value; a blood glucose is read only where its own value is stated ("동시 혈당 105" → normal, so no wrong hypoglycaemia;
+  "동시 혈당 52" → still read). The gonorrhea/organism `not_if` now sees the fluid word, and the CSF / joint report
+  findings (`csf_bacterial`, `csf_lymphocytic`, `synovial_wbc_high`, `synovial_pus`; `Finding.fluid_report`) fire even
+  when the fluid word sits only in the test name. **Why the gonorrhea `not_if` had failed**: it was correct
+  (`뇌척수액|csf|수막`) but checked per clause, and the result segmentation ("…, 그람염색: 그람음성 쌍구균") splits the clause
+  from the test name, so the CSF word never reached the clause; detect now appends the fluid tag to each clause.
+- Sweep of ~13.7k result texts (data/cases_aug, data/cases_*, data/sample_cases, non-dummy eval/results runs) through
+  `parse` / `detect` / `interpret`, before -> after: **126 wrong blood readings removed** (wbc_high 44, glucose_low 39,
+  glucose_very_high 22, wbc_low 11, gonorrhea_pos 7, glucose_high 3 — all on CSF/joint/pleural fluid values), **29
+  correct fluid-report readings added** (csf_bacterial 13, synovial_wbc_high 8, csf_lymphocytic 7, synovial_pus 1),
+  **0 polarity/direction/critical regressions** on surviving readings.
+- Gold unchanged: result-interpreter gold dev 1.00/1.00 (116), fresh 1.00/1.00 (66); `scripts/label_findings.py
+  metrics` all P/R/F1/accuracy identical (only parse_ms timing jitter). Tests +4 (1440 -> 1444). Regression tests:
+  `tests/test_kb_tests.py::test_body_fluid_context_suppresses_blood_analytes`,
+  `tests/test_result_interpreter.py::test_csf_result_not_read_as_blood_values` (+ synovial / blood-marked-glucose).
+
 ### 2026-09-30 · result interpreter: kb_tests lab polarity trusted (`agent/result_interpreter.py`; code only, no LLM)
 No case run, so no Accuracy / Efficiency / Safety row; expected effect is on **Safety** (a lab value above its printed
 Korean "N 미만" range is no longer read as normal) and **Accuracy** (no false "ESR > 50" / "AST > 1000" readings).
