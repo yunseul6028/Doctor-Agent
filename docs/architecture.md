@@ -187,7 +187,10 @@ Interfaces (`knowledge/kb.py`, all backward compatible):
 - `knowledge/kb_tests.py`: 262 result concepts, 452 links (186 decisive / 127 strong / 139 nonspecific; 41 rule-out)
   to 229 profiles, 96 reference keys (95 PMID-verified + `textbook`). `detect(text)` parses numbers vs. reference
   ranges (incl. reported ranges, fold-of-ULN, titres, `<`), qualitative +/−, imaging/ECG/pathology keywords with
-  negation, and ignores history, rule-out intent and pending results. Build stores
+  negation, and ignores history, rule-out intent and pending results. `detect(text, context=1, fluid="")`: with a
+  body-fluid context (`fluid="csf"|"pleural"|"ascitic"|"joint"`, from `fluid_context(test_name+text)`) a `blood_only`
+  analyte is not read off the fluid value, the fluid word reaches each `not_if` (gonorrhea in CSF), and `fluid_report`
+  findings fire when the word is only in the test name. Build stores
   `findings_from_tests = [[term_id, ["curated"], weight, ref_key, "R"|""]]` per profile and `meta.test_refs`.
 
 KB hints (`agent/kb_hints.py`, per case `seen` set, each ≤ 400 chars):
