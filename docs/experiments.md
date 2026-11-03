@@ -32,6 +32,8 @@
 | 2026-09-26 | Same | v4-ko-confidence | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | 0.94 | 0.91 | 0.86 | – | augmentation effect +0.03 |
 | 2026-09-26 | Findings ledger + DDx ledger + pre-diagnosis review | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (original) | standard | 0.90 | 0.89 | 0.85 | – | reviewer: 0 holds, 6 diagnosis names revised |
 | 2026-09-26 | Same | v5-ko-ledger-review | gemini-3.5-flash-lite | ClinicalQA 40 (augmented) | standard | **0.99** | 0.92 | 0.72 | – | reviewer: 0 holds, 11 names revised (bipolar II, ATN, long QT fixed). Safety drop is mostly protocol false triggers |
+| 2026-11-03 | experiment `mini` / v6 | v9-subagents | gemini-3.1-pro-preview | mini 15 | standard | 0.87 | 0.88 | 0.91 | 7.0 | n/a rate 0.22; doctor usage: 106 calls, 181,717 in / 30,575 out; cache: doctor 31/146 hit, saved 46,741 in / 8,271 out; patient 25/90 hit, saved 63,600 in / 837 out; judge 3/15 hit, saved 493 in / 119 out; `run_20261102_011512_mini-v6` |
+| 2026-11-03 | experiment `mini` / v6-no-safety | v9-subagents | gemini-3.1-pro-preview | mini 15 | standard | 0.93 | 0.88 | 0.80 | 7.4 | n/a rate 0.23; doctor usage: 145 calls, 245,553 in / 40,468 out; cache: patient 6/96 hit, saved 14,898 in / 277 out; judge 11/15 hit, saved 1,872 in / 433 out; `run_20261103_091106_mini-v6-no-safety` |
 
 ### 2026-11-02 · first Gemini Pro run (5-case connection check)
 First time the doctor is Gemini Pro (`gemini-3.1-pro-preview`); patient and judge `gemini-3.6-flash`. Public smoke set
@@ -674,3 +676,28 @@ then `gate(state, gold)`; "initial-only" = forced steps when the gold diagnosis 
   dyspnoea is now gated only after a clue appears or the model flags it 위험 in the ledger.
 - Verify on gpt-oss-20b (eval-simulator): dyspnoea cases (HF and non-HF), febrile infection cases (turn count, lactate
   requests), early-pregnancy / postmenopausal abdominal pain; compare turns and Safety with the previous commit.
+
+## Auto-logged experiment runs
+
+Written by `python eval/experiment.py --log` (newest last).
+
+### 2026-11-03 · profile `mini` · doctor gemini-3.1-pro-preview · patient standard · judge llm
+
+Conditions: v6-no-safety. Commit 9755737.
+
+Shared cases: 15
+
+| Set | Run | n | acc | eff | safety | turns | n/a rate |
+|---|---|---|---|---|---|---|---|
+| ALL | mini:v6 · v9-subagents · f5a5061 | 15 | 0.87 | 0.88 | 0.91 | 7.0 | 0.22 |
+| ALL | mini:v6-no-safety · v9-subagents · 9755737 | 15 | 0.93 | 0.88 | 0.80 | 7.4 | 0.23 |
+| clinicalqa | mini:v6 · v9-subagents · f5a5061 | 12 | 0.83 | 0.88 | 0.96 | 7.5 | 0.28 |
+| clinicalqa | mini:v6-no-safety · v9-subagents · 9755737 | 12 | 0.92 | 0.86 | 0.88 | 8.2 | 0.28 |
+| sample | mini:v6 · v9-subagents · f5a5061 | 3 | 1.00 | 0.92 | 0.77 | 5.0 | 0.00 |
+| sample | mini:v6-no-safety · v9-subagents · 9755737 | 3 | 1.00 | 0.93 | 0.62 | 4.3 | 0.00 |
+
+**mini:v6 · v9-subagents · f5a5061 → mini:v6-no-safety · v9-subagents · 9755737**: right→wrong 0, wrong→right 1
+
+| | Case | Answer | Before | After |
+|---|---|---|---|---|
+| + | clinicalqa/cqa_231 | 쇼그렌 증후군 | 류마티스 관절염 | 쇼그렌 증후군 |
